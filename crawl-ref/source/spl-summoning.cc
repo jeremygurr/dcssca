@@ -341,10 +341,8 @@ spret_type cast_monstrous_menagerie(actor* caster, int pow, god_type god, bool f
 spret_type cast_summon_hydra(actor *caster, int pow, god_type god, bool fail)
 {
     fail_check();
-    // Power determines number of heads. Minimum 4 heads, maximum 12.
-    // Rare to get more than 8.
-    const int maxheads = one_chance_in(6) ? 12 : 8;
-    const int heads = max(4, min(random2(pow) / 6, maxheads));
+    const int maxheads = 20;
+    const int heads = max(4, min(random2(pow) / 10, maxheads));
 
     // Duration is always very short - just 1.
     mgen_data mg(MONS_HYDRA, BEH_COPY, caster,
