@@ -1698,8 +1698,8 @@ static bool _raise_remains(const coord_def &pos, int corps, beh_type beha,
     if (!mons)
         return false;
 
-    if (god == GOD_NO_GOD) // only Yred dead-raising lasts forever.
-        mons->add_ench(mon_enchant(ENCH_FAKE_ABJURATION, 6));
+//    if (god == GOD_NO_GOD) // only Yred dead-raising lasts forever.
+//        mons->add_ench(mon_enchant(ENCH_FAKE_ABJURATION, 6));
 
     // If the original monster has been levelled up, its HD might be different
     // from its class HD, in which case its HP should be rerolled to match.
