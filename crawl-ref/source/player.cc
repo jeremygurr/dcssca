@@ -2698,12 +2698,6 @@ void gain_floor_exp()
 
 void gain_exp(unsigned int exp_gained, unsigned int* actual_gain)
 {
-    if (crawl_state.difficulty == DIFFICULTY_EASY)
-        exp_gained *= 3;
-
-    if (crawl_state.difficulty == DIFFICULTY_HARD)
-        exp_gained /= 3;
-
     if (crawl_state.game_is_arena())
         return;
 
@@ -3835,6 +3829,12 @@ unsigned int exp_needed(int lev, int exp_apt)
     }
     else
     {
+        if (crawl_state.difficulty == DIFFICULTY_EASY)
+            exp_apt+=2;
+
+        if (crawl_state.difficulty == DIFFICULTY_HARD)
+            exp_apt-=2;
+
         const float apt_factor = apt_to_factor(exp_apt - 1);
         needed_exp = stepup2(lev, 2, 4) * 5 * apt_factor * apt_factor * apt_factor + 10;
     }
