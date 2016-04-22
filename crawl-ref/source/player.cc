@@ -2011,17 +2011,17 @@ int player_movement_speed()
     if (you.run())
         mv -= 200;
 
-//	if (you.species == SP_LAVA_ORC) {
-//		if (you.temperature < TEMP_COOL) {
-//			mv += 100;
+	if (you.species == SP_LAVA_ORC) {
+		if (you.temperature < TEMP_COOL) {
+			mv += 100;
 //		}
 //		if (you.temperature >= TEMP_ROOM) {
 //			mv -= 100;
 //		}
 //		if (you.temperature >= TEMP_HOT) {
 //			mv -= 100;
-//		}
-//	}
+		}
+	}
 
     mv += you.wearing_ego(EQ_ALL_ARMOUR, SPARM_PONDEROUSNESS) * 100;
 
