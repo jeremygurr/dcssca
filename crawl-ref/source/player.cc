@@ -2059,6 +2059,9 @@ int player_movement_speed()
     if (you.exertion == EXERT_POWER)
         mv = mv * 3 / 4;
 
+    if (you.exertion == EXERT_CAREFUL)
+        mv = mv * 4 / 3;
+
     mv = div_rand_round(mv, 100);
 
     // We'll use the old value of six as a minimum, with haste this could
@@ -2691,11 +2694,7 @@ const int _experience_for_this_floor(int multiplier) {
         }
 
         exp *= multiplier;
-
-        if (you.where_are_you != BRANCH_DUNGEON)
-            exp /= 2;
-
-        exp = div_rand_round(exp, 100);
+        exp = div_rand_round(exp, 300);
         exp = max(5 * how_deep, exp);
     }
 
@@ -3522,7 +3521,7 @@ int check_stealth()
         stealth /= 3;
 
     if (you.exertion == EXERT_POWER)
-        stealth >>= 2;
+        stealth >>= 1;
 
     if (you.exertion == EXERT_CAREFUL)
         stealth <<= 1;
@@ -4570,15 +4569,13 @@ int get_real_sp(bool include_items)
     int max_sp = 100;
 
     int boost = 0;
+//    boost += you.scan_artefacts(ARTP_MAGICAL_POWER);
     boost += player_mutation_level(MUT_HIGH_STAMINA);
     boost -= player_mutation_level(MUT_LOW_STAMINA);
-    boost += you.wearing(EQ_RINGS, RING_STAMINA);
+    const int num_stamina_rings = you.wearing(EQ_RINGS, RING_STAMINA);
+    for (int i = 0; i < num_stamina_rings; i++)
+        boost += 2;
     boost += you.scan_artefacts(ARTP_STAMINA);
-
-    if (crawl_state.difficulty == DIFFICULTY_EASY)
-        boost++;
-    if (crawl_state.difficulty == DIFFICULTY_HARD)
-        boost--;
 
     max_sp = qpow(max_sp, 5, 4, boost);
 
@@ -4606,13 +4603,19 @@ int get_real_mp(bool include_items)
                + (you.attribute[ATTR_DIVINE_VIGOUR] * 5)
                - (player_mutation_level(MUT_LOW_MAGIC) * 10);
     enp /= 100 * scale;
+//    enp = stepdown_value(enp, 9, 18, 45, 100)
     enp += species_mp_modifier(you.species);
 
     // This is our "rotted" base, applied after multipliers
     enp += you.mp_max_adj;
 
-    // straight boost to mp, since things are hard in thie fork for magic users
-    enp += 5;
+    if (crawl_state.difficulty == DIFFICULTY_EASY)
+    	enp += 12;
+    if (crawl_state.difficulty == DIFFICULTY_NORMAL)
+        enp += 8;
+    if (crawl_state.difficulty == DIFFICULTY_HARD)
+        enp += 4;
+
     if (you.char_class == JOB_SUMMONER)
         enp += 5;
 
@@ -4631,11 +4634,6 @@ int get_real_mp(bool include_items)
     if (include_items && you.wearing_ego(EQ_WEAPON, SPWPN_ANTIMAGIC))
         enp /= 3;
 
-    if (crawl_state.difficulty == DIFFICULTY_EASY)
-        enp = enp * 3 / 2;
-    if (crawl_state.difficulty == DIFFICULTY_HARD)
-        enp = enp * 2 / 3;
-
     enp = max(enp, 4);
     enp -= you.mp_frozen_summons;
     enp = max(enp, 0);
@@ -4649,11 +4647,6 @@ bool player_regenerates_hp()
         return false;
     if (you.species == SP_VAMPIRE && you.hunger_state <= HS_STARVING)
         return false;
-    return true;
-}
-
-bool player_regenerates_sp()
-{
     return true;
 }
 
@@ -5636,7 +5629,6 @@ player::player()
     max_level       = 1;
     hit_points_regeneration   = 0;
     magic_points_regeneration = 0;
-    stamina_points_regeneration = 0;
     experience       = 0;
     total_experience = 0;
     experience_level = 1;
@@ -6458,10 +6450,13 @@ int player::racial_ac(bool temp) const
     if (!(player_is_shapechanged() && temp))
     {
         if (species == SP_NAGA)
-            return 100 * experience_level / 3;              // max 9
+            return 100 * experience_level / 3;  		// max 9
+        if (species == SP_LAVA_ORC)
+            && temperature() < TEMP_WARM; 			// 1-8
+            return 300 + 100 * experience_level / 9;		// max 6 or so
         else if (species == SP_GARGOYLE)
         {
-            return 200 + 100 * experience_level * 2 / 5     // max 20
+            return 200 + 100 * experience_level * 2 / 5     	// max 20
                        + 100 * (max(0, experience_level - 7) * 2 / 5);
         }
     }
@@ -6605,7 +6600,11 @@ int player::evasion(ev_ignore_type evit, const actor* act) const
     const int invis_penalty = attacker_invis && !(evit & EV_IGNORE_HELPLESS) ?
                               10 : 0;
 
-    int amount_of_stairs_penalty = 0;
+    int amount_of_stairs_penalty = 7;
+    if (crawl_state.difficulty == DIFFICULTY_EASY)
+        amount_of_stairs_penalty = 1;
+    if (crawl_state.difficulty == DIFFICULTY_NORMAL)
+        amount_of_stairs_penalty = 3;
 
     const int stairs_penalty = player_stair_delay()
                                 && !(evit & EV_IGNORE_HELPLESS) ?
@@ -7820,7 +7819,7 @@ bool player::cannot_act() const
 
 bool player::can_throw_large_rocks() const
 {
-    return species_can_throw_large_rocks(species) || you.strength(true) > 30;
+    return species_can_throw_large_rocks(species) || you.strength(true) > 20;
 }
 
 bool player::can_smell() const
@@ -8051,14 +8050,6 @@ void player::set_gold(int amount)
 
 void player::increase_duration(duration_type dur, int turns, int cap, const char *msg, source_type source)
 {
-    if (dur == DUR_EXHAUSTED)
-    {
-        const int sp_loss = dur / 4;
-        dec_sp(sp_loss);
-        duration[DUR_EXHAUSTED] = 0;
-        return;
-    }
-
     if (msg)
         mpr(msg);
     cap *= BASELINE_DELAY;
@@ -8066,8 +8057,6 @@ void player::increase_duration(duration_type dur, int turns, int cap, const char
     duration[dur] += turns * BASELINE_DELAY;
     if (cap && duration[dur] > cap)
         duration[dur] = cap;
-    if (dur == DUR_BERSERK || dur == DUR_INVIS || dur == DUR_HASTE)
-        inc_sp(turns * 8);
 
     duration_source[dur] = source;
 }
@@ -8406,7 +8395,7 @@ void temperature_check()
 void temperature_increment(float degree)
 {
     // No warming up while you're exhausted!
-    if (you.duration[DUR_EXHAUSTED] || player_is_tired(true))
+    if (you.duration[DUR_EXHAUSTED])
         return;
 
     you.temperature += sqrt(degree);
@@ -8517,7 +8506,7 @@ bool temperature_effect(int which)
 //      case nothing, right now:
 //            return (you.temperature >= TEMP_COOL && you.temperature < TEMP_WARM); // 5-8
         case LORC_LAVA_BOOST:
-            return temperature() >= TEMP_WARM && temperature() < TEMP_HOT; // 9-10
+            return temperature() >= TEMP_WARM && temperature() < TEMP_MAX; // 9-10
         case LORC_FIRE_RES_II:
             return temperature() >= TEMP_WARM; // 9-15
         case LORC_FIRE_RES_III:
@@ -8788,13 +8777,11 @@ void player_close_door(coord_def doorpos)
             return;
         }
 
-        /*
         if (igrd(dc) != NON_ITEM)
         {
             mprf("There's something blocking the %s.", waynoun);
             return;
         }
-        */
 
         if (you.pos() == dc)
         {
