@@ -1257,7 +1257,7 @@ public:
 class PotionPorridge : public PotionEffect
 {
 private:
-    PotionPorridge() : PotionEffect(POT_PORRIDGE) { }
+    PotionPorridge() : PotionEffect(POT_AMBROSIA) { }
     DISALLOW_COPY_AND_ASSIGN(PotionPorridge);
 public:
     static const PotionPorridge &instance()
