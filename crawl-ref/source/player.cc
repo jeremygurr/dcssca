@@ -4637,7 +4637,7 @@ int get_real_mp(bool include_items)
         enp = enp * 2 / 3;
 
     enp = max(enp, 4);
-    enp -= you.mp_frozen_summons;
+//    enp -= you.mp_frozen_summons;
     enp = max(enp, 0);
 
     return enp;
