@@ -241,7 +241,7 @@ public:
         int amount = 0;
         if (is_device)
         {
-            amount = you.hp_max * (1 - pow((200 - power) / 100.0, 2));
+            amount = you.hp_max * (1.0 - (double)pow((200 - power) / 200.0, 2.0));
             if (amount > you.hp_max - you.hp)
                 amount = you.hp_max - you.hp;
 
