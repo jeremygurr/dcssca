@@ -1817,7 +1817,7 @@ bool load_ghost(bool creating_level)
         if (do_diagnostics)
         {
             unplaced_ghosts--;
-            if (!mons->alive())
+            if (!mons->alive()) && (!mons->SP_MOON_TROLL)
             {
                 mprf(MSGCH_DIAGNOSTICS, "Placed ghost is not alive.");
                 ghost_errors = true;
