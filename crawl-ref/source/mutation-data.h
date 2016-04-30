@@ -1562,7 +1562,7 @@ static const mutation_def mut_data[] =
   {"", "", ""},
 },
 
-{ MUT_FOUL_STENCH, 20, 2, mutflag::GOOD, false,
+{ MUT_FOUL_STENCH, 20, 3, mutflag::GOOD, false,
   "foul stench",
 
   {"You may emit foul miasma when damaged in melee.",
