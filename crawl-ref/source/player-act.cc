@@ -163,7 +163,7 @@ int player::get_max_xl() const
     const int inexperienced = player_mutation_level(MUT_INEXPERIENCED);
     int max_xl = 27 - inexperienced * RU_SAC_XP_LEVELS;
     if (!inexperienced && !Options.level_27_cap)
-        max_xl = MAX_EXP_LEVEL;
+        max_xl = get_max_exp_level();
     return max_xl;
 }
 
@@ -398,7 +398,7 @@ bool player::could_wield(const item_def &item, bool ignore_brand,
                          bool ignore_transform, bool quiet) const
 {
     // Only ogres and trolls can wield large rocks (for sandblast).
-    if (!species_can_throw_large_rocks(you.species)
+    if (!you.can_throw_large_rocks()
         && item.is_type(OBJ_MISSILES, MI_LARGE_ROCK))
     {
         if (!quiet)
@@ -773,7 +773,7 @@ bool player::go_berserk(bool intentional, bool potion)
 
     int berserk_duration = (20 + random2avg(19,2)) / 2;
 
-    you.increase_duration(DUR_BERSERK, berserk_duration);
+    you.increase_duration(DUR_BERSERK, berserk_duration, 0, nullptr, potion ? SRC_POTION : SRC_UNDEFINED);
 
     calc_hp();
     set_hp(you.hp * 3 / 2);
@@ -820,14 +820,14 @@ bool player::can_go_berserk(bool intentional, bool potion, bool quiet,
         msg = "You're already berserk!";
     else if (duration[DUR_EXHAUSTED])
          msg = "You're too exhausted to go berserk.";
+    else if (player_is_tired(true) && !potion)
+        msg = "You are too tired to berserk now.";
     else if (duration[DUR_DEATHS_DOOR])
-        msg = "Your body is effectively dead and in no shape for a blood rage.";
+        msg = "You can't enter a blood rage from death's door.";
     else if (beheld() && !player_equip_unrand(UNRAND_DEMON_AXE))
         msg = "You are too mesmerised to rage.";
     else if (afraid())
         msg = "You are too terrified to rage.";
-//    else if (you.species == SP_DJINNI)
-//        msg = "Only creatures of flesh and blood can berserk.";
     else if (is_lifeless_undead())
         msg = "You cannot raise a blood rage in your lifeless body.";
     // Stasis for identified amulets; unided amulets will trigger when the

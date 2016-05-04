@@ -123,6 +123,7 @@ static bool ignore_player_traversability = false;
 // Map of terrain types that are forbidden.
 static FixedVector<int8_t,NUM_FEATURES> forbidden_terrain;
 
+
 /*
  * Warn if interlevel travel is going to take you outside levels in
  * the range [src,dest].
@@ -613,9 +614,9 @@ static int _slowest_ally_speed()
 
 static void _start_running()
 {
+
     _userdef_run_startrunning_hook();
     you.running.init_travel_speed();
-
     if (you.running < 0)
         start_delay(DELAY_TRAVEL, 1);
 }
@@ -924,8 +925,6 @@ command_type travel()
 
     if (you.running.is_explore())
     {
-        unsummon_all();
-
         if (Options.explore_auto_rest && !you.is_sufficiently_rested())
             return CMD_WAIT;
 
@@ -2949,6 +2948,7 @@ void start_travel(const coord_def& p)
 
 void start_explore(bool grab_items)
 {
+    player_before_long_safe_action();
     if (Hints.hints_explored)
         Hints.hints_explored = false;
 
@@ -3926,7 +3926,7 @@ bool can_travel_interlevel()
 // Shift-running and resting.
 
 runrest::runrest()
-    : runmode(0), mp(0), hp(0), pos(0,0)
+    : runmode(0), mp(0), hp(0), sp(0), pos(0,0)
 {
 }
 
@@ -3936,9 +3936,11 @@ void runrest::initialise(int dir, int mode)
 {
     // Note HP and MP for reference.
     hp = you.hp;
+    sp = you.sp;
     mp = you.magic_points;
     notified_hp_full = false;
     notified_mp_full = false;
+    notified_sp_full = false;
     init_travel_speed();
 
     if (dir == RDIR_REST)
@@ -4133,8 +4135,9 @@ void runrest::clear()
 {
     runmode = RMODE_NOT_RUNNING;
     pos.reset();
-    mp = hp = travel_speed = 0;
+    mp = sp = hp = travel_speed = 0;
     notified_hp_full = false;
+    notified_sp_full = false;
     notified_mp_full = false;
 
     _reset_zigzag_info();

@@ -131,6 +131,7 @@ const char* jewellery_base_ability_string(int subtype)
     case AMU_HARM:                return "Harm *Drain";
     case AMU_DISMISSAL:           return "Dismiss";
     case AMU_MANA_REGENERATION:   return "RegenMP";
+    case AMU_STAMINA_REGENERATION:return "RegenSP";
     case AMU_THE_GOURMAND:        return "Gourm";
 #if TAG_MAJOR_VERSION == 34
     case AMU_CONSERVATION:        return "Cons";
@@ -218,6 +219,7 @@ static vector<string> _randart_propnames(const item_def& item,
         { ARTP_DEXTERITY,             PROPN_NUMERAL },
         { ARTP_SLAYING,               PROPN_NUMERAL },
         { ARTP_SHIELDING,             PROPN_NUMERAL },
+        { ARTP_STAMINA,               PROPN_NUMERAL },
 
         // Qualitative attributes (and Stealth)
         { ARTP_SEE_INVISIBLE,         PROPN_PLAIN },
@@ -384,6 +386,8 @@ static const char* _jewellery_base_ability_description(int subtype)
         return "It may teleport away creatures that harm you.";
     case AMU_MANA_REGENERATION:
         return "It increases your magic regeneration.";
+    case AMU_STAMINA_REGENERATION:
+        return "It increases your stamina regeneration.";
     case AMU_THE_GOURMAND:
         return "It allows you to eat raw meat even when not hungry.";
 #if TAG_MAJOR_VERSION == 34
@@ -440,6 +444,7 @@ static string _randart_descrip(const item_def &item)
                                  "enchantments.", false},
         { ARTP_HP, "It affects your health (%d).", false},
         { ARTP_MAGICAL_POWER, "It affects your magic capacity (%d).", false},
+        { ARTP_STAMINA, "It affects your stamina capacity (%d).", false},
         { ARTP_SEE_INVISIBLE, "It lets you see invisible.", false},
         { ARTP_INVISIBLE, "It lets you turn invisible.", false},
         { ARTP_FLY, "It lets you fly.", false},
@@ -3056,10 +3061,6 @@ static string _monster_spells_description(const monster_info& mi)
     if (mi.type == MONS_PANDEMONIUM_LORD)
         return "It may possess any of a vast number of diabolical powers.\n";
 
-    // Ditto for (a)liches.
-    if (mi.type == MONS_LICH || mi.type == MONS_ANCIENT_LICH)
-        return "It has mastered any of a vast number of powerful spells.\n";
-
     // Show monster spells and spell-like abilities.
     if (!mi.has_spells())
         return "";
@@ -3758,8 +3759,6 @@ void get_monster_db_desc(const monster_info& mi, describe_info &inf,
             inf.body << "emergency, ";
         if (hspell_pass[i].flags & MON_SPELL_NATURAL)
             inf.body << "natural, ";
-        if (hspell_pass[i].flags & MON_SPELL_DEMONIC)
-            inf.body << "demonic, ";
         if (hspell_pass[i].flags & MON_SPELL_MAGICAL)
             inf.body << "magical, ";
         if (hspell_pass[i].flags & MON_SPELL_WIZARD)

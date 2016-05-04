@@ -151,7 +151,8 @@ static bool _fill_out_corpse(const monster& mons, item_def& corpse)
         corpse.props[CORPSE_NAME_TYPE_KEY].get_int64() = 0;
     }
 
-    if (mons_genus(mons.type) == MONS_ORC)
+    // 0 mid indicates this is a dummy monster, such as for kiku corpse drop
+    if (mons_genus(mons.type) == MONS_ORC && mons.mid != 0)
     {
         auto &saved_mon = corpse.props[ORC_CORPSE_KEY].get_monster();
         saved_mon = mons;
@@ -443,13 +444,18 @@ item_def* place_monster_corpse(const monster& mons, bool silent, bool force)
            && mons_class_flag(draco_or_demonspawn_subspecies(&mons),
                               M_ALWAYS_CORPSE);
 
+    int o = get_mitm_slot();
+
+    if (o == NON_ITEM)
+        return nullptr;
+
+    item_def& corpse(mitm[o]);
+
+    bool corpse_remains = true;
+
     // 50/50 chance of getting a corpse, usually.
     if (!no_coinflip && coinflip())
         return nullptr;
-
-    // 25% chance of dropping corpse if on hard mode, instead of 50%.
-//    if (crawl_state.difficulty == DIFFICULTY_HARD && !no_coinflip && coinflip())
-//        return nullptr;
 
     // The game can attempt to place a corpse for an out-of-bounds monster
     // if a shifter turns into a giant spore and explodes. In this
@@ -466,12 +472,6 @@ item_def* place_monster_corpse(const monster& mons, bool silent, bool force)
     if (mons.props.exists(NEVER_CORPSE_KEY))
         return nullptr;
 
-    int o = get_mitm_slot();
-
-    if (o == NON_ITEM)
-        return nullptr;
-
-    item_def& corpse(mitm[o]);
     if (goldify)
     {
         _gold_pile(corpse, mons_species(mons.type));
@@ -496,8 +496,75 @@ item_def* place_monster_corpse(const monster& mons, bool silent, bool force)
         return nullptr;
     }
 
-    if (in_bounds(mons.pos()))
+    const int gain_stamina = player_mutation_level(MUT_STAMINA_FROM_CORPSES);
+    const int gain_health = player_mutation_level(MUT_HEALTH_FROM_CORPSES);
+    if ((gain_stamina || gain_health) && coinflip())
+    {
+        const int amount = max_corpse_chunks(corpse.mon_type);
+
+        const int sp_gain = div_rand_round(amount * qpow(10, 3, 2, gain_stamina - 1), 10);
+        int hp_gain = div_rand_round(amount * qpow(10, 3, 2, gain_health - 1), 10);
+
+        if (gain_stamina)
+            inc_sp(sp_gain, true);
+
+        if (gain_health)
+        {
+            if (player_rotted())
+            {
+                hp_gain = unrot_hp(hp_gain);
+                mpr("You feel more resilient.");
+            }
+            inc_hp(hp_gain);
+        }
+
+        if (gain_health && gain_stamina)
+            mprf("That corpse tasted great! (hp+%d, sp+%d)", hp_gain, sp_gain);
+        else if(gain_health && hp_gain > 0)
+            mprf("That corpse tasted great! (hp+%d)", hp_gain);
+        else if(gain_stamina)
+            mprf("That corpse tasted great! (sp+%d)", sp_gain);
+
+        o = NON_ITEM;
+
+        corpse_remains = false;
+    }
+
+    if (corpse_remains && in_bounds(mons.pos()))
         move_item_to_grid(&o, mons.pos(), !mons.swimming());
+
+    if (corpse.is_valid())
+    {
+        maybe_drop_monster_hide(corpse);
+        if (mons_corpse_effect(corpse.mon_type) == CE_MUTAGEN)
+        {
+            const int chunk_count = random2(max_corpse_chunks(corpse.mon_type));
+            for (int i = 0; i < chunk_count; i++)
+            {
+                int id = items(false, OBJ_POTIONS, POT_WEAK_MUTATION, 0);
+                if (id != NON_ITEM)
+                {
+                    item_def& new_potion = mitm[id];
+
+                    // Automatically identify the potion.
+                    set_ident_flags(new_potion, ISFLAG_IDENT_MASK);
+
+                    const coord_def pos = mons.pos();
+                    if (!pos.origin() && in_bounds(pos))
+                        move_item_to_grid(&id, pos);
+                    else
+                        destroy_item(id);
+                }
+            }
+        }
+    }
+
+    if (!corpse_remains)
+    {
+        item_was_destroyed(corpse);
+        destroy_item(o);
+        return nullptr;
+    }
 
     if (o == NON_ITEM)
         return nullptr;
@@ -927,7 +994,11 @@ static void _mummy_curse(monster* mons, killer_type killer, int index)
              target->name(DESC_THE).c_str());
     }
 
-    curse_a_slot(pow * 100);
+    for (int i = 0; i < (x_chance_in_y(1, 10) ? 3 : 1); i ++)
+    {
+        curse_a_slot(pow * 100);
+    }
+
     const string cause = make_stringf("%s death curse",
                                       apostrophise(mons->name(DESC_A)).c_str());
     MiscastEffect(target, mons, MUMMY_MISCAST, SPTYP_NECROMANCY,
@@ -1718,6 +1789,9 @@ item_def* monster_die(monster* mons, killer_type killer,
     if (invalid_monster(mons))
         return nullptr;
 
+    if (mons->mp_freeze)
+        summoned_monster_died(mons, killer != KILL_RESET);
+
     const bool was_visible = you.can_see(*mons);
 
     // If a monster was banished to the Abyss and then killed there,
@@ -2137,7 +2211,7 @@ item_def* monster_die(monster* mons, killer_type killer,
                 if (hp_heal && you.hp < you.hp_max
                     && !you.duration[DUR_DEATHS_DOOR])
                 {
-                    canned_msg(MSG_GAIN_HEALTH);
+                    canned_msg(MSG_GAIN_HEALTH, hp_heal);
                     inc_hp(hp_heal);
                 }
 
@@ -2664,6 +2738,7 @@ item_def* monster_die(monster* mons, killer_type killer,
         _give_experience(player_xp, monster_xp, killer, killer_index, pet_kill,
                          was_visible);
     }
+
     return corpse;
 }
 

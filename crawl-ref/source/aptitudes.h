@@ -155,7 +155,7 @@ static const species_skill_aptitude species_skill_aptitudes[] =
     APT(SP_SLUDGE_ELF,      SK_SUMMONINGS,      0),
     APT(SP_SLUDGE_ELF,      SK_NECROMANCY,      0),
     APT(SP_SLUDGE_ELF,      SK_TRANSLOCATIONS,  0),
-    APT(SP_SLUDGE_ELF,      SK_TRANSMUTATIONS,  0),
+    APT(SP_SLUDGE_ELF,      SK_TRANSMUTATIONS,  2),
     APT(SP_SLUDGE_ELF,      SK_FIRE_MAGIC,      0),
     APT(SP_SLUDGE_ELF,      SK_ICE_MAGIC,       0),
     APT(SP_SLUDGE_ELF,      SK_AIR_MAGIC,       0),
@@ -230,7 +230,7 @@ static const species_skill_aptitude species_skill_aptitudes[] =
     APT(SP_HILL_ORC,        SK_CONJURATIONS,    0),
     APT(SP_HILL_ORC,        SK_HEXES,           0),
     APT(SP_HILL_ORC,        SK_CHARMS,         -1),
-    APT(SP_HILL_ORC,        SK_SUMMONINGS,      0),
+    APT(SP_HILL_ORC,        SK_SUMMONINGS,      3),
     APT(SP_HILL_ORC,        SK_NECROMANCY,      0),
     APT(SP_HILL_ORC,        SK_TRANSLOCATIONS, -2),
     APT(SP_HILL_ORC,        SK_TRANSMUTATIONS, -3),
@@ -1424,8 +1424,8 @@ static const species_skill_aptitude species_skill_aptitudes[] =
     APT(SP_DJINNI,          SK_AIR_MAGIC,       2),
     APT(SP_DJINNI,          SK_EARTH_MAGIC,    -2),
     APT(SP_DJINNI,          SK_POISON_MAGIC,    0),
-    APT(SP_DJINNI,          SK_INVOCATIONS,    -2),
-    APT(SP_DJINNI,          SK_EVOCATIONS,      0),
+    APT(SP_DJINNI,          SK_INVOCATIONS,     1),
+    APT(SP_DJINNI,          SK_EVOCATIONS,     -1),
 
     // SP_FORMICID
     APT(SP_FORMICID,        SK_FIGHTING,        1),

@@ -131,6 +131,7 @@
 #include "view.h"
 #include "viewmap.h"
 #include "xom.h"
+#include "stepdown.h"
 
 /**
  * Decrement a duration by the given delay.
@@ -800,10 +801,12 @@ static void _rot_ghoul_players()
     if (have_passive(passive_t::slow_metabolism))
         resilience = resilience * 3 / 2;
 
-
-    // Faster rotting when hungry.
-    if (you.hunger_state < HS_SATIATED)
-        resilience >>= HS_SATIATED - you.hunger_state;
+    // Faster rotting when tired.
+    if (player_is_tired(true))
+    {
+        resilience *= max(10, 100 * you.sp / you.sp_max);
+        resilience = div_rand_round(resilience, 100);
+    }
 
     if (one_chance_in(resilience))
     {
@@ -848,7 +851,26 @@ static void _regenerate_hp_and_mp(int delay)
 
     update_regen_amulet_attunement();
 
-    if (!player_regenerates_mp()) // || player_has_summons())
+    if (you.sp < you.sp_max && you.exertion != EXERT_ESCAPE)
+    {
+        const int base_val = 7 + you.sp_max / 3;
+        int sp_regen_countup = div_rand_round(base_val * delay, BASELINE_DELAY);
+
+        if (int level = player_mutation_level(MUT_STAMINA_REGENERATION))
+            sp_regen_countup = qpow(sp_regen_countup, 3, 2, level);
+        if (you.wearing(EQ_AMULET, AMU_STAMINA_REGENERATION))
+            sp_regen_countup = qpow(sp_regen_countup, 3, 2, 3);
+
+        you.stamina_points_regeneration += sp_regen_countup;
+    }
+
+    while (you.stamina_points_regeneration >= 100)
+    {
+        inc_sp(1);
+        you.stamina_points_regeneration -= 100;
+    }
+
+    if (!player_regenerates_mp())
         return;
 
     if (you.magic_points < you.max_magic_points || you.species == SP_DJINNI && you.hp < you.hp_max)
@@ -942,7 +964,7 @@ void player_reacts()
 
     // Icy shield and armour melt over lava.
     if (grd(you.pos()) == DNGN_LAVA)
-        expose_player_to_element(BEAM_LAVA);
+        maybe_melt_player_enchantments(BEAM_FIRE, 10);
 
     // Handle starvation before subtracting hunger for this turn (including
     // hunger from the berserk duration) and before monsters react, so you

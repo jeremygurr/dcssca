@@ -8,6 +8,7 @@
 #include "ranged_attack.h"
 
 #include "areas.h"
+#include "chardump.h"
 #include "coord.h"
 #include "english.h"
 #include "env.h"
@@ -242,8 +243,14 @@ bool ranged_attack::handle_phase_dodged()
             defender->ablate_deflection();
         }
 
+        if (defender->is_player())
+            count_action(CACT_DODGE, DODGE_DEFLECT);
+
         return true;
     }
+
+    if (defender->is_player())
+        count_action(CACT_DODGE, DODGE_EVASION);
 
     if (needs_message)
     {
@@ -377,6 +384,10 @@ int ranged_attack::apply_damage_modifiers(int damage, int damage_max)
         const int bonus = attacker->get_hit_dice() * 4 / 3;
         damage += random2avg(bonus, 2);
     }
+
+    if (attacker->is_player())
+        damage = player_damage_modifier(damage);
+
     return damage;
 }
 
@@ -404,9 +415,8 @@ bool ranged_attack::apply_damage_brand(const char *what)
 
     const brand_type brand = get_weapon_brand(*weapon);
 
-    // No stacking elemental brands, unless you're Nessos.
-    if (attacker->type != MONS_NESSOS
-        && projectile->base_type == OBJ_MISSILES
+    // No stacking elemental brands.
+    if (projectile->base_type == OBJ_MISSILES
         && get_ammo_brand(*projectile) != SPMSL_NORMAL
         && get_ammo_brand(*projectile) != SPMSL_PENETRATION
         && (brand == SPWPN_FLAMING
@@ -644,7 +654,11 @@ bool ranged_attack::apply_missile_brand()
         calc_elemental_brand_damage(BEAM_FIRE,
                                     defender->is_icy() ? "melt" : "burn",
                                     projectile->name(DESC_THE).c_str());
-        defender->expose_to_element(BEAM_FIRE);
+
+        defender->expose_to_element(BEAM_FIRE, 2);
+        if (defender->is_player())
+            maybe_melt_player_enchantments(BEAM_FIRE, special_damage);
+
         attacker->god_conduct(DID_FIRE, 1);
         break;
     case SPMSL_FROST:

@@ -827,7 +827,7 @@ ITEM:   Young Poisoner's Handbook / book of Changes / \
         randbook numspells:5 title:Nature \
         spells:beastly_appendage&sting&sticks_to_snakes&cure_poison&spider_form w:245
 : if crawl.coinflip() then
-KITEM:  f = arrow ego:poisoned / javelin ego:poisoned q:4-6 / tomahawk ego:poisoned
+KITEM:  f = javelin ego:poisoned q:4-6 / tomahawk ego:poisoned
 : else
 KITEM:  f = blowgun / w:5 nothing, needle ego:poisoned / needle ego:curare / needle ego:paralysis
 : end
@@ -882,7 +882,7 @@ ITEM:   Young Poisoner's Handbook / book of Changes / \
         randbook numspells:5 title:Nature \
         spells:beastly_appendage&sting&sticks_to_snakes&cure_poison&spider_form w:245
 : if crawl.coinflip() then
-KITEM:  f = arrow ego:poisoned / javelin ego:poisoned q:4-6 / tomahawk ego:poisoned
+KITEM:  f = javelin ego:poisoned q:4-6 / tomahawk ego:poisoned
 : else
 KITEM:  f = blowgun / w:5 nothing, needle ego:poisoned / needle ego:curare / needle ego:paralysis
 : end
@@ -3102,7 +3102,7 @@ MONS:    jelly, slime creature
 dgn.delayed_decay_extra(_G, 'A', 'human corpse', 'damaged shield ident:pluses / nothing, '
                         .. 'damaged helmet ident:pluses / nothing, % / nothing, '
                         .. '% / nothing, % / nothing, any damaged armour ident:pluses, '
-                        .. 'any damaged weapon good_item ident:pluses')
+                        .. 'any weapon good_item ident:pluses')
 }}
 KMONS:   A = toadstool
 KFEAT:   B = altar_jiyva

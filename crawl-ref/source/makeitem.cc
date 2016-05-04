@@ -511,6 +511,17 @@ static special_missile_type _determine_missile_brand(const item_def& item,
 
     switch (item.sub_type)
     {
+#if TAG_MAJOR_VERSION == 34
+    case MI_DART:
+#endif
+    case MI_THROWING_NET:
+    case MI_STONE:
+    case MI_LARGE_ROCK:
+    case MI_SLING_BULLET:
+    case MI_ARROW:
+    case MI_BOLT:
+        rc = SPMSL_NORMAL;
+        break;
     case MI_NEEDLE:
         // Curare is special cased, all the others aren't.
         if (got_curare_roll(item_level))
@@ -524,24 +535,6 @@ static special_missile_type _determine_missile_brand(const item_def& item,
                                     10, SPMSL_PARALYSIS,
                                     10, SPMSL_FRENZY,
                                     nw, SPMSL_POISONED,
-                                    0);
-        break;
-    case MI_ARROW:
-        rc = random_choose_weighted(30, SPMSL_FLAME,
-                                    30, SPMSL_FROST,
-                                    20, SPMSL_POISONED,
-                                    15, SPMSL_DISPERSAL,
-                                    nw, SPMSL_NORMAL,
-                                    0);
-        break;
-    case MI_BOLT:
-        rc = random_choose_weighted(30, SPMSL_FLAME,
-                                    30, SPMSL_FROST,
-                                    20, SPMSL_POISONED,
-                                    15, SPMSL_PENETRATION,
-                                    15, SPMSL_SILVER,
-                                    10, SPMSL_STEEL,
-                                    nw, SPMSL_NORMAL,
                                     0);
         break;
     case MI_JAVELIN:
@@ -563,26 +556,6 @@ static special_missile_type _determine_missile_brand(const item_def& item,
                                     nw, SPMSL_NORMAL,
                                     0);
         break;
-#if TAG_MAJOR_VERSION == 34
-    case MI_DART:
-#endif
-    case MI_THROWING_NET:
-    case MI_STONE:
-        // deliberate fall through
-    case MI_LARGE_ROCK:
-        // Stones get no brands. Slings may be branded.
-        rc = SPMSL_NORMAL;
-        break;
-    case MI_SLING_BULLET:
-        rc = random_choose_weighted(30, SPMSL_FLAME,
-                                    30, SPMSL_FROST,
-                                    20, SPMSL_POISONED,
-                                    15, SPMSL_STEEL,
-                                    15, SPMSL_SILVER,
-                                    20, SPMSL_EXPLODING,
-                                    nw, SPMSL_NORMAL,
-                                    0);
-        break;
     }
 
     ASSERT(is_missile_brand_ok(item.sub_type, rc, true));
@@ -592,8 +565,13 @@ static special_missile_type _determine_missile_brand(const item_def& item,
 
 bool is_missile_brand_ok(int type, int brand, bool strict)
 {
-    // Stones can never be branded.
-    if ((type == MI_STONE || type == MI_LARGE_ROCK) && brand != SPMSL_NORMAL
+    // Launcher ammo can never be branded.
+    if ((type == MI_STONE
+        || type == MI_LARGE_ROCK
+        || type == MI_SLING_BULLET
+        || type == MI_ARROW
+        || type == MI_BOLT)
+        && brand != SPMSL_NORMAL
         && strict)
     {
         return false;
@@ -648,35 +626,27 @@ bool is_missile_brand_ok(int type, int brand, bool strict)
     switch (brand)
     {
     case SPMSL_FLAME:
-        return type == MI_SLING_BULLET || type == MI_ARROW
-               || type == MI_BOLT;
     case SPMSL_FROST:
-        return type == MI_SLING_BULLET || type == MI_ARROW
-               || type == MI_BOLT;
+        return false;
     case SPMSL_POISONED:
-        return type == MI_SLING_BULLET || type == MI_ARROW
-               || type == MI_BOLT || type == MI_JAVELIN
-               || type == MI_TOMAHAWK;
+        return type == MI_JAVELIN || type == MI_TOMAHAWK;
     case SPMSL_RETURNING:
         return type == MI_JAVELIN || type == MI_TOMAHAWK;
     case SPMSL_CHAOS:
-        return type == MI_SLING_BULLET || type == MI_ARROW
-               || type == MI_BOLT || type == MI_TOMAHAWK
-               || type == MI_JAVELIN;
+        return type == MI_TOMAHAWK || type == MI_JAVELIN;
     case SPMSL_PENETRATION:
-        return type == MI_JAVELIN || type == MI_BOLT;
+        return type == MI_JAVELIN;
     case SPMSL_DISPERSAL:
-        return type == MI_ARROW || type == MI_TOMAHAWK;
+        return type == MI_TOMAHAWK;
     case SPMSL_EXPLODING:
-        return type == MI_SLING_BULLET || type == MI_TOMAHAWK;
+        return type == MI_TOMAHAWK;
     case SPMSL_STEEL: // deliberate fall through
     case SPMSL_SILVER:
-        return type == MI_BOLT || type == MI_SLING_BULLET
-               || type == MI_JAVELIN || type == MI_TOMAHAWK;
+        return type == MI_JAVELIN || type == MI_TOMAHAWK;
     default: break;
     }
 
-    // Assume yes, if we've gotten this far.
+    // Assume no, if we've gotten this far.
     return false;
 }
 
@@ -1366,6 +1336,7 @@ static void _generate_food_item(item_def& item, int force_quant, int force_type)
     // Determine sub_type:
     if (force_type == OBJ_RANDOM)
     {
+        /**
         item.sub_type = random_choose_weighted( 30, FOOD_BREAD_RATION,
                                                 10, FOOD_FRUIT,
                                                 30, FOOD_MEAT_RATION,
@@ -1373,19 +1344,11 @@ static void _generate_food_item(item_def& item, int force_quant, int force_type)
                                                 10, FOOD_PIZZA,
                                                  5, FOOD_ROYAL_JELLY,
                                                  0);
+                                                 */
+        item.sub_type = FOOD_FRUIT;
     }
     else
         item.sub_type = force_type;
-
-    // Happens with ghoul food acquirement -- use place_chunks() outherwise
-    if (item.sub_type == FOOD_CHUNK)
-    {
-        // Set chunk flavour:
-        item.plus = _choose_random_monster_corpse();
-        item.orig_monnum = item.plus;
-        // Set duration.
-        item.freshness = (10 + random2(11)) * 10;
-    }
 
     // Determine quantity.
     if (force_quant > 1)
@@ -1394,15 +1357,11 @@ static void _generate_food_item(item_def& item, int force_quant, int force_type)
     {
         item.quantity = 1;
 
-        if (item.sub_type != FOOD_MEAT_RATION
-            && item.sub_type != FOOD_BREAD_RATION)
-        {
-            if (one_chance_in(80))
-                item.quantity += random2(3);
+        if (one_chance_in(80))
+            item.quantity += random2(3);
 
-            if (is_fruit(item))
-                item.quantity += random2avg(5,2);
-        }
+        if (is_fruit(item))
+            item.quantity += random2avg(5,2);
     }
 }
 
@@ -1475,8 +1434,8 @@ static void _generate_scroll_item(item_def& item, int force_type,
         do
         {
             item.sub_type = random_choose_weighted(
-                200, SCR_IDENTIFY,
-                112, SCR_REMOVE_CURSE,
+            200 / 2, SCR_IDENTIFY,
+            112 / 2, SCR_REMOVE_CURSE,
                  // [Cha] don't generate teleportation scrolls if in sprint
                  80, (crawl_state.game_is_sprint() ? NUM_SCROLLS : SCR_TELEPORTATION),
                  40, SCR_ENCHANT_ARMOUR,
@@ -1932,40 +1891,20 @@ int items(bool allow_uniques,
     {
         ASSERT(force_type == OBJ_RANDOM);
         // Total weight: 1960
-        if (crawl_state.difficulty == DIFFICULTY_HARD)
-        {
-            item.base_type = random_choose_weighted(
-                    1, OBJ_RODS,
-                    9, OBJ_STAVES,
-                    30, OBJ_BOOKS,
-                    50, OBJ_JEWELLERY,
-                    70, OBJ_WANDS,
-                    140, OBJ_FOOD,
-                    212, OBJ_ARMOUR,
-                    212, OBJ_WEAPONS,
-                    176, OBJ_POTIONS,
-                    300, OBJ_MISSILES,
-                    320, OBJ_SCROLLS,
-                    440, OBJ_GOLD,
-                    0);
-        }
-        else
-        {
-            item.base_type = random_choose_weighted(
-                    1, OBJ_RODS,
-                    9, OBJ_STAVES,
-                    30, OBJ_BOOKS,
-                    50, OBJ_JEWELLERY,
-                    70, OBJ_WANDS,
-                    140, OBJ_FOOD,
-                    212, OBJ_ARMOUR,
-                    212, OBJ_WEAPONS,
-                    176, OBJ_POTIONS,
-                    300, OBJ_MISSILES,
-                    320, OBJ_SCROLLS,
-                    440, OBJ_GOLD,
-                    0);
-        }
+        item.base_type = random_choose_weighted(
+                1, OBJ_RODS,
+                9, OBJ_STAVES,
+                30, OBJ_BOOKS,
+           50 / 25, OBJ_FOOD,
+                50, OBJ_JEWELLERY,
+                70, OBJ_WANDS,
+                212, OBJ_ARMOUR,
+                212, OBJ_WEAPONS,
+                176, OBJ_POTIONS,
+                300, OBJ_MISSILES,
+                320, OBJ_SCROLLS,
+                440, OBJ_GOLD,
+                0);
 
         // misc items placement wholly dependent upon current depth {dlb}:
         if (item_level > 7 && x_chance_in_y(21 + item_level, 3500))
@@ -2075,9 +2014,9 @@ int items(bool allow_uniques,
             item.quantity = 100 + random2(400);
         else
             item.quantity = 1 + random2avg(19, 2) + random2(item_level);
-        if (crawl_state.difficulty == DIFFICULTY_EASY)
+        if (crawl_state.difficulty == DIFFICULTY_STANDARD)
         	item.quantity = item.quantity * 4 / 3;
-        else if (crawl_state.difficulty == DIFFICULTY_HARD)
+        else if (crawl_state.difficulty == DIFFICULTY_NIGHTMARE)
             item.quantity = item.quantity * 2 / 3;
         break;
     }

@@ -271,6 +271,7 @@ public:
     int         sc_format;       // Format for score entries
 
     vector<pair<int, int> > hp_colour;
+    vector<pair<int, int> > sp_colour;
     vector<pair<int, int> > mp_colour;
     vector<pair<int, int> > stat_colour;
     vector<int> enemy_hp_colour;
@@ -623,6 +624,43 @@ object_class_type item_class_by_sym(ucs_t c);
 #define Options (*real_Options)
 #endif
 extern game_options  Options;
+
+static inline string get_exp_mode_string()
+{
+    string result;
+    switch(Options.experience_mode)
+    {
+        case EXP_MODE_CLASSIC:
+            result = "Classic";
+            break;
+        case EXP_MODE_SIMPLE_DEPTH:
+            result = "Simple Depth";
+            break;
+        case EXP_MODE_SIMPLE_XL:
+            result = "Simple XL";
+            break;
+        case EXP_MODE_BALANCE:
+            result = "Balance";
+            break;
+        case EXP_MODE_SERENITY:
+            result = "Serenity";
+            break;
+        case EXP_MODE_INTENSITY:
+            result = "Intensity";
+            break;
+        case EXP_MODE_PACIFIST:
+            result = "Pacifist";
+            break;
+        case EXP_MODE_DESTROYER:
+            result = "Destroyer";
+            break;
+        default:
+            result = "Unknown";
+            break;
+    }
+
+    return result;
+}
 
 static inline short macro_colour(short col)
 {

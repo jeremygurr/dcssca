@@ -1530,15 +1530,16 @@ TAGS:    abyss_rune unrand patrolling no_pool_fixup
 MONS:    shambling mangrove, thorn hunter, dire elephant, satyr, rakshasa
 KMONS:   6 = water elemental
 KMONS:   7 = water nymph
+KMONS:   8 = thorn lotus
 KFEAT:   6 = deep_water
-KFEAT:   7 = shallow_water
+KFEAT:   78 = shallow_water
 KITEM:   O = abyssal rune of Zot
 SHUFFLE: 1234
 SUBST:   T = t.
 SUBST:   E = ttWw
 NSUBST:  . = 2:5 /*:.
 NSUBST:  w = 2:6 / *:w
-NSUBST:  W = 2 = 7 / *:W
+NSUBST:  W = 2 = 78 / *:W
 FTILE:   .t123456789O = floor_grass
 MAP
     .......
@@ -2089,23 +2090,6 @@ cc..2..........cc
    ccc.....ccc
      ccc1ccc
        ccc
-ENDMAP
-
-NAME:  evilmike_abyss_exit_disperse
-TAGS:  abyss_exit
-SUBST: . = .:100 2
-MONS:  centaur; shortbow . arrow ego:dispersal, plant
-: init_abyss_exit(_G, "O")
-MAP
-     xxx xxx xxx
-   xxx1xxx1xxx1x
- xxx....x...x..xxx
-xx...............x
-x1.Ox............+@
-xx...............x
- xxx....x...x..xxx
-   xxx1xxx1xxx1x
-     xxx xxx xxx
 ENDMAP
 
 NAME:    hangedman_abyss_exit_choices

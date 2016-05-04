@@ -249,8 +249,7 @@ spret_type cast_healing(int pow, int max_pow, bool fail)
                 string key;
 
                 // Quadrupeds can't salute, etc.
-                mon_body_shape shape = get_mon_shape(mons);
-                if (shape >= MON_SHAPE_HUMANOID && shape <= MON_SHAPE_NAGA)
+                if (mon_shape_is_humanoid(get_mon_shape(mons)))
                     key = "_humanoid";
 
                 _print_holy_pacification_speech(key, mons,
@@ -650,7 +649,7 @@ static bool _selectively_remove_curse(const int power, const string &pre_msg)
         if (!used && !pre_msg.empty())
             mpr(pre_msg);
 
-        do_uncurse_item(item, power, false, false);
+        do_uncurse_item(item, power, false);
         used = true;
     }
 }
@@ -1102,9 +1101,9 @@ void holy_word_monsters(coord_def where, int pow, holy_word_source_type source,
     if (hploss)
     {
         if (source == HOLY_WORD_ZIN)
-            simple_monster_message(mons, " is blasted by Zin's holy word!");
+            monster_message(mons, " is blasted by Zin's holy word! (%d)", hploss);
         else
-            simple_monster_message(mons, " convulses!");
+            monster_message(mons, " convulses! (%d)", hploss);
     }
     mons->hurt(attacker, hploss, BEAM_MISSILE);
 
@@ -1251,7 +1250,7 @@ void torment_cell(coord_def where, actor *attacker, torment_source_type taux)
 
     if (hploss)
     {
-        simple_monster_message(mons, " convulses!");
+        monster_message(mons, " convulses! (%d)", hploss);
 
         // Currently, torment doesn't annoy the monsters it affects
         // because it can't kill them, and because hostile monsters use

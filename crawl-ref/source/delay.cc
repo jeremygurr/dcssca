@@ -246,6 +246,8 @@ void stop_delay(bool stop_stair_travel, bool force_unsafe)
         if (delay_is_run(delay.type) && you.running)
             stop_running();
 
+        player_after_long_safe_action(you.time_taken);
+
         // There's no special action needed for macros - if we don't call out
         // to the Lua function, it can't do damage.
         break;
@@ -346,7 +348,7 @@ void stop_delay(bool stop_stair_travel, bool force_unsafe)
 
     case DELAY_ASCENDING_STAIRS:  // short... and probably what people want
     case DELAY_DESCENDING_STAIRS: // short... and probably what people want
-        if (stop_stair_travel && !crawl_state.free_stair_escape)
+        if (stop_stair_travel && !crawl_state.free_stair_escape && (you.where_are_you != BRANCH_ABYSS || crawl_state.difficulty == DIFFICULTY_NIGHTMARE))
         {
             mprf("You stop %s the stairs.",
                  delay.type == DELAY_ASCENDING_STAIRS ? "ascending"
@@ -1073,6 +1075,7 @@ static command_type _get_running_command()
 #endif
 
         if (!is_resting() && you.running.hp == you.hp
+            && you.running.sp == you.sp
             && you.running.mp == you.magic_points)
         {
             mpr("Done waiting.");
@@ -1321,7 +1324,7 @@ static bool _should_stop_activity(const delay_queue_item &item,
     if ((ai == AI_SEE_MONSTER || ai == AI_MIMIC) && player_stair_delay())
         return false;
 
-    if (ai == AI_FULL_HP || ai == AI_FULL_MP)
+    if (ai == AI_FULL_HP || ai == AI_FULL_MP || ai == AI_FULL_SP)
     {
         if (Options.rest_wait_both && curr == DELAY_REST
             && !you.is_sufficiently_rested())
@@ -1624,6 +1627,11 @@ bool interrupt_activity(activity_interrupt_type ai,
         you.running.notified_mp_full = true;
         mpr("Magic restored.");
     }
+    else if (ai == AI_FULL_SP && !you.running.notified_sp_full)
+    {
+        you.running.notified_sp_full = true;
+        mpr("Stamina restored.");
+    }
 
     if (_should_stop_activity(item, ai, at))
     {
@@ -1668,7 +1676,7 @@ bool interrupt_activity(activity_interrupt_type ai,
 // Must match the order of activity_interrupt_type in enum.h!
 static const char *activity_interrupt_names[] =
 {
-    "force", "keypress", "full_hp", "full_mp", "hungry", "message",
+    "force", "keypress", "full_hp", "full_sp", "full_mp", "hungry", "message",
     "hp_loss_other", "hp_loss", "stat", "monster", "monster_attack", "teleport", "hit_monster",
     "sense_monster", "mimic"
 };

@@ -728,7 +728,9 @@ public:
     int runmode;
     int mp;
     int hp;
+    int sp;
     bool notified_mp_full;
+    bool notified_sp_full;
     bool notified_hp_full;
     coord_def pos;
     int travel_speed;
@@ -779,7 +781,9 @@ enum mon_spell_slot_flag
     MON_SPELL_EMERGENCY   = 1 <<  0, // only use this spell slot in emergencies
     MON_SPELL_NATURAL     = 1 <<  1, // physiological, not really a spell
     MON_SPELL_MAGICAL     = 1 <<  2, // a generic magical ability
-    MON_SPELL_DEMONIC     = 1 <<  3, // demonic
+#if TAG_MAJOR_VERSION == 34
+    MON_SPELL_DEMONIC     = 1 <<  3, // merged with magical abilities
+#endif
     MON_SPELL_WIZARD      = 1 <<  4, // a real spell, affected by AM and silence
     MON_SPELL_PRIEST      = 1 <<  5,
 
@@ -803,14 +807,14 @@ COMPILE_CHECK(mon_spell_slot_flags::exponent(MON_SPELL_LAST_EXPONENT)
               == MON_SPELL_LAST_FLAG);
 
 constexpr mon_spell_slot_flags MON_SPELL_TYPE_MASK
-    = MON_SPELL_NATURAL | MON_SPELL_MAGICAL | MON_SPELL_DEMONIC
-    | MON_SPELL_WIZARD  | MON_SPELL_PRIEST;
+    = MON_SPELL_NATURAL | MON_SPELL_MAGICAL | MON_SPELL_WIZARD
+    | MON_SPELL_PRIEST;
 
 constexpr mon_spell_slot_flags MON_SPELL_INNATE_MASK
-    = MON_SPELL_NATURAL | MON_SPELL_MAGICAL | MON_SPELL_DEMONIC;
+    = MON_SPELL_NATURAL | MON_SPELL_MAGICAL;
 
 constexpr mon_spell_slot_flags MON_SPELL_ANTIMAGIC_MASK
-    = MON_SPELL_MAGICAL | MON_SPELL_DEMONIC | MON_SPELL_WIZARD;
+    = MON_SPELL_MAGICAL | MON_SPELL_WIZARD;
 
 constexpr mon_spell_slot_flags MON_SPELL_SILENCE_MASK
     = MON_SPELL_WIZARD  | MON_SPELL_PRIEST  | MON_SPELL_NO_SILENT;

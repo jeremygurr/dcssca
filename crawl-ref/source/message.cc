@@ -1642,7 +1642,7 @@ void more(bool user_forced)
     clear_messages();
 }
 
-void canned_msg(canned_message_type which_message)
+void canned_msg(canned_message_type which_message, const int amount)
 {
     switch (which_message)
     {
@@ -1737,8 +1737,14 @@ void canned_msg(canned_message_type which_message)
         case MSG_MANA_INCREASE:
             mpr("You feel your magic capacity increase.");
             break;
+        case MSG_STAMINA_INCREASE:
+            mpr("You feel your stamina capacity increase.");
+            break;
         case MSG_MANA_DECREASE:
             mpr("You feel your magic capacity decrease.");
+            break;
+        case MSG_STAMINA_DECREASE:
+            mpr("You feel your stamina capacity decrease.");
             break;
         case MSG_DISORIENTED:
             mpr("You feel momentarily disoriented.");
@@ -1765,10 +1771,16 @@ void canned_msg(canned_message_type which_message)
             mpr("You see a ghostly outline there, and the spell fizzles.");
             break;
         case MSG_GAIN_HEALTH:
-            mpr("You feel better.");
+            if (amount > 0)
+                mprf("You feel better. (%d)", amount);
+            else
+                mpr("You feel better.");
             break;
         case MSG_GAIN_MAGIC:
-            mpr("You feel your power returning.");
+            if (amount > 0)
+                mprf("You feel your power returning. (%d)", amount);
+            else
+                mpr("You feel your power returning.");
             break;
         case MSG_MAGIC_DRAIN:
             mprf(MSGCH_WARN, "You suddenly feel drained of magical energy!");

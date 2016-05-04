@@ -19,6 +19,7 @@
 #include "areas.h"
 #include "branch.h"
 #include "butcher.h"
+#include "chardump.h"
 #include "cloud.h"
 #include "coordit.h"
 #include "database.h"
@@ -416,25 +417,25 @@ static const ability_def Ability_List[] =
 
     // Sif Muna
     { ABIL_SIF_MUNA_CHANNEL_ENERGY, "Channel Energy",
-      0, 0, 100, 0, {FAIL_INVO, 40, 2, 20}, abflag::NONE },
+      0, 0, 0, generic_cost::fixed(25), {FAIL_INVO, 40, 2, 20}, abflag::NONE },
     { ABIL_SIF_MUNA_FORGET_SPELL, "Forget Spell",
       5, 0, 0, 8, {FAIL_INVO}, abflag::NONE },
 
     // Trog
     { ABIL_TROG_BURN_SPELLBOOKS, "Burn Spellbooks",
       0, 0, 10, 0, {FAIL_INVO}, abflag::NONE },
-    { ABIL_TROG_BERSERK, "Berserk", 0, 0, 200, 0, {FAIL_INVO}, abflag::NONE },
+    { ABIL_TROG_BERSERK, "Berserk", 0, 0, 0, 0, {FAIL_INVO}, abflag::NONE },
     { ABIL_TROG_REGEN_MR, "Trog's Hand",
       0, 0, 50, 2, {FAIL_INVO, piety_breakpoint(2), 0, 1}, abflag::NONE },
     { ABIL_TROG_BROTHERS_IN_ARMS, "Brothers in Arms",
-      0, 0, 100, generic_cost::range(5, 6),
+      0, 0, 100, generic_cost::fixed(6),
       {FAIL_INVO, piety_breakpoint(5), 0, 1}, abflag::NONE },
 
     // Elyvilon
     { ABIL_ELYVILON_LIFESAVING, "Divine Protection",
       0, 0, 0, 0, {FAIL_INVO}, abflag::PIETY },
     { ABIL_ELYVILON_LESSER_HEALING, "Lesser Healing", 1, 0, 100,
-      generic_cost::range(0, 1), {FAIL_INVO, 30, 6, 20}, abflag::CONF_OK },
+      generic_cost::fixed(1), {FAIL_INVO, 30, 6, 20}, abflag::CONF_OK },
     { ABIL_ELYVILON_HEAL_OTHER, "Heal Other",
       2, 0, 250, 2, {FAIL_INVO, 40, 5, 20}, abflag::NONE },
     { ABIL_ELYVILON_PURIFICATION, "Purification",
@@ -449,8 +450,8 @@ static const ability_def Ability_List[] =
       1, 0, 150, 10, {FAIL_INVO, 30, 6, 20}, abflag::NONE },
     { ABIL_LUGONU_BEND_SPACE, "Bend Space",
       1, 0, 50, 0, {FAIL_INVO, 40, 5, 20}, abflag::PAIN },
-    { ABIL_LUGONU_BANISH, "Banish", 4, 0, 200, generic_cost::range(3, 4),
-      {FAIL_INVO, 60, 5, 20}, abflag::NONE },
+    { ABIL_LUGONU_BANISH, "Banish", 4, 0, 200, generic_cost::fixed(4),
+      {FAIL_INVO, 85, 7, 20}, abflag::NONE },
     { ABIL_LUGONU_CORRUPT, "Corrupt", 7, scaling_cost::fixed(5), 500, 10,
       {FAIL_INVO, 70, 4, 25}, abflag::NONE },
     { ABIL_LUGONU_ABYSS_ENTER, "Enter the Abyss", 9, 0, 500,
@@ -724,7 +725,10 @@ const string make_cost_description(ability_type ability)
     }
 
     if (abil.piety_cost || abil.flags & abflag::PIETY)
-        ret += ", Piety"; // randomised and exact amount hidden from player
+    {
+        const int piety_cost = _scale_piety_cost(abil.ability, abil.piety_cost.cost());
+        ret += make_stringf(", %d Piety", piety_cost);
+    }
 
     if (abil.flags & abflag::BREATH)
         ret += ", Breath";
@@ -1012,6 +1016,31 @@ vector<const char*> get_ability_names()
     return result;
 }
 
+static string _desc_sac_mut(const CrawlStoreValue &mut_store)
+{
+    return mut_upgrade_summary(static_cast<mutation_type>(mut_store.get_int()));
+}
+
+static string _sacrifice_desc(const ability_type ability)
+{
+    const string boilerplate =
+        "\nIf you make this sacrifice, your powers granted by Ru "
+        "will become stronger in proportion to the value of the "
+        "sacrifice, and you may gain new powers as well.\n\n"
+        "Sacrifices cannot be taken back.\n";
+
+    const string sac_vec_key = ru_sacrifice_vector(ability);
+    if (sac_vec_key.empty())
+        return boilerplate;
+
+    ASSERT(you.props.exists(sac_vec_key));
+    const CrawlVector &sacrifice_muts = you.props[sac_vec_key].get_vector();
+    return "\nAfter this sacrifice, you will find that "
+            + comma_separated_fn(sacrifice_muts.begin(), sacrifice_muts.end(),
+                                 _desc_sac_mut)
+            + ".\n" + boilerplate;
+}
+
 // XXX: should this be in describe.cc?
 string get_ability_desc(const ability_type ability)
 {
@@ -1023,12 +1052,7 @@ string get_ability_desc(const ability_type ability)
         lookup = "No description found.\n";
 
     if (testbits(get_ability_def(ability).flags, abflag::SACRIFICE))
-    {
-        lookup += "\nIf you make this sacrifice, your powers granted by Ru "
-                  "will become stronger in proportion to the value of the "
-                  "sacrifice, and you may gain new powers as well.\n\n"
-                  "Sacrifices cannot be taken back.\n";
-    }
+        lookup += _sacrifice_desc(ability);
 
     if (god_hates_ability(ability, you.religion))
     {
@@ -1693,8 +1717,11 @@ static spret_type _do_ability(const ability_def& abil, bool fail)
         fail_check();
         if (!you.digging)
         {
-            you.digging = true;
-            mpr("You extend your mandibles.");
+            if (!player_is_very_tired())
+            {
+                you.digging = true;
+                mpr("You extend your mandibles.");
+            }
         }
         else
         {
@@ -2272,10 +2299,11 @@ static spret_type _do_ability(const ability_def& abil, bool fail)
     case ABIL_SIF_MUNA_CHANNEL_ENERGY:
         fail_check();
         surge_power(you.spec_invoc(), "divine");
-        mpr("You channel some magical energy.");
+        mpr("You begin channelling magical energy.");
 
-        inc_mp(player_adjust_invoc_power(
-                   1 + random2(you.skill_rdiv(SK_INVOCATIONS, 1, 4) + 2)));
+        you.increase_duration(DUR_CHANNELING,
+                              player_adjust_invoc_power(20 + random2avg(you.skill(SK_INVOCATIONS, 2), 2)),
+                              100);
         break;
 
     case ABIL_OKAWARU_HEROISM:
@@ -2502,7 +2530,7 @@ static spret_type _do_ability(const ability_def& abil, bool fail)
     {
         beam.range = LOS_RADIUS;
         const int pow =
-            player_adjust_invoc_power(16 + you.skill(SK_INVOCATIONS, 8));
+            player_adjust_invoc_power(68 + you.skill(SK_INVOCATIONS, 3));
 
         direction_chooser_args args;
         args.mode = TARG_HOSTILE;
@@ -2708,17 +2736,18 @@ static spret_type _do_ability(const ability_def& abil, bool fail)
     case ABIL_ASHENZARI_CURSE:
     {
         fail_check();
-        auto iter = find_if(begin(you.inv2), end(you.inv2),
+        FixedVector<item_def, 52> *const inv = scroll_inv();
+        auto iter = find_if(begin(*inv), end(*inv),
                 [] (const item_def &it) -> bool
                 {
                     return it.defined()
                            && it.is_type(OBJ_SCROLLS, SCR_REMOVE_CURSE)
                            && check_warning_inscriptions(it, OPER_DESTROY);
                 });
-        if (iter != end(you.inv2))
+        if (iter != end(*inv))
         {
             if (ashenzari_curse_item(iter->quantity))
-                dec_inv_item_quantity(you.inv2, iter - begin(you.inv2), 1);
+                dec_inv_item_quantity(*inv, iter - begin(*inv), 1);
             else
                 return SPRET_ABORT;
         }
@@ -2838,7 +2867,7 @@ static spret_type _do_ability(const ability_def& abil, bool fail)
 
     case ABIL_RU_DRAW_OUT_POWER:
         fail_check();
-        if (you.duration[DUR_EXHAUSTED])
+        if (you.duration[DUR_EXHAUSTED] || player_is_tired(true))
         {
             mpr("You're too exhausted to draw out your power.");
             return SPRET_ABORT;
@@ -2859,7 +2888,7 @@ static spret_type _do_ability(const ability_def& abil, bool fail)
 
     case ABIL_RU_POWER_LEAP:
         fail_check();
-        if (you.duration[DUR_EXHAUSTED])
+        if (you.duration[DUR_EXHAUSTED] || player_is_tired(true))
         {
             mpr("You're too exhausted to power leap.");
             return SPRET_ABORT;
@@ -2874,7 +2903,7 @@ static spret_type _do_ability(const ability_def& abil, bool fail)
 
     case ABIL_RU_APOCALYPSE:
         fail_check();
-        if (you.duration[DUR_EXHAUSTED])
+        if (you.duration[DUR_EXHAUSTED] || player_is_tired(true))
         {
             mpr("You're too exhausted to unleash your apocalyptic power.");
             return SPRET_ABORT;
@@ -2923,13 +2952,14 @@ static spret_type _do_ability(const ability_def& abil, bool fail)
         simple_god_message(" will supercharge a wand or rod.");
         // included in default force_more_message
 
-        int item_slot = prompt_invent_item(you.inv1, "Supercharge what?", MT_INVLIST,
+        FixedVector<item_def, 52> *const inv = evoke_inv();
+        int item_slot = prompt_invent_item(*inv, "Supercharge what?", MT_INVLIST,
                                            OSEL_SUPERCHARGE, true, true, false);
 
         if (item_slot == PROMPT_NOTHING || item_slot == PROMPT_ABORT)
             return SPRET_ABORT;
 
-        item_def& wand(you.inv1[item_slot]);
+        item_def& wand((*inv)[item_slot]);
 
         if (!item_is_rechargeable(wand))
         {
@@ -3063,8 +3093,7 @@ static void _pay_ability_costs(const ability_def& abil)
         you.turn_is_over = true;
 
     const int food_cost  = abil.food_cost + random2avg(abil.food_cost, 2);
-    const int piety_cost =
-        _scale_piety_cost(abil.ability, abil.piety_cost.cost());
+    const int piety_cost = _scale_piety_cost(abil.ability, abil.piety_cost.cost());
     const int hp_cost    = abil.hp_cost.cost(you.hp_max);
 
     dprf("Cost: mp=%d; hp=%d; food=%d; piety=%d",
@@ -3264,10 +3293,10 @@ vector<talent> your_talents(bool check_confused, bool include_unusable)
         _add_talent(talents, ABIL_MUMMY_RESTORATION, check_confused);
 
     if (you.species == SP_DEEP_DWARF)
+    {
         _add_talent(talents, ABIL_RECHARGING_BASIC, check_confused);
-
-    if (you.species == SP_DEEP_DWARF)
         _add_talent(talents, ABIL_RECHARGING_ADVANCED, check_confused);
+    }
 
     if (you.species == SP_DJINNI)
         _add_talent(talents, ABIL_UNCURSE, check_confused);

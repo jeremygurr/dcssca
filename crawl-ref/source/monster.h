@@ -73,7 +73,6 @@ public:
         int prism_charge;      ///< Turns this prism has existed
         int battlecharge;      ///< Charges of battlesphere
         int move_spurt;        ///< Sixfirhy/jiangshi/kraken black magic
-        int swift_cooldown;    ///< When alligator last casted Swift
         mid_t tentacle_connect;///< mid of monster this tentacle is
                                //   connected to: for segments, this is the
                                //   tentacle; for tentacles, the head.
@@ -100,6 +99,8 @@ public:
 
     bool went_unseen_this_turn;
     coord_def unseen_pos;
+    int mp_freeze;
+    spell_type summoned_by_spell;
 
 public:
     void set_new_monster_id();
@@ -125,7 +126,7 @@ public:
     void init_experience();
 
     void mark_summoned(int longevity, bool mark_items_summoned,
-                       int summon_type = 0, bool abj = true);
+                       int summon_type = 0, bool abj = true, const actor* source = nullptr);
     bool is_summoned(int* duration = nullptr, int* summon_type = nullptr) const
         override;
     bool is_perm_summoned() const override;
@@ -559,7 +560,7 @@ public:
     bool search_slots(function<bool (const mon_spell_slot &)> func) const;
 
     bool has_facet(int facet) const;
-    int cost_of_maintaining_summon();
+    bool is_player_summon() const;
 
 private:
     int hit_dice;

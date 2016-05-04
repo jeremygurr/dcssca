@@ -15,6 +15,7 @@
 #include <cstring>
 
 #include "art-enum.h"
+#include "chardump.h"
 #include "delay.h"
 #include "english.h"
 #include "env.h"
@@ -131,6 +132,9 @@ bool attack::handle_phase_end()
     // This may invalidate both the attacker and defender.
     fire_final_effects();
 
+    if (attacker->is_player())
+        player_attacked_something();
+
     return true;
 }
 
@@ -141,6 +145,9 @@ bool attack::handle_phase_end()
  */
 int attack::calc_to_hit(bool random)
 {
+    // randomness isn't needed anymore here since it is handled in a centralized place now
+    random = false;
+
     int mhit = attacker->is_player() ?
                 15 + (you.dex() / 2)
               : calc_mon_to_hit_base();
@@ -214,8 +221,12 @@ int attack::calc_to_hit(bool random)
         if (player_mutation_level(MUT_EYEBALLS))
             mhit += 2 * player_mutation_level(MUT_EYEBALLS) + 1;
 
+        /* no longer needed
         // hit roll
         mhit = maybe_random2(mhit, random);
+        */
+
+        mhit = player_tohit_modifier(mhit);
     }
     else    // Monster to-hit.
     {
@@ -263,14 +274,31 @@ int attack::calc_to_hit(bool random)
             mhit -= 2 * how_transparent;
 
         if (defender->backlit(false))
+        {
+            /** randomness not needed anymore
             mhit += 2 + random2(8);
+             */
+
+            mhit += 6;
+        }
         else if (!attacker->nightvision()
                  && defender->umbra())
+        {
+            /* randomness not needed anymore
             mhit -= 2 + random2(4);
+             */
+            mhit -= 4;
+        }
     }
+
     // Don't delay doing this roll until test_hit().
     if (!attacker->is_player())
+    {
+        /* randomness not needed anymore
         mhit = random2(mhit + 1);
+         */
+        mhit /= 2;
+    }
 
     dprf(DIAG_COMBAT, "%s: Base to-hit: %d, Final to-hit: %d",
          attacker->name(DESC_PLAIN).c_str(),
@@ -356,6 +384,12 @@ void attack::init_attack(skill_type unarmed_skill, int attack_number)
     attacker_shield_tohit_penalty =
         div_rand_round(attacker->shield_tohit_penalty(true, 20), 20);
     to_hit          = calc_to_hit(true);
+
+    if (attacker->is_player())
+    {
+        you.last_tohit = to_hit;
+        you.redraw_tohit = true;
+    }
 
     shield = attacker->shield();
     defender_shield = defender ? defender->shield() : defender_shield;
@@ -488,14 +522,16 @@ bool attack::distortion_affects_defender()
     switch (choice)
     {
     case SMALL_DMG:
-        special_damage_message = make_stringf("Space bends around %s.",
-                                              defender_name(false).c_str());
         special_damage += 1 + random2avg(7, 2);
+        special_damage_message = make_stringf("Space bends around %s. (%d)",
+                                              defender_name(false).c_str(),
+                                              special_damage);
         break;
     case BIG_DMG:
-        special_damage_message = make_stringf("Space warps horribly around %s!",
-                                              defender_name(false).c_str());
         special_damage += 3 + random2avg(24, 2);
+        special_damage_message = make_stringf("Space warps horribly around %s! (%d)",
+                                              defender_name(false).c_str(),
+                                              special_damage);
         break;
     case BLINK:
         if (defender_visible)
@@ -1402,19 +1438,22 @@ int attack::calc_damage()
 int attack::test_hit(int to_land, int ev, bool randomise_ev)
 {
     int margin = AUTOMATIC_HIT;
-    if (randomise_ev)
-        ev = random2avg(2*ev, 2);
-    if (to_land >= AUTOMATIC_HIT)
-        return true;
-    else if (x_chance_in_y(MIN_HIT_MISS_PERCENTAGE, 100))
-        margin = (random2(2) ? 1 : -1) * AUTOMATIC_HIT;
-    else
-        margin = to_land - ev;
 
-//#ifdef DEBUG_DIAGNOSTICS
+    if (to_land >= AUTOMATIC_HIT)
+        player_update_last_hit_chance(100);
+    else
+    {
+        int chance = 0;
+        margin = random_diff(to_land, ev, &chance);
+
+        if (attacker->is_player())
+            player_update_last_hit_chance(chance);
+    }
+
+#ifdef DEBUG_DIAGNOSTICS
     dprf(DIAG_COMBAT, "to hit: %d; ev: %d; result: %s (%d)",
          to_hit, ev, (margin >= 0) ? "hit" : "miss", margin);
-//#endif
+#endif
 
     return margin;
 }
@@ -1549,6 +1588,34 @@ attack_flavour attack::random_chaos_attack_flavour()
     return flavour;
 }
 
+bool attack::apply_poison_damage_brand()
+{
+    if (!one_chance_in(4))
+    {
+        int old_poison;
+
+        if (defender->is_player())
+            old_poison = you.duration[DUR_POISONING];
+        else
+        {
+            old_poison =
+                (defender->as_monster()->get_ench(ENCH_POISON)).degree;
+        }
+
+        defender->poison(attacker, 6 + random2(8) + random2(damage_done * 3 / 2));
+
+        if (defender->is_player()
+               && old_poison < you.duration[DUR_POISONING]
+            || !defender->is_player()
+               && old_poison <
+                  (defender->as_monster()->get_ench(ENCH_POISON)).degree)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool attack::apply_damage_brand(const char *what)
 {
     bool brand_was_known = false;
@@ -1591,11 +1658,15 @@ bool attack::apply_damage_brand(const char *what)
         calc_elemental_brand_damage(BEAM_FIRE,
                                     defender->is_icy() ? "melt" : "burn",
                                     what);
+        defender->expose_to_element(BEAM_FIRE, 2);
+        if (defender->is_player())
+            maybe_melt_player_enchantments(BEAM_FIRE, special_damage);
         attacker->god_conduct(DID_FIRE, 1);
         break;
 
     case SPWPN_FREEZING:
         calc_elemental_brand_damage(BEAM_COLD, "freeze", what);
+        defender->expose_to_element(BEAM_COLD, 2);
         break;
 
     case SPWPN_HOLY_WRATH:
@@ -1624,35 +1695,13 @@ bool attack::apply_damage_brand(const char *what)
                    "You are electrocuted causing " + to_string(special_damage) + " damage!"
                 :  "There is a sudden explosion of sparks causing " + to_string(special_damage) + " damage!";
             special_damage_flavour = BEAM_ELECTRICITY;
+            defender->expose_to_element(BEAM_ELECTRICITY, 2);
         }
 
         break;
 
     case SPWPN_VENOM:
-        if (!one_chance_in(4))
-        {
-            int old_poison;
-
-            if (defender->is_player())
-                old_poison = you.duration[DUR_POISONING];
-            else
-            {
-                old_poison =
-                    (defender->as_monster()->get_ench(ENCH_POISON)).degree;
-            }
-
-            defender->poison(attacker, 6 + random2(8) + random2(damage_done * 3 / 2));
-
-            if (defender->is_player()
-                   && old_poison < you.duration[DUR_POISONING]
-                || !defender->is_player()
-                   && old_poison <
-                      (defender->as_monster()->get_ench(ENCH_POISON)).degree)
-            {
-                obvious_effect = true;
-            }
-
-        }
+        obvious_effect = apply_poison_damage_brand();
         break;
 
     case SPWPN_DRAINING:
@@ -1674,6 +1723,7 @@ bool attack::apply_damage_brand(const char *what)
             || !defender->is_player()
                && defender->as_monster()->is_summoned()
             || attacker->is_player() && you.duration[DUR_DEATHS_DOOR]
+            || attacker->is_player() && player_is_very_tired(true)
             || !attacker->is_player()
                && attacker->as_monster()->has_ench(ENCH_DEATHS_DOOR)
             || x_chance_in_y(2, 5) && !is_unrandom_artefact(*weapon, UNRAND_LEECH))
@@ -1683,11 +1733,21 @@ bool attack::apply_damage_brand(const char *what)
 
         obvious_effect = true;
 
+        int hp_boost = is_unrandom_artefact(*weapon, UNRAND_VAMPIRES_TOOTH)
+                       ? damage_done : 1 + random2(damage_done);
+
+        dprf(DIAG_COMBAT, "Vampiric Healing: damage %d, healed %d",
+             damage_done, hp_boost);
+        attacker->heal(hp_boost);
+
         // Handle weapon effects.
         // We only get here if we've done base damage, so no
         // worries on that score.
         if (attacker->is_player())
-            canned_msg(MSG_GAIN_HEALTH);
+        {
+            dec_sp(1, true);
+            canned_msg(MSG_GAIN_HEALTH, hp_boost);
+        }
         else if (attacker_visible)
         {
             if (defender->is_player())
@@ -1701,13 +1761,6 @@ bool attack::apply_damage_brand(const char *what)
                      attacker->name(DESC_THE).c_str());
             }
         }
-
-        int hp_boost = is_unrandom_artefact(*weapon, UNRAND_VAMPIRES_TOOTH)
-                       ? damage_done : 1 + random2(damage_done);
-
-        dprf(DIAG_COMBAT, "Vampiric Healing: damage %d, healed %d",
-             damage_done, hp_boost);
-        attacker->heal(hp_boost);
 
         attacker->god_conduct(DID_NECROMANCY, 2);
         break;
@@ -1816,24 +1869,13 @@ bool attack::apply_damage_brand(const char *what)
             miscast_level = -1;
     }
 
+    // Preserve Nessos's brand stacking in a hacky way -- but to be fair, it
+    // was always a bit of a hack.
+    if (attacker->type == MONS_NESSOS && weapon && is_range_weapon(*weapon))
+        apply_poison_damage_brand();
+
     if (special_damage > 0)
         inflict_damage(special_damage, special_damage_flavour);
-
-    if (defender->alive())
-    {
-        switch (brand)
-        {
-        case SPWPN_FLAMING:
-            defender->expose_to_element(BEAM_FIRE);
-            break;
-
-        case SPWPN_FREEZING:
-            defender->expose_to_element(BEAM_COLD, 2);
-            break;
-        default:
-            break;
-        }
-    }
 
     if (obvious_effect && attacker_visible && using_weapon())
     {

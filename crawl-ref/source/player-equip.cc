@@ -241,6 +241,12 @@ static void _equip_artefact_effect(item_def &item, bool *show_msgs, bool unmeld,
                                                   : MSG_MANA_DECREASE);
     }
 
+    if (proprt[ARTP_STAMINA] && !known[ARTP_STAMINA] && msg)
+    {
+        mprf(proprt[ARTP_STAMINA] > 0 ? "You feel your stamina capacity increase."
+                                      : "You feel your stamina capacity decrease.");
+    }
+
     // Modify ability scores.
     notify_stat_change(STAT_STR, proprt[ARTP_STRENGTH],
                        !(msg && unknown_proprt(ARTP_STRENGTH)));
@@ -271,6 +277,9 @@ static void _equip_artefact_effect(item_def &item, bool *show_msgs, bool unmeld,
     // Let's try this here instead of up there.
     if (proprt[ARTP_MAGICAL_POWER])
         calc_mp();
+
+    if (proprt[ARTP_STAMINA])
+        calc_sp();
 
     if (!fully_identified(item))
     {
@@ -306,6 +315,12 @@ static void _unequip_artefact_effect(item_def &item,
                                                   : MSG_MANA_INCREASE);
     }
 
+    if (proprt[ARTP_STAMINA] && !known[ARTP_STAMINA] && msg)
+    {
+        mprf(proprt[ARTP_STAMINA] < 0 ? "You feel your stamina capacity increase."
+                                      : "You feel your stamina capacity decrease.");
+    }
+
     notify_stat_change(STAT_STR, -proprt[ARTP_STRENGTH],     true);
     notify_stat_change(STAT_INT, -proprt[ARTP_INTELLIGENCE], true);
     notify_stat_change(STAT_DEX, -proprt[ARTP_DEXTERITY],    true);
@@ -327,6 +342,9 @@ static void _unequip_artefact_effect(item_def &item,
 
     if (proprt[ARTP_MAGICAL_POWER])
         calc_mp();
+
+    if (proprt[ARTP_STAMINA])
+        calc_sp();
 
     if (proprt[ARTP_CONTAM] && !meld)
     {
@@ -583,6 +601,7 @@ static void _equip_weapon_effect(item_def& item, bool showMsgs, bool unmeld)
                 break;
 
             case SPWPN_VAMPIRISM:
+                /*
                 if (you.species != SP_VAMPIRE
                     && you.undead_state() == US_ALIVE
                     && !you_foodless()
@@ -590,6 +609,7 @@ static void _equip_weapon_effect(item_def& item, bool showMsgs, bool unmeld)
                 {
                     make_hungry(4500, false, false);
                 }
+                 */
                 break;
 
             case SPWPN_DISTORTION:
@@ -1184,6 +1204,11 @@ static void _equip_jewellery_effect(item_def &item, bool unmeld,
         calc_mp();
         break;
 
+    case RING_STAMINA:
+        canned_msg(MSG_STAMINA_INCREASE);
+        calc_sp();
+        break;
+
     case RING_TELEPORTATION:
         if (you.no_tele())
             mpr("You feel a slight, muted jump rush through you.");
@@ -1230,6 +1255,11 @@ static void _equip_jewellery_effect(item_def &item, bool unmeld,
     case AMU_MANA_REGENERATION:
         if (!unmeld)
             _equip_amulet_of_mana_regeneration();
+        break;
+
+    case AMU_STAMINA_REGENERATION:
+        if (!unmeld)
+            mpr("You feel your endurance increase.");
         break;
 
     case AMU_GUARDIAN_SPIRIT:
@@ -1345,6 +1375,11 @@ static void _unequip_jewellery_effect(item_def &item, bool mesg, bool meld,
 
     case RING_MAGICAL_POWER:
         canned_msg(MSG_MANA_DECREASE);
+        break;
+
+    case RING_STAMINA:
+        canned_msg(MSG_STAMINA_DECREASE);
+        calc_sp();
         break;
 
     case AMU_THE_GOURMAND:

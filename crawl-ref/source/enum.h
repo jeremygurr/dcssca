@@ -195,9 +195,9 @@ enum exp_mode
 enum game_difficulty_level
 {
 	DIFFICULTY_ASK,
-	DIFFICULTY_EASY = 1,
-	DIFFICULTY_NORMAL,
-	DIFFICULTY_HARD,
+	DIFFICULTY_STANDARD = 1,
+	DIFFICULTY_CHALLENGE,
+	DIFFICULTY_NIGHTMARE,
 };
 
 enum lang_t
@@ -457,6 +457,7 @@ enum activity_interrupt_type
                                     // interrupted.
     AI_KEYPRESS,
     AI_FULL_HP,                     // Player is fully healed
+    AI_FULL_SP,                     // Player has recovered all sp
     AI_FULL_MP,                     // Player has recovered all mp
     AI_HUNGRY,                      // Hunger increased
     AI_MESSAGE,                     // Message was displayed
@@ -697,7 +698,7 @@ enum book_type
     BOOK_YOUNG_POISONERS,
     BOOK_TEMPESTS,
     BOOK_DEATH,
-    BOOK_HINDERANCE,
+    BOOK_MISFORTUNE,
     BOOK_CHANGES,
     BOOK_TRANSFIGURATIONS,
     BOOK_FEN,
@@ -814,19 +815,26 @@ enum branch_type                // you.where_are_you
 };
 
 enum caction_type    // Primary categorization of counted actions.
-{                    // A subtype will also be given in each case:
+{                    // A subtype and auxtype will also be given in each case:
     CACT_MELEE,      // weapon subtype or unrand index
+                     //   subtype = -1 for unarmed or aux attacks
+                     //   auxtype = -1 for unarmed
+                     //   auxtype = unarmed_attack_type for aux attacks
     CACT_FIRE,       // weapon subtype or unrand index
-    CACT_THROW,      // item basetype << 16 | subtype
+    CACT_THROW,      // auxtype = item basetype, subtype = item subtype
     CACT_CAST,       // spell_type
     CACT_INVOKE,     // ability_type
     CACT_ABIL,       // ability_type
-    CACT_EVOKE,      // evoc_type
-                     //   or item.basetype << 16 | subtype
-                     //   or unrand index
+    CACT_EVOKE,      // evoc_type or unrand index
+                     //   auxtype = item basetype, subtype = item subtype
     CACT_USE,        // object_class_type
     CACT_STAB,       // stab_type
-    CACT_EAT,        // food_type, or -1 for corpse
+    CACT_EAT,        // food_type, or subtype = -1 for corpse
+    CACT_ARMOUR,     // armour subtype or subtype = -1 for unarmoured
+    CACT_DODGE,      // dodge_type
+    CACT_BLOCK,      // armour subtype or subtype = -1 and
+                     //   auxtype used for special cases
+                     //   (reflection, god ability, spell, etc)
     NUM_CACTIONS,
 };
 
@@ -868,6 +876,8 @@ enum canned_message_type
     MSG_GAIN_MAGIC,
     MSG_MAGIC_DRAIN,
 	MSG_DJINNI_CANT_READ,
+    MSG_STAMINA_INCREASE,
+    MSG_STAMINA_DECREASE,
 };
 
 enum char_set_type
@@ -1013,6 +1023,10 @@ enum command_type
     CMD_USE_ABILITY,
     CMD_PRAY,
     CMD_EAT,
+    CMD_EXERT_POWER,
+    CMD_EXERT_ESCAPE,
+    CMD_EXERT_CAREFUL,
+    CMD_EXERT_NORMAL,
     CMD_QUAFF,
     CMD_READ,
     CMD_LOOK_AROUND,
@@ -1400,17 +1414,6 @@ enum description_level_type
                                        // description in the db.
 
     DESC_NONE
-};
-
-enum evoc_type
-{
-    EVOC_WAND,
-    EVOC_ROD,
-    EVOC_DECK,
-#if TAG_MAJOR_VERSION == 34
-    EVOC_MISC,
-    EVOC_BUGGY_TOME,
-#endif
 };
 
 enum game_chapter
@@ -1802,6 +1805,7 @@ enum duration_type
     DUR_DIVINE_SHIELD,          // duration of TSO's Divine Shield
     DUR_REGENERATION,
     DUR_SWIFTNESS,
+    DUR_TIRELESS,
 #if TAG_MAJOR_VERSION == 34
     DUR_CONTROLLED_FLIGHT,
 #endif
@@ -1941,6 +1945,10 @@ enum duration_type
     DUR_DOOM_HOWL_IMMUNITY,
 #endif
     DUR_VERTIGO,
+    DUR_POWER,
+    DUR_CARE,
+    DUR_ESCAPE,
+    DUR_CHANNELING,
     NUM_DURATIONS
 };
 
@@ -2180,6 +2188,14 @@ enum eq_type_flags
     ETF_ARMOUR = 0x4,
     ETF_JEWELS = 0x8,
     ETF_ALL    = 0xF
+};
+
+enum exertion_mode
+{
+    EXERT_CAREFUL = -1,
+    EXERT_NORMAL = 0,
+    EXERT_POWER,
+    EXERT_ESCAPE,
 };
 
 enum flush_reason_type
@@ -2513,6 +2529,17 @@ enum mon_holy_type_flags
 };
 DEF_BITFIELD(mon_holy_type, mon_holy_type_flags, 7);
 
+enum source_type
+{
+    SRC_UNDEFINED,
+    SRC_POTION,
+    SRC_SCROLL,
+    SRC_WAND,
+    SRC_SPELL,
+    SRC_ABILITY,
+    SRC_ITEM,
+};
+
 enum targ_mode_type
 {
     TARG_ANY,
@@ -2725,8 +2752,8 @@ enum monster_type                      // menv[].type
     MONS_DEATH_SCARAB,
 #endif
     MONS_GIANT_COCKROACH,
-#if TAG_MAJOR_VERSION == 34
     MONS_GIANT_CENTIPEDE,
+#if TAG_MAJOR_VERSION == 34
     MONS_GIANT_MITE,
 #endif
     MONS_SPIDER,
@@ -2843,6 +2870,7 @@ enum monster_type                      // menv[].type
     MONS_BUSH,
     MONS_BURNING_BUSH,
 #if TAG_MAJOR_VERSION > 34
+    MONS_THORN_LOTUS,
     MONS_THORN_HUNTER,
     MONS_BRIAR_PATCH,
     MONS_SHAMBLING_MANGROVE,
@@ -2874,13 +2902,14 @@ enum monster_type                      // menv[].type
     MONS_ORC_WARLORD,
     MONS_DWARF,
     MONS_DEEP_DWARF,
-#if TAG_MAJOR_VERSION == 34
     MONS_DEEP_DWARF_SCION,
     MONS_DEEP_DWARF_ARTIFICER,
     MONS_DEEP_DWARF_NECROMANCER,
     MONS_DEEP_DWARF_BERSERKER,
+    MONS_DEEP_DWARF_DEATH_KNIGHT,
+    MONS_UNBORN_DEEP_DWARF,
+#if TAG_MAJOR_VERSION == 34
     MONS_DEATH_KNIGHT,
-    MONS_UNBORN,
 #endif
     MONS_ELF,
 #if TAG_MAJOR_VERSION == 34
@@ -3359,6 +3388,7 @@ enum monster_type                      // menv[].type
 #endif
     MONS_TEST_SPAWNER,
 
+    MONS_THORN_LOTUS,
     // Add new monsters here:
 #if TAG_MAJOR_VERSION == 34
     MONS_SERPENT_OF_HELL_COCYTUS,
@@ -3436,7 +3466,6 @@ enum monster_type                      // menv[].type
     MONS_ANCIENT_BEAR,
     MONS_WATER_NYMPH,
     MONS_SHAMBLING_MANGROVE,
-    MONS_THORN_LOTUS,
     MONS_SPECTRAL_WEAPON,
     MONS_ELEMENTAL_WELLSPRING,
     MONS_POLYMOTH,
@@ -3692,6 +3721,10 @@ enum mutation_type
     MUT_FOUL_STENCH,
     MUT_GOURMAND,
     MUT_HIGH_MAGIC,
+    MUT_HIGH_STAMINA,
+    MUT_LOW_STAMINA,
+    MUT_STAMINA_EFFICIENT_NORMAL, // not used anymore
+    MUT_STAMINA_EFFICIENT_SPECIAL, // not used anymore
 #if TAG_MAJOR_VERSION > 34
     MUT_FREEZING_CLOUD_IMMUNITY,
 #endif
@@ -3750,6 +3783,7 @@ enum mutation_type
     MUT_JELLY_MISSILE,
     MUT_MANA_SHIELD,
     MUT_MANA_REGENERATION,
+    MUT_STAMINA_REGENERATION,
     MUT_MANA_LINK,
     MUT_PETRIFICATION_RESISTANCE,
     MUT_TRAMPLE_RESISTANCE,
@@ -3828,6 +3862,19 @@ enum mutation_type
 	MUT_EPHEMERAL,
     MUT_ABSORB_ENCH,
     MUT_POISON_VULNERABILITY,
+    MUT_STAMINA_FROM_CORPSES,
+    MUT_HEALTH_FROM_CORPSES,
+    MUT_GOOD_DNA,
+    MUT_FIRST_DNA = MUT_GOOD_DNA,
+    MUT_BAD_DNA,
+    MUT_CLEAN_DNA,
+    MUT_RESILIENT_DNA,
+    MUT_WEAK_DNA,
+    MUT_SHORT_DNA,
+    MUT_LONG_DNA,
+    MUT_FOCUSSED_DNA,
+    MUT_UNFOCUSSED_DNA,
+    MUT_LAST_DNA = MUT_UNFOCUSSED_DNA,
     NUM_MUTATIONS,
 
     RANDOM_MUTATION,
@@ -3930,8 +3977,9 @@ enum potion_type
 	POT_MIGHT,
 	POT_MUTATION,
 	POT_PATIENCE,
-	POT_POISON,
+	POT_POISON_VULNERABILITY,
 	POT_RESISTANCE,
+    POT_WEAK_MUTATION,
 #if TAG_MAJOR_VERSION == 34
     POT_BLOOD_COAGULATED,
     POT_DECAY,
@@ -4027,6 +4075,8 @@ enum artefact_prop_type
     ARTP_CONFUSE,
     ARTP_FRAGILE,
     ARTP_SHIELDING,
+    ARTP_STAMINA,
+    ARTP_RUNNING,
     ARTP_NUM_PROPERTIES
 };
 

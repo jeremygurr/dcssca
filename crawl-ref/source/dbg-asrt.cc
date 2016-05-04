@@ -175,6 +175,7 @@ static void _dump_player(FILE *file)
         fprintf(file, "Runrest:\n");
         fprintf(file, "    mode: %d\n", you.running.runmode);
         fprintf(file, "      mp: %d\n", you.running.mp);
+        fprintf(file, "      sp: %d\n", you.running.sp);
         fprintf(file, "      hp: %d\n", you.running.hp);
         fprintf(file, "     pos: %s\n\n",
                 debug_coord_str(you.running.pos).c_str());
@@ -207,9 +208,9 @@ static void _dump_player(FILE *file)
             continue;
 
         int needed_min = 0, needed_max = 0;
-        if (sk >= 0 && you.skills[sk] <= MAX_SKILL_LEVEL)
+        if (sk >= 0 && you.skills[sk] <= get_max_skill_level())
             needed_min = skill_exp_needed(you.skills[sk], sk);
-        if (sk >= 0 && you.skills[sk] < MAX_SKILL_LEVEL)
+        if (sk >= 0 && you.skills[sk] < get_max_skill_level())
             needed_max = skill_exp_needed(you.skills[sk] + 1, sk);
 
         fprintf(file, "%-16s|     %c     |   %u   |   %3u    |   %2d  | %6d | %d/%d\n",

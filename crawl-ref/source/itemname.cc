@@ -664,7 +664,7 @@ const char* potion_type_name(int potiontype)
 #endif
     case POT_FLIGHT:            return "flight";
 #if TAG_MAJOR_VERSION == 34
-    case POT_POISON:            return "poison";
+    case POT_POISON_VULNERABILITY:            return "poison";
 #endif
     case POT_CANCELLATION:      return "cancellation";
     case POT_AMBROSIA:          return "ambrosia";
@@ -681,6 +681,7 @@ const char* potion_type_name(int potiontype)
     case POT_BERSERK_RAGE:      return "berserk rage";
     case POT_CURE_MUTATION:     return "cure mutation";
     case POT_MUTATION:          return "mutation";
+    case POT_WEAK_MUTATION:     return "weak mutation";
     case POT_BLOOD:             return "blood";
 #if TAG_MAJOR_VERSION == 34
     case POT_BLOOD_COAGULATED:  return "coagulated blood";
@@ -761,6 +762,7 @@ const char* jewellery_effect_name(int jeweltype, bool terse)
         case RING_INTELLIGENCE:          return "intelligence";
         case RING_WIZARDRY:              return "wizardry";
         case RING_MAGICAL_POWER:         return "magical power";
+        case RING_STAMINA:               return "stamina";
         case RING_FLIGHT:                return "flight";
         case RING_LIFE_PROTECTION:       return "positive energy";
         case RING_PROTECTION_FROM_MAGIC: return "protection from magic";
@@ -773,6 +775,7 @@ const char* jewellery_effect_name(int jeweltype, bool terse)
         case AMU_HARM:              return "harm";
         case AMU_DISMISSAL:         return "dismissal";
         case AMU_MANA_REGENERATION: return "magic regeneration";
+        case AMU_STAMINA_REGENERATION: return "stamina regeneration";
         case AMU_THE_GOURMAND:      return "gourmand";
 #if TAG_MAJOR_VERSION == 34
         case AMU_CONSERVATION:      return "conservation";
@@ -810,6 +813,7 @@ const char* jewellery_effect_name(int jeweltype, bool terse)
         case RING_DEXTERITY:             return "Dex";
         case RING_INTELLIGENCE:          return "Int";
         case RING_MAGICAL_POWER:         return "MP+9";
+        case RING_STAMINA:               return "SP+50%";
         case RING_FLIGHT:                return "+Fly";
         case RING_LIFE_PROTECTION:       return "rN+";
         case RING_PROTECTION_FROM_MAGIC: return "MR+";
@@ -1043,7 +1047,7 @@ static const char* _book_type_name(int booktype)
     case BOOK_ENCHANTMENTS:           return "Enchantments";
     case BOOK_TEMPESTS:               return "the Tempests";
     case BOOK_DEATH:                  return "Death";
-    case BOOK_HINDERANCE:             return "Hinderance";
+    case BOOK_MISFORTUNE:             return "Misfortune";
     case BOOK_CHANGES:                return "Changes";
     case BOOK_TRANSFIGURATIONS:       return "Transfigurations";
     case BOOK_BATTLE:                 return "Battle";
@@ -1609,6 +1613,9 @@ static string _name_weapon(const item_def &weap, description_level_type desc,
     const string ego_suffix = know_ego ? _ego_suffix(weap, terse) : "";
     const string curse_suffix
         = know_curse && weap.cursed() && terse ? " (curse)" :  "";
+    if (weap.cursed())
+        dprf("Cursed!");
+
     return curse_prefix + plus_text + cosmetic_text + ego_prefix
            + item_base_name(weap)
            + ego_suffix + curse_suffix;
@@ -2081,7 +2088,7 @@ string item_def::name_aux(description_level_type desc, bool terse, bool ident,
         if (know_curse && terse)
             if (super_cursed())
                 buff << " (heavy curse)";
-            else if (super_cursed())
+            else if (cursed())
                 buff << " (curse)";
         break;
 
@@ -3369,7 +3376,7 @@ bool is_bad_item(const item_def &item, bool temp)
         case POT_DECAY:
             return you.res_rotting(temp) <= 0;
         case POT_STRONG_POISON:
-        case POT_POISON:
+        case POT_POISON_VULNERABILITY:
             // Poison is not that bad if you're poison resistant.
             return player_res_poison(false) <= 0
                    || !temp && you.species == SP_VAMPIRE;
@@ -3446,6 +3453,7 @@ bool is_dangerous_item(const item_def &item, bool temp)
         switch (item.sub_type)
         {
         case POT_MUTATION:
+        case POT_WEAK_MUTATION:
         case POT_LIGNIFY:
             return true;
         default:
@@ -3655,6 +3663,7 @@ bool is_useless_item(const item_def &item, bool temp)
 
         case POT_CURE_MUTATION:
         case POT_MUTATION:
+        case POT_WEAK_MUTATION:
         case POT_BENEFICIAL_MUTATION:
 #if TAG_MAJOR_VERSION == 34
         case POT_GAIN_STRENGTH:
@@ -3683,7 +3692,7 @@ bool is_useless_item(const item_def &item, bool temp)
         case POT_DECAY:
             return you.res_rotting(temp) > 0;
         case POT_STRONG_POISON:
-        case POT_POISON:
+        case POT_POISON_VULNERABILITY:
             // If you're poison resistant, poison is only useless.
             return !is_bad_item(item, temp);
         case POT_SLOWING:
@@ -3874,7 +3883,7 @@ bool is_useless_item(const item_def &item, bool temp)
     case OBJ_BOOKS:
         if (!item_type_known(item) || item.sub_type != BOOK_MANUAL)
             return false;
-        if (you.skills[item.plus] >= MAX_SKILL_LEVEL)
+        if (you.skills[item.plus] >= get_max_skill_level())
             return true;
         if (is_useless_skill((skill_type)item.plus))
             return true;

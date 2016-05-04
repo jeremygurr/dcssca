@@ -916,7 +916,7 @@ static void _evolve(int time_delta)
         {
             you.attribute[ATTR_EVOL_XP] = 0;
             mpr("You feel a genetic drift.");
-            bool evol = one_chance_in(you.species == SP_KOBOLD ? 3 : 5) ?
+            bool evol = one_chance_in(5 - player_mutation_level(MUT_CLEAN_DNA)) ?
                 delete_mutation(RANDOM_BAD_MUTATION, "evolution", false, false, false, true) :
                 mutate(coinflip() ? RANDOM_GOOD_MUTATION : RANDOM_MUTATION,
                        "evolution", false, false, false, false, MUTCLASS_NORMAL,
@@ -936,8 +936,8 @@ static void _evolve(int time_delta)
 
 static void _handle_insight(int time_delta)
 {
-    if (int lev = player_mutation_level(MUT_INSIGHT)) {
-    	if (x_chance_in_y(1 << (lev*2), 64)) {
+    if (int lev = 1 + player_mutation_level(MUT_INSIGHT)) {
+    	if (x_chance_in_y(1 << ((lev - 1) * 2), 64)) {
     		string before, after;
     		bool success = false;
 
@@ -947,11 +947,6 @@ static void _handle_insight(int time_delta)
     		} else {
     			inv = &(you.inv1);
     		}
-
-    		// random selection
-//    		while(true)
-//    	    {
-//    			item_def& item((*inv)[random2((*inv).size())]);
 
     		// top to bottom
     		// this give the player the option to move items to the top so that they are more likely to be identified first
@@ -1032,7 +1027,7 @@ static struct timed_effect timed_effects[] =
 #if TAG_MAJOR_VERSION == 34
     { nullptr,                         0,     0, false },
 #endif
-    { _handle_insight,               400,   800, false },
+    { _handle_insight,               100,   400, false },
 };
 
 // Do various time related actions...

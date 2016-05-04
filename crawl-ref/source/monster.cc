@@ -90,6 +90,8 @@ monster::monster()
     clear_constricted();
     went_unseen_this_turn = false;
     unseen_pos = coord_def(0, 0);
+    mp_freeze = 0;
+    summoned_by_spell = SPELL_NO_SPELL;
     prev_direction = coord_def(0, 0);
 }
 
@@ -141,6 +143,8 @@ void monster::reset()
     god             = GOD_NO_GOD;
     went_unseen_this_turn = false;
     unseen_pos = coord_def(0, 0);
+    mp_freeze = 0;
+    summoned_by_spell = SPELL_NO_SPELL;
 
     mons_remove_from_grid(this);
     target.reset();
@@ -200,6 +204,7 @@ void monster::init_with(const monster& mon)
     damage_friendly   = mon.damage_friendly;
     damage_total      = mon.damage_total;
     prev_direction    = mon.prev_direction;
+    mp_freeze         = mon.mp_freeze;
 
     if (mon.ghost.get())
         ghost.reset(new ghost_demon(*mon.ghost));
@@ -683,8 +688,7 @@ bool monster::can_speak()
     }
 
     // Does it have the proper vocal equipment?
-    const mon_body_shape shape = get_mon_shape(this);
-    return shape >= MON_SHAPE_HUMANOID && shape <= MON_SHAPE_NAGA;
+    return mon_shape_is_humanoid(get_mon_shape(this));
 }
 
 bool monster::is_silenced() const
@@ -1335,6 +1339,9 @@ bool monster::pickup_launcher(item_def &launch, bool msg, bool force)
 
 static bool _is_signature_weapon(const monster* mons, const item_def &weapon)
 {
+    if (mons->type == MONS_DEEP_DWARF_ARTIFICER)
+        return (weapon.base_type == OBJ_RODS);
+
     // Don't pick up items that would interfere with our special ability
     if (mons->type == MONS_RED_DEVIL)
         return item_attack_skill(weapon) == SK_POLEARMS;
@@ -2269,9 +2276,18 @@ item_def *monster::shield() const
     return mslot_item(MSLOT_SHIELD);
 }
 
+/**
+ * Does this monster have a proper name?
+ *
+ * @return  Whether the monster has a proper name, e.g. "Rupert" or
+ *          "Bogric the orc warlord". Should not include 'renamed' vault
+ *          monsters, e.g. "decayed bog mummy" or "bag of meat".
+ */
 bool monster::is_named() const
 {
-    return !mname.empty() || mons_is_unique(type);
+    return mons_is_unique(type)
+           || (!mname.empty() && !testbits(flags, MF_NAME_ADJECTIVE |
+                                                  MF_NAME_REPLACE));
 }
 
 bool monster::has_base_name() const
@@ -2672,7 +2688,7 @@ string monster::arm_name(bool plural, bool *can_plural) const
 {
     mon_body_shape shape = get_mon_shape(this);
 
-    if (shape > MON_SHAPE_NAGA)
+    if (!mon_shape_is_humanoid(shape))
         return hand_name(plural, can_plural);
 
     if (can_plural != nullptr)
@@ -4286,7 +4302,7 @@ int monster::skill(skill_type sk, int scale, bool real, bool drained) const
     switch (sk)
     {
     case SK_EVOCATIONS:
-        return hd;
+        return (type == MONS_DEEP_DWARF_ARTIFICER ? hd * 2 : hd);
 
     case SK_NECROMANCY:
         return (has_spell_of_type(SPTYP_NECROMANCY)) ? hd : hd/2;
@@ -5037,7 +5053,7 @@ void monster::load_ghost_spells()
 bool monster::has_hydra_multi_attack() const
 {
     return mons_genus(mons_base_type(this)) == MONS_HYDRA
-        || mons_species(false) == MONS_SERPENT_OF_HELL;
+        || mons_species(true) == MONS_SERPENT_OF_HELL;
 }
 
 int monster::heads() const

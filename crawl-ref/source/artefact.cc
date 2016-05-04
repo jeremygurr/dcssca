@@ -19,6 +19,7 @@
 #include "colour.h"
 #include "coordit.h"
 #include "database.h"
+#include "goditem.h"
 #include "itemname.h"
 #include "itemprop.h"
 #include "items.h"
@@ -44,70 +45,8 @@ static bool _god_fits_artefact(const god_type which_god, const item_def &item,
 
     // First check the item's base_type and sub_type, then check the
     // item's brand and other randart properties.
-    bool type_bad = false;
-    switch (which_god)
-    {
-    case GOD_ELYVILON:
-        // Peaceful healer god: no weapons, no berserking.
-        if (item.base_type == OBJ_WEAPONS)
-            type_bad = true;
 
-        if (item.is_type(OBJ_JEWELLERY, AMU_RAGE))
-            type_bad = true;
-        break;
-
-    case GOD_SHINING_ONE:
-        // Crusader god: holiness, honourable combat.
-        if (item.is_type(OBJ_JEWELLERY, RING_STEALTH))
-            type_bad = true;
-        break;
-
-    case GOD_OKAWARU:
-        // Precision fighter god: no inaccuracy.
-        if (item.is_type(OBJ_JEWELLERY, AMU_INACCURACY))
-            type_bad = true;
-        break;
-
-    case GOD_SIF_MUNA:
-    case GOD_VEHUMET:
-        // The magic gods: no weapons, no preventing spellcasting.
-        if (item.base_type == OBJ_WEAPONS)
-            type_bad = true;
-        break;
-
-    case GOD_TROG:
-        // Anti-magic god: no spell use, no enhancing magic.
-        if (item.base_type == OBJ_BOOKS)
-            type_bad = true;
-
-        if (item.base_type == OBJ_JEWELLERY
-            && (item.sub_type == RING_WIZARDRY
-             || item.sub_type == RING_FIRE
-             || item.sub_type == RING_ICE
-             || item.sub_type == RING_MAGICAL_POWER))
-        {
-            type_bad = true;
-        }
-        break;
-
-    case GOD_CHEIBRIADOS:
-        // Slow god: no quick blades, no berserking.
-        if (item.is_type(OBJ_WEAPONS, WPN_QUICK_BLADE))
-            type_bad = true;
-
-        if (item.is_type(OBJ_JEWELLERY, AMU_RAGE))
-            type_bad = true;
-        break;
-
-    case GOD_DITHMENOS:
-        // Shadow god: no reducing stealth.
-        if (item.is_type(OBJ_JEWELLERY, RING_LOUDNESS))
-            type_bad = true;
-        break;
-
-    default:
-        break;
-    }
+    const bool type_bad = !god_likes_item_type(item, which_god);
 
     if (type_bad && !name_check_only)
     {
@@ -444,6 +383,7 @@ static map<jewellery_type, vector<jewellery_fake_artp>> jewellery_artps = {
     { RING_PROTECTION, { { ARTP_AC, 0 } } },
     { RING_EVASION, { { ARTP_EVASION, 0 } } },
     { RING_SLAYING, { { ARTP_SLAYING, 0 } } },
+    { RING_STAMINA, { { ARTP_STAMINA, 2 } } },
 };
 
 /**
@@ -641,6 +581,10 @@ static bool _artp_can_go_on_item(artefact_prop_type prop, const item_def &item,
             // not quite as interesting on armour, since you swap it less
         case ARTP_FRAGILE:
             return item_class != OBJ_ARMOUR;
+        case ARTP_STAMINA:
+            return item_class != OBJ_WEAPONS;
+        case ARTP_RUNNING:
+            return item_class == OBJ_ARMOUR && item.sub_type == ARM_BOOTS;
         default:
             return true;
     }
@@ -682,6 +626,12 @@ static int _gen_good_hpmp_artp() { return 9; }
 
 /// Generate 'bad' values for ARTP_HP/ARTP_MAGICAL_POWER
 static int _gen_bad_hpmp_artp() { return -_gen_good_hpmp_artp(); }
+
+/// Generate 'good' values for ARTP_HP/ARTP_MAGICAL_POWER
+static int _gen_good_sp_artp() { return 1 + random2(3); }
+
+/// Generate 'bad' values for ARTP_HP/ARTP_MAGICAL_POWER
+static int _gen_bad_sp_artp() { return -_gen_good_hpmp_artp(); }
 
 /// Generation info for artefact properties.
 static const artefact_prop_data artp_data[] =
@@ -776,6 +726,8 @@ static const artefact_prop_data artp_data[] =
     { "Fragile", ARTP_VAL_BOOL, 25, // ARTP_FRAGILE,
         nullptr, []() { return 1; }, 0, 0 },
     { "SH", ARTP_VAL_ANY, 0, nullptr, nullptr, 0, 0 }, // ARTP_SHIELDING,
+    { "SP", ARTP_VAL_ANY, 30, _gen_good_sp_artp, _gen_bad_sp_artp, 0, 0 },
+    { "Running", ARTP_VAL_ANY, 30, []() { return 1; }, nullptr, 0, 0 },
 };
 COMPILE_CHECK(ARRAYSZ(artp_data) == ARTP_NUM_PROPERTIES);
 // weights sum to 1000
@@ -1495,6 +1447,10 @@ static bool _randart_is_redundant(const item_def &item,
         provides = ARTP_MAGICAL_POWER;
         break;
 
+    case RING_STAMINA:
+        provides = ARTP_STAMINA;
+        break;
+
     case RING_FLIGHT:
         provides = ARTP_FLY;
         break;
@@ -1729,6 +1685,8 @@ static void _make_faerie_armour(item_def &item)
             artefact_set_property(doodad, ARTP_MAGICAL_POWER, 1 + random2(10));
         if (one_chance_in(20))
             artefact_set_property(doodad, ARTP_HP, random2(21) - 10);
+        if (one_chance_in(20))
+            artefact_set_property(doodad, ARTP_STAMINA, roll_dice(2, 3) - 3);
 
         break;
     }

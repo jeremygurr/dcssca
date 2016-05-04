@@ -22,9 +22,7 @@
 #include "art-enum.h"
 #include "bloodspatter.h"
 #include "branch.h"
-#ifdef DGL_WHEREIS
- #include "chardump.h"
-#endif
+#include "chardump.h"
 #include "cloud.h"
 #include "coordit.h"
 #include "delay.h"
@@ -71,6 +69,7 @@
 #include "status.h"
 #include "stepdown.h"
 #include "stringutil.h"
+#include "spl-summoning.h"
 #include "terrain.h"
 #ifdef USE_TILE
  #include "tiledef-feat.h"
@@ -82,6 +81,7 @@
 #include "view.h"
 #include "xom.h"
 #include "place.h"
+#include "items.h"
 
 const int DJ_MP_RATE = 1;
 
@@ -1242,11 +1242,11 @@ int player_hunger_rate(bool temp)
 {
     int hunger = 3;
 
+    if (you.species != SP_VAMPIRE)
+        hunger = 0;
+
     if (temp && you.form == TRAN_BAT && you.species == SP_VAMPIRE)
         return 1;
-
-    if (you.species == SP_CAVE_TROLL)
-        hunger += 3;            // in addition to the +3 for fast metabolism
 
     if (temp
         && (you.duration[DUR_REGENERATION]
@@ -1256,18 +1256,24 @@ int player_hunger_rate(bool temp)
         hunger += 4;
     }
 
+    /*
     if (temp)
     {
-        if (you.duration[DUR_INVIS])
-            hunger += 5;
+        if (you.duration[DUR_INVIS] && you.duration_source[DUR_INVIS] != SRC_POTION)
+        {
+            hunger += 50;
+        }
 
         // Berserk has its own food penalty - excluding berserk haste.
         // Doubling the hunger cost for haste so that the per turn hunger
         // is consistent now that a hasted turn causes 50% the normal hunger
         // -cao
-        if (you.duration[DUR_HASTE])
-            hunger += haste_mul(5);
+        if (you.duration[DUR_HASTE] && you.duration_source[DUR_HASTE] != SRC_POTION)
+        {
+            hunger += haste_mul(50);
+        }
     }
+     */
 
     if (you.species == SP_VAMPIRE)
     {
@@ -1296,21 +1302,16 @@ int player_hunger_rate(bool temp)
             hunger += 3;
         }
     }
-    else
-    {
-        hunger += player_mutation_level(MUT_FAST_METABOLISM)
-                - player_mutation_level(MUT_SLOW_METABOLISM);
-    }
 
     // If Cheibriados has slowed your life processes, you will hunger less.
     if (have_passive(passive_t::slow_metabolism))
         hunger /= 2;
 
-    if (hunger < 1)
-        hunger = 1;
+    if (hunger < 0)
+        hunger = 0;
 
     if (you.duration[DUR_FLIGHT] && you.species != SP_DJINNI)
-        hunger <<= 2;
+        hunger += 5;
 
     return hunger;
 }
@@ -1339,6 +1340,10 @@ int player_spell_levels()
     // Fireball is free for characters with delayed fireball
     if (fireball && delayed_fireball)
         sl += spell_difficulty(SPELL_FIREBALL);
+
+    // moon troll has very poor spellcasting, so needs a spell slot boost to help at the beginning
+    if (you.species == SP_MOON_TROLL)
+        sl += 3;
 
     // Note: This can happen because of level drain. Maybe we should
     // force random spells out when that happens. -- bwr
@@ -1795,7 +1800,7 @@ int player_spec_fire()
     // rings of fire:
     sf += you.wearing(EQ_RINGS, RING_FIRE);
 
-    if (you.species == SP_LAVA_ORC && temperature_effect(LORC_FIRE_BOOST))
+    if (you.species == SP_LAVA_ORC && temperature_effect(LORC_LAVA_BOOST))
         sf++;
 
     if (you.duration[DUR_FIRE_SHIELD])
@@ -1830,6 +1835,9 @@ int player_spec_earth()
 
     // Staves
     se += you.wearing(EQ_STAFF, STAFF_EARTH);
+    
+    if (you.species == SP_LAVA_ORC && temperature_effect(LORC_LAVA_BOOST)) 
+    	se++;
 
     return se;
 }
@@ -1990,78 +1998,85 @@ int player_prot_life(bool calc_unid, bool temp, bool items)
 // want to go past 6 (see below). -- bwr
 int player_movement_speed()
 {
-    int mv = 10;
+    int mv = 1100;
 
     // transformations
-    if (you.form == TRAN_BAT)
-        mv = 5;
-    else if (you.form == TRAN_PIG || you.form == TRAN_SPIDER)
-        mv = 7;
-    else if (you.form == TRAN_PORCUPINE || you.form == TRAN_WISP)
-        mv = 8;
-    else if (you.fishtail || you.form == TRAN_HYDRA && you.in_water())
-        mv = 6;
+    if (you.exertion == EXERT_ESCAPE)
+    {
+        if (you.form == TRAN_BAT)
+            mv = 500;
+        else if (you.form == TRAN_PIG || you.form == TRAN_SPIDER)
+            mv = 700;
+        else if (you.form == TRAN_PORCUPINE || you.form == TRAN_WISP)
+            mv = 800;
+        else if (you.fishtail || you.form == TRAN_HYDRA && you.in_water())
+            mv = 600;
 
-    // moving on liquefied ground takes longer
-    if (you.liquefied_ground())
-        mv += 3;
+        int run_bonus = you.run() ? 1 : 0;
+        run_bonus += you.scan_artefacts(ARTP_RUNNING);
+        mv -= run_bonus * 200;
 
-    // armour
-    if (you.run())
-        mv -= 2;
+        // Tengu can move slightly faster when flying.
+        if (you.tengu_flight())
+            mv -= 200 + you.experience_level * 14;
+    }
+
+    if (you.liquefied_ground() && you.species != SP_LAVA_ORC)
+        mv += 300;
 
 	if (you.species == SP_LAVA_ORC) {
 		if (you.temperature < TEMP_COOL) {
-			mv += 1;
+			mv += 100;
 		}
-		if (you.temperature >= TEMP_ROOM) {
-			mv -= 1;
-		}
-		if (you.temperature >= TEMP_HOT) {
-			mv -= 1;
-		}
+
+        if (you.exertion == EXERT_ESCAPE)
+        {
+            if (you.temperature >= TEMP_ROOM) {
+                mv -= 100;
+            }
+
+            if (you.temperature >= TEMP_HOT) {
+                mv -= 100;
+            }
+        }
 	}
 
-    mv += you.wearing_ego(EQ_ALL_ARMOUR, SPARM_PONDEROUSNESS);
+    mv += you.wearing_ego(EQ_ALL_ARMOUR, SPARM_PONDEROUSNESS) * 100;
 
     // Cheibriados
     if (have_passive(passive_t::slowed))
-        mv += 2 + min(div_rand_round(you.piety, 20), 8);
+        mv += 200 + min(you.piety * 5, 800);
     else if (player_under_penance(GOD_CHEIBRIADOS))
-        mv += 2 + min(div_rand_round(you.piety_max[GOD_CHEIBRIADOS], 20), 8);
-
-    // Tengu can move slightly faster when flying.
-    if (you.tengu_flight())
-        mv -= 2 + you.experience_level / 7;
+        mv += 200 + min(you.piety_max[GOD_CHEIBRIADOS] * 5, 800);
 
     if (you.duration[DUR_FROZEN])
-        mv += 4;
+        mv += 400;
 
     if (you.duration[DUR_GRASPING_ROOTS])
-        mv += 3;
+        mv += 300;
 
     if (you.duration[DUR_ICY_ARMOUR])
-        ++mv; // as ponderous
+        mv += 100; // as ponderous
 
-    // Mutations: -2, -3, -4, unless innate and shapechanged.
-    if (int fast = player_mutation_level(MUT_FAST))
-        mv -= fast + 1;
+    if (you.exertion == EXERT_ESCAPE)
+        for (int i = 0; i < player_mutation_level(MUT_FAST); i++)
+            mv = mv * 4 / 5;
 
-    if (int slow = player_mutation_level(MUT_SLOW))
-    {
-        mv *= 10 + slow * 2;
-        mv /= 10;
-    }
+    for (int i = 0; i < player_mutation_level(MUT_SLOW); i++)
+        mv = mv * 4 / 3;
 
     if (you.duration[DUR_SWIFTNESS] > 0 && !you.in_liquid())
     {
         if (you.attribute[ATTR_SWIFTNESS] > 0)
-          mv = div_rand_round(3*mv, 4);
-        else if (mv >= 8)
-          mv = div_rand_round(3*mv, 2);
-        else if (mv == 7)
-          mv = div_rand_round(7*6, 5); // balance for the cap at 6
+          mv = mv * 3 / 4;
+        else
+          mv = mv * 4 / 3;
     }
+
+    if (you.exertion == EXERT_ESCAPE && you.religion != GOD_CHEIBRIADOS)
+        mv = mv * 3 / 4;
+
+    mv = div_rand_round(mv, 100);
 
     // We'll use the old value of six as a minimum, with haste this could
     // end up as a speed of three, which is about as fast as we want
@@ -2069,6 +2084,7 @@ int player_movement_speed()
     // which is a bit of a jump, and a bit too fast) -- bwr
     // Currently Haste takes 6 to 4, which is 2.5x as fast as delay 10
     // and still seems plenty fast. -- elliptic
+
     if (mv < FASTEST_PLAYER_MOVE_SPEED)
         mv = FASTEST_PLAYER_MOVE_SPEED;
 
@@ -2682,17 +2698,19 @@ const int _experience_for_this_floor(int multiplier) {
         && !(you.where_are_you == BRANCH_DUNGEON && you.depth == 1)
             )
     {
+        int how_deep = absdungeon_depth(you.where_are_you, you.depth);
+
         if (Options.exp_based_on_player_level)
             exp = exp_needed(you.experience_level + 1, 0) - exp_needed(you.experience_level, 0);
         else
-        {
-            int how_deep = absdungeon_depth(you.where_are_you, you.depth);
-            exp = stepup2(how_deep + 1, 3, 3, 40) + 5;
-        }
-        exp = exp * multiplier;
+            exp = exp_needed(how_deep, 0);
+
+        exp *= multiplier;
+        exp = div_rand_round(exp, 100);
+        exp = max(5 * how_deep, exp);
     }
 
-    return div_rand_round(exp, 300);
+    return exp;
 }
 
 const int potion_experience_for_this_floor()
@@ -2708,15 +2726,6 @@ const int potion_experience_for_this_floor()
 const int floor_experience_for_this_floor()
 {
     int exp = _experience_for_this_floor(Options.exp_percent_from_new_branch_floor);
-
-    // mummies can't drink experience potions, so they just get more experience per level than normal
-    if (you.species == SP_MUMMY)
-    {
-        if (Options.exp_potion_on_each_floor)
-            exp <<= 2;
-        if (Options.uniques_drop_exp_potions)
-            exp <<= 2;
-    }
 
     return exp;
 }
@@ -2740,14 +2749,14 @@ void gain_exp(unsigned int exp_gained, unsigned int* actual_gain, bool from_mons
 
     if (from_monster)
     {
-        exp_gained = exp_gained * abs(Options.exp_percent_from_monsters) / 100;
+        exp_gained = div_rand_round(exp_gained * abs(Options.exp_percent_from_monsters), 100);
         exp_loss = Options.exp_percent_from_monsters < 0;
     }
 
-    if (crawl_state.difficulty == DIFFICULTY_EASY)
+    if (crawl_state.difficulty == DIFFICULTY_STANDARD)
         exp_gained = div_rand_round(exp_gained * 3, 2);
 
-    if (crawl_state.difficulty == DIFFICULTY_HARD)
+    if (crawl_state.difficulty == DIFFICULTY_NIGHTMARE)
         exp_gained = div_rand_round(exp_gained * 2, 3);
 
     if (crawl_state.game_is_arena() || exp_gained == 0)
@@ -3054,7 +3063,7 @@ void level_change(bool skip_attribute_increase)
             // Don't want to see the dead creature at the prompt.
             redraw_screen();
 
-            if (new_exp == MAX_EXP_LEVEL || Options.level_27_cap && new_exp == 27)
+            if (new_exp == get_max_exp_level() || Options.level_27_cap && new_exp == 27)
                 mprf(MSGCH_INTRINSIC_GAIN, "You have reached level 27, the final one!");
             else if (new_exp == you.get_max_xl())
                 mprf(MSGCH_INTRINSIC_GAIN, "You have reached level %d, the highest you will ever reach!",
@@ -3523,6 +3532,12 @@ int check_stealth()
     if (player_has_orb())
         stealth /= 3;
 
+    if (you.exertion == EXERT_ESCAPE)
+        stealth >>= 2;
+
+    if (you.exertion == EXERT_CAREFUL)
+        stealth = div_rand_round(stealth * 3, 2);
+
     stealth = max(0, stealth);
 
     return stealth;
@@ -3658,13 +3673,9 @@ static void _display_movement_speed()
 
 static void _display_tohit()
 {
-#ifdef DEBUG_DIAGNOSTICS
     melee_attack attk(&you, nullptr);
-
     const int to_hit = attk.calc_to_hit(false);
-
-    dprf("To-hit: %d", to_hit);
-#endif
+    mprf("To-hit: %d", to_hit);
 }
 
 static const char* _attack_delay_desc(int attack_delay)
@@ -3905,8 +3916,8 @@ unsigned int exp_needed(int lev, int exp_apt)
     else
     {
         const float apt_factor = apt_to_factor(exp_apt - 1);
-        const int base = stepup2(lev, 2, 4) * 10;
-        needed_exp = base * apt_factor * apt_factor * apt_factor + 5;
+        const int base = stepup2(lev, 3, 5, 15) + 1;
+        needed_exp = base * apt_factor * apt_factor * apt_factor;
     }
     return (unsigned int) needed_exp;
 }
@@ -3984,19 +3995,29 @@ void calc_hp()
     you.redraw_hit_points = true;
 }
 
-void dec_hp(int hp_loss, bool fatal, const char *aux)
+void calc_sp()
+{
+    int oldsp = you.sp, oldmax = you.sp_max;
+    you.sp_max = get_real_sp(true);
+    if (you.sp > you.sp_max)
+        you.sp = you.sp_max;
+    if (oldsp != you.sp || oldmax != you.sp_max)
+        dprf("SP changed: %d/%d -> %d/%d", oldsp, oldmax, you.sp, you.sp_max);
+    you.redraw_stamina_points = true;
+}
+
+bool dec_hp(int hp_loss, bool fatal, const char *aux)
 {
     ASSERT(!crawl_state.game_is_arena());
 
+    bool result = true;
     if (!fatal && you.hp < 1)
         you.hp = 1;
 
     if (!fatal && hp_loss >= you.hp)
         hp_loss = you.hp - 1;
 
-    // allow gain
-//    if (hp_loss < 1)
-//        return;
+    hp_loss = rune_curse_dam_adjust(hp_loss);
 
     // If it's not fatal, use ouch() so that notes can be taken. If it IS
     // fatal, somebody else is doing the bookkeeping, and we don't want to mess
@@ -4006,9 +4027,13 @@ void dec_hp(int hp_loss, bool fatal, const char *aux)
     else
         you.hp -= hp_loss;
 
+    result = you.hp >= 0;
+
     if(you.hp > you.hp_max) you.hp = you.hp_max;
 
     you.redraw_hit_points = true;
+
+    return result;
 }
 
 void calc_mp()
@@ -4037,36 +4062,44 @@ void flush_mp()
     you.redraw_magic_points = true;
 }
 
-void dec_mp(int mp_loss, bool silent)
+// returns false if there isn't enough mp
+bool dec_mp(int mp_loss, bool silent)
 {
     ASSERT(!crawl_state.game_is_arena());
+    bool result = true;
 
     if (mp_loss < 1)
-        return;
+        return true;
 
     if (you.species == SP_DJINNI)
         return dec_hp(mp_loss * DJ_MP_RATE, false);
 
     you.magic_points -= mp_loss;
 
+    result = you.magic_points >= 0;
     you.magic_points = max(0, you.magic_points);
     if (!silent)
         flush_mp();
+
+    return result;
 }
 
-void drain_mp(int loss)
+bool drain_mp(int loss)
 {
+    bool result = true;
     if (you.species == SP_DJINNI)
     {
 
         if (loss <= 0)
-            return;
+            return true;
 
         you.duration[DUR_ANTIMAGIC] = min(you.duration[DUR_ANTIMAGIC] + loss * 3,
                                            1000); // so it goes away after one '5'
     }
     else
-    return dec_mp(loss);
+        result = dec_mp(loss);
+
+    return result;
 }
 
 bool enough_hp(int minimum, bool suppress_msg, bool abort_macros)
@@ -4140,6 +4173,150 @@ static bool _should_stop_resting(int cur, int max)
     return cur == max || cur == _rest_trigger_level(max);
 }
 
+bool player_is_tired(bool silent)
+{
+    const bool is_tired = you.sp * 100 / you.sp_max < 50;
+
+    if (!silent && is_tired)
+        mpr("You are too tired to exert yourself now.");
+
+    return is_tired;
+}
+
+bool player_is_very_tired(bool silent)
+{
+    const bool is_tired = you.sp * 100 / you.sp_max < 10;
+
+    if (!silent && is_tired)
+        mpr("You are too tired to exert yourself now.");
+
+    return is_tired;
+}
+
+void set_exertion(const exertion_mode new_exertion)
+{
+    if (new_exertion == you.exertion)
+        return;
+
+    if (you.duration[DUR_BERSERK])
+    {
+        mpr("You can't change exertion mode while berserk.");
+        return;
+    }
+
+    you.exertion = new_exertion;
+    you.duration[DUR_CARE] = 0;
+    you.duration[DUR_POWER] = 0;
+    you.duration[DUR_ESCAPE] = 0;
+    switch(new_exertion)
+    {
+        case EXERT_POWER:
+            you.duration[DUR_POWER] = 1;
+            break;
+        case EXERT_ESCAPE:
+            you.duration[DUR_ESCAPE] = 1;
+            break;
+        case EXERT_CAREFUL:
+            you.duration[DUR_CARE] = 1;
+            break;
+        default:
+            break;
+    }
+    you.redraw_status_lights = true;
+    you.redraw_evasion = true;
+
+    if (new_exertion != EXERT_ESCAPE)
+        you.turn_is_over = true;
+
+    player_update_tohit();
+}
+
+// returns true if after subtracting the given sp, sp is still > 0
+bool dec_sp(int sp_loss, bool special)
+{
+    bool result = true;
+
+    if (you.duration[DUR_TIRELESS])
+        sp_loss = div_rand_round(sp_loss, 4);
+
+    if (sp_loss < 1)
+        return true;
+
+    const int fast_metabolism = player_mutation_level(MUT_FAST_METABOLISM);
+    if (fast_metabolism)
+        sp_loss = qpow(sp_loss, 4, 3, fast_metabolism);
+
+    const int slow_metabolism = player_mutation_level(MUT_SLOW_METABOLISM);
+    if (slow_metabolism)
+        sp_loss = qpow(sp_loss, 3, 4, slow_metabolism);
+
+    you.sp -= sp_loss;
+    if (you.sp < 0)
+    {
+        you.sp = 0;
+        bool sent_message = false;
+
+        if (you.duration[DUR_BERSERK] > 1 && you.duration_source[DUR_BERSERK] != SRC_POTION && !sent_message)
+        {
+            mpr("You are too tired to continue your rampage.");
+            you.duration[DUR_BERSERK] = 1;
+            sent_message = true;
+        }
+
+        if (you.duration[DUR_HASTE] > 0 && you.duration_source[DUR_HASTE] != SRC_POTION && !sent_message)
+        {
+            mpr("You are too tired to maintain this pace.");
+            you.duration[DUR_HASTE] = 0;
+            sent_message = true;
+        }
+
+        if (you.duration[DUR_INVIS] > 0 && you.duration_source[DUR_INVIS] != SRC_POTION && !sent_message)
+        {
+            mpr("You are too tired to stay invisible.");
+            you.duration[DUR_INVIS] = 0;
+            sent_message = true;
+        }
+
+        if (you.exertion != EXERT_NORMAL && !sent_message)
+        {
+            mpr("You are too tired to continue exerting yourself.");
+            sent_message = true;
+        }
+
+        if (you.digging && !sent_message)
+        {
+            you.digging = false;
+            mpr("You are too tired to continue digging.");
+            sent_message = true;
+        }
+
+        set_exertion(EXERT_NORMAL);
+        result = false;
+    }
+
+    you.redraw_stamina_points = true;
+
+    return result;
+}
+
+void inc_sp(int sp_gain, bool silent)
+{
+    if (sp_gain < 1 || you.sp >= you.sp_max)
+        return;
+
+    you.sp += sp_gain;
+
+    if (you.sp > you.sp_max)
+        you.sp = you.sp_max;
+
+    if (!silent)
+    {
+        if (_should_stop_resting(you.sp, you.sp_max))
+            interrupt_activity(AI_FULL_SP);
+    }
+    you.redraw_stamina_points = true;
+}
+
 void inc_mp(int mp_gain, bool silent)
 {
     ASSERT(!crawl_state.game_is_arena());
@@ -4159,8 +4336,8 @@ void inc_mp(int mp_gain, bool silent)
     {
         if (_should_stop_resting(you.magic_points, you.max_magic_points))
             interrupt_activity(AI_FULL_MP);
-        you.redraw_magic_points = true;
     }
+    you.redraw_magic_points = true;
 }
 
 // Note that "max_too" refers to the base potential, the actual
@@ -4225,14 +4402,31 @@ int unrot_hp(int hp_recovered)
 
 int player_rotted()
 {
-    return -you.hp_max_adj_temp;
+    return -you.hp_max_adj_temp || you.mp_frozen_summons;
 }
 
 void rot_mp(int mp_loss)
 {
     you.mp_max_adj -= mp_loss;
     calc_mp();
+    you.redraw_magic_points = true;
+}
 
+void freeze_summons_mp(int mp_loss)
+{
+    you.mp_frozen_summons += mp_loss;
+    calc_mp();
+    you.redraw_magic_points = true;
+}
+
+void unfreeze_summons_mp(int amount)
+{
+    if (amount == -1)
+        you.mp_frozen_summons = 0;
+    else
+        you.mp_frozen_summons = max(0, you.mp_frozen_summons - amount);
+
+    calc_mp();
     you.redraw_magic_points = true;
 }
 
@@ -4280,6 +4474,19 @@ void set_hp(int new_amount)
 
     // Must remain outside conditional, given code usage. {dlb}
     you.redraw_hit_points = true;
+}
+
+void set_sp(int new_amount)
+{
+    ASSERT(!crawl_state.game_is_arena());
+
+    you.sp = new_amount;
+
+    if (you.sp > you.sp_max)
+        you.sp = you.sp_max;
+
+    // Must remain outside conditional, given code usage. {dlb}
+    you.redraw_stamina_points = true;
 }
 
 void set_mp(int new_amount)
@@ -4347,16 +4554,36 @@ int get_real_hp(bool trans, bool rotted, bool adjust_for_difficulty)
 
     if (adjust_for_difficulty)
     {
-        if (crawl_state.difficulty == DIFFICULTY_EASY)
+        if (crawl_state.difficulty == DIFFICULTY_STANDARD)
             hitp = hitp * 3 / 2;
-        if (crawl_state.difficulty == DIFFICULTY_HARD)
+        if (crawl_state.difficulty == DIFFICULTY_NIGHTMARE)
             hitp = hitp * 2 / 3;
     }
 
     return max(1, hitp + 5);
 }
 
-int get_real_mp(bool include_items)
+int get_real_sp(bool include_items)
+{
+    int max_sp = 100;
+
+    int boost = 0;
+    boost += player_mutation_level(MUT_HIGH_STAMINA);
+    boost -= player_mutation_level(MUT_LOW_STAMINA);
+    boost += you.wearing(EQ_RINGS, RING_STAMINA);
+    boost += you.scan_artefacts(ARTP_STAMINA);
+
+    if (crawl_state.difficulty == DIFFICULTY_STANDARD)
+        boost++;
+    if (crawl_state.difficulty == DIFFICULTY_NIGHTMARE)
+        boost--;
+
+    max_sp = qpow(max_sp, 5, 4, boost);
+
+    return max_sp;
+}
+
+int get_real_mp(bool include_items, bool rotted)
 {
     const int scale = 100;
     int spellcasting = you.skill(SK_SPELLCASTING, 1 * scale, true);
@@ -4377,18 +4604,15 @@ int get_real_mp(bool include_items)
                + (you.attribute[ATTR_DIVINE_VIGOUR] * 5)
                - (player_mutation_level(MUT_LOW_MAGIC) * 10);
     enp /= 100 * scale;
-//    enp = stepdown_value(enp, 9, 18, 45, 100)
     enp += species_mp_modifier(you.species);
 
     // This is our "rotted" base, applied after multipliers
     enp += you.mp_max_adj;
 
-    if (crawl_state.difficulty == DIFFICULTY_EASY)
-    	enp += 12;
-    if (crawl_state.difficulty == DIFFICULTY_NORMAL)
-        enp += 8;
-    if (crawl_state.difficulty == DIFFICULTY_HARD)
-        enp += 4;
+    // straight boost to mp, since things are hard in thie fork for magic users
+    enp += 5;
+    if (you.char_class == JOB_SUMMONER)
+        enp += 5;
 
     // Now applied after scaling so that power items are more useful -- bwr
     if (include_items)
@@ -4405,7 +4629,16 @@ int get_real_mp(bool include_items)
     if (include_items && you.wearing_ego(EQ_WEAPON, SPWPN_ANTIMAGIC))
         enp /= 3;
 
+    if (crawl_state.difficulty == DIFFICULTY_STANDARD)
+        enp = enp * 3 / 2;
+    if (crawl_state.difficulty == DIFFICULTY_NIGHTMARE)
+        enp = enp * 2 / 3;
+
     enp = max(enp, 4);
+    if (!rotted)
+        enp -= you.mp_frozen_summons;
+    enp = max(enp, 0);
+
     return enp;
 }
 
@@ -4415,8 +4648,11 @@ bool player_regenerates_hp()
         return false;
     if (you.species == SP_VAMPIRE && you.hunger_state <= HS_STARVING)
         return false;
-    if (you.form == TRAN_TREE)
-        return false;
+    return true;
+}
+
+bool player_regenerates_sp()
+{
     return true;
 }
 
@@ -4930,11 +5166,11 @@ void dec_napalm_player(int delay)
 
     mprf(MSGCH_WARN, "You are covered in liquid flames!");
 
-    expose_player_to_element(BEAM_STICKY_FLAME,
-                             div_rand_round(delay * 4, BASELINE_DELAY));
-
     const int hurted = resist_adjust_damage(&you, BEAM_FIRE,
                                             random2avg(9, 2) + 1);
+
+    you.expose_to_element(BEAM_STICKY_FLAME, 2);
+    maybe_melt_player_enchantments(BEAM_STICKY_FLAME, hurted * delay / BASELINE_DELAY);
 
     ouch(hurted * delay / BASELINE_DELAY, KILLED_BY_BURNING);
 
@@ -5022,7 +5258,7 @@ void dec_exhaust_player(int delay)
     }
 }
 
-bool haste_player(int turns, bool rageext)
+bool haste_player(int turns, bool rageext, source_type source)
 {
     ASSERT(!crawl_state.game_is_arena());
 
@@ -5035,7 +5271,7 @@ bool haste_player(int turns, bool rageext)
     // Cutting the nominal turns in half since hasted actions take half the
     // usual delay.
     turns = haste_div(turns);
-    const int threshold = 40;
+    const int threshold = 400;
 
     if (!you.duration[DUR_HASTE])
         mpr("You feel yourself speed up.");
@@ -5044,10 +5280,11 @@ bool haste_player(int turns, bool rageext)
     else if (!rageext)
     {
         mpr("You feel as though your hastened speed will last longer.");
-        contaminate_player(1000, true); // always deliberate
+//        contaminate_player(1000, true); // always deliberate
     }
 
-    you.increase_duration(DUR_HASTE, turns, threshold);
+    you.increase_duration(DUR_HASTE, turns, threshold, nullptr);
+    you.duration_source[DUR_HASTE] = source;
 
     return true;
 }
@@ -5382,9 +5619,12 @@ player::player()
     hp_max_adj_temp  = 0;
     hp_max_adj_perm  = 0;
 
+    sp               = 0;
+    sp_max           = 0;
     magic_points     = 0;
     max_magic_points = 0;
     mp_max_adj       = 0;
+    mp_frozen_summons        = 0;
 
     stat_loss.init(0);
     base_stats.init(0);
@@ -5395,6 +5635,7 @@ player::player()
     max_level       = 1;
     hit_points_regeneration   = 0;
     magic_points_regeneration = 0;
+    stamina_points_regeneration = 0;
     experience       = 0;
     total_experience = 0;
     experience_level = 1;
@@ -5429,6 +5670,7 @@ player::player()
     pet_target      = MHITNOT;
 
     duration.init(0);
+    duration_source.init(SRC_UNDEFINED);
     apply_berserk_penalty = false;
     berserk_penalty = 0;
     attribute.init(0);
@@ -5574,12 +5816,14 @@ player::player()
     redraw_quiver        = false;
     redraw_status_lights = false;
     redraw_hit_points    = false;
+    redraw_stamina_points= false;
     redraw_magic_points  = false;
     redraw_temperature   = false;
     redraw_stats.init(false);
     redraw_experience    = false;
     redraw_armour_class  = false;
     redraw_evasion       = false;
+    redraw_tohit         = false;
     redraw_title         = false;
 
     flash_colour        = BLACK;
@@ -5602,7 +5846,13 @@ player::player()
     frame_no            = 0;
 
     amplification       = 1;
+    exertion            = EXERT_NORMAL;
     max_exp             = 0;
+    current_form_spell  = SPELL_NO_SPELL;
+    current_form_spell_failure  = 0;
+    last_hit_chance     = 0;
+    last_tohit = 0;
+    summoned.init(MID_NOBODY);
 
     save                = nullptr;
     prev_save_version.clear();
@@ -5719,8 +5969,8 @@ bool player::is_sufficiently_rested() const
 {
     // Only return false if resting will actually help.
     return (hp >= _rest_trigger_level(hp_max) || !player_regenerates_hp())
-            && (magic_points >= _rest_trigger_level(max_magic_points)
-                || !player_regenerates_mp());
+           && (magic_points >= _rest_trigger_level(max_magic_points) || !player_regenerates_mp())
+           && (sp >= _rest_trigger_level(sp_max) || !player_regenerates_sp());
 }
 
 bool player::in_water() const
@@ -5940,6 +6190,10 @@ void player::shield_block_succeeded(actor *foe)
 
     shield_blocks++;
     practise(EX_SHIELD_BLOCK);
+    if (shield())
+        count_action(CACT_BLOCK, shield()->sub_type);
+    else
+        count_action(CACT_BLOCK, -1, BLOCK_OTHER); // non-shield block
 }
 
 int player::missile_deflection() const
@@ -6080,10 +6334,10 @@ int player::skill(skill_type sk, int scale, bool real, bool drained) const
         for (skill_type cross : get_crosstrain_skills(sk))
             effective_points += skill_points[cross] * 2 / 5;
     }
-    effective_points = min(effective_points, skill_exp_needed(MAX_SKILL_LEVEL, sk));
+    effective_points = min(effective_points, skill_exp_needed(get_max_skill_level(), sk));
     while (1)
     {
-        if (actual_skill < MAX_SKILL_LEVEL
+        if (actual_skill < get_max_skill_level()
             && effective_points >= skill_exp_needed(actual_skill + 1, sk))
         {
             ++actual_skill;
@@ -6121,10 +6375,10 @@ int player::skill(skill_type sk, int scale, bool real, bool drained) const
     if ((sk == SK_LONG_BLADES || sk == SK_SHORT_BLADES)
         && player_equip_unrand(UNRAND_FENCERS))
     {
-        level = min(level + 4 * scale, MAX_SKILL_LEVEL * scale);
+        level = min(level + 4 * scale, get_max_skill_level() * scale);
     }
     if (duration[DUR_HEROISM] && sk <= SK_LAST_MUNDANE)
-        level = min(level + 5 * scale, MAX_SKILL_LEVEL * scale);
+        level = min(level + 5 * scale, get_max_skill_level() * scale);
     return level;
 }
 
@@ -6209,10 +6463,12 @@ int player::racial_ac(bool temp) const
     if (!(player_is_shapechanged() && temp))
     {
         if (species == SP_NAGA)
-            return 100 * experience_level / 3;              // max 9
+            return 100 * experience_level / 3;  	// max 9 or so
+        else if (species == SP_LAVA_ORC && you.temperature <= TEMP_WARM)
+            return 300 + 100 * experience_level / 6;	// max 8 or so
         else if (species == SP_GARGOYLE)
         {
-            return 200 + 100 * experience_level * 2 / 5     // max 20
+            return 200 + 100 * experience_level * 2 / 5	// max 20 or so
                        + 100 * (max(0, experience_level - 7) * 2 / 5);
         }
     }
@@ -6356,18 +6612,20 @@ int player::evasion(ev_ignore_type evit, const actor* act) const
     const int invis_penalty = attacker_invis && !(evit & EV_IGNORE_HELPLESS) ?
                               10 : 0;
 
-    int amount_of_stairs_penalty = 7;
-    if (crawl_state.difficulty == DIFFICULTY_EASY)
-        amount_of_stairs_penalty = 1;
-    if (crawl_state.difficulty == DIFFICULTY_NORMAL)
-        amount_of_stairs_penalty = 3;
+    int amount_of_stairs_penalty = 3;
 
     const int stairs_penalty = player_stair_delay()
                                 && !(evit & EV_IGNORE_HELPLESS) ?
                                     amount_of_stairs_penalty :
                                     0;
 
-    return base_evasion - constrict_penalty - invis_penalty - stairs_penalty;
+    int ev = base_evasion - constrict_penalty - invis_penalty - stairs_penalty;
+    if (you.exertion == EXERT_ESCAPE)
+    {
+        ev = div_rand_round(ev * 4, 3);
+    }
+
+    return ev;
 }
 
 bool player::heal(int amount)
@@ -6497,7 +6755,7 @@ int player::res_cold() const
 
 int player::res_elec() const
 {
-    return player_res_electricity() * 2;
+    return player_res_electricity();
 }
 
 int player::res_water_drowning() const
@@ -6833,9 +7091,24 @@ bool player::spellcasting_unholy() const
  */
 undead_state_type player::undead_state(bool temp) const
 {
-    if (temp && you.form == TRAN_LICH)
-        return US_UNDEAD;
-    return species_undead_type(you.species);
+    undead_state_type result = species_undead_type(you.species);
+    if (temp)
+    {
+        switch(you.form)
+        {
+            case TRAN_NONE:
+            case TRAN_APPENDAGE:
+            case TRAN_BLADE_HANDS:
+                break;
+            case TRAN_LICH:
+                result = US_UNDEAD;
+                break;
+            default:
+                result = US_ALIVE;
+        }
+    }
+
+    return result;
 }
 
 bool player::nightvision() const
@@ -7575,7 +7848,7 @@ bool player::cannot_act() const
 
 bool player::can_throw_large_rocks() const
 {
-    return species_can_throw_large_rocks(species) || you.strength(true) > 20;
+    return species_can_throw_large_rocks(species) || you.strength(true) > 30;
 }
 
 bool player::can_smell() const
@@ -7804,9 +8077,16 @@ void player::set_gold(int amount)
     }
 }
 
-void player::increase_duration(duration_type dur, int turns, int cap,
-                               const char* msg)
+void player::increase_duration(duration_type dur, int turns, int cap, const char *msg, source_type source)
 {
+    if (dur == DUR_EXHAUSTED)
+    {
+        const int sp_loss = turns;
+        dec_sp(sp_loss);
+        duration[DUR_EXHAUSTED] = 0;
+        return;
+    }
+
     if (msg)
         mpr(msg);
     cap *= BASELINE_DELAY;
@@ -7814,13 +8094,16 @@ void player::increase_duration(duration_type dur, int turns, int cap,
     duration[dur] += turns * BASELINE_DELAY;
     if (cap && duration[dur] > cap)
         duration[dur] = cap;
+//    if (dur == DUR_BERSERK || dur == DUR_INVIS || dur == DUR_HASTE)
+//        inc_sp(turns * 8);
+
+    duration_source[dur] = source;
 }
 
-void player::set_duration(duration_type dur, int turns,
-                          int cap, const char * msg)
+void player::set_duration(duration_type dur, int turns, int cap, const char *msg, source_type source)
 {
     duration[dur] = 0;
-    increase_duration(dur, turns, cap, msg);
+    increase_duration(dur, turns, cap, msg, source);
 }
 
 void player::goto_place(const level_id &lid)
@@ -7999,14 +8282,6 @@ static string _constriction_description()
     return cinfo;
 }
 
-void count_action(caction_type type, int subtype)
-{
-    pair<caction_type, int> pair(type, subtype);
-    if (!you.action_count.count(pair))
-        you.action_count[pair].init(0);
-    you.action_count[pair][you.experience_level - 1]++;
-}
-
 /**
  *   The player's radius of monster detection.
  *   @return   the radius in which a player can detect monsters.
@@ -8159,7 +8434,7 @@ void temperature_check()
 void temperature_increment(float degree)
 {
     // No warming up while you're exhausted!
-    if (you.duration[DUR_EXHAUSTED])
+    if (you.duration[DUR_EXHAUSTED] || player_is_tired(true))
         return;
 
     you.temperature += sqrt(degree);
@@ -8190,7 +8465,8 @@ void temperature_changed(float change)
     if (you.temperature >= TEMP_WARM)
     {
         // Handles condensation shield, ozo's armour, icemail.
-        expose_player_to_element(BEAM_FIRE, 0);
+        // 10 => 100aut reduction in duration.
+        maybe_melt_player_enchantments(BEAM_FIRE, 10);
 
         // Handled separately because normally heat doesn't affect this.
         if (you.form == TRAN_ICE_BEAST || you.form == TRAN_STATUE)
@@ -8269,11 +8545,11 @@ bool temperature_effect(int which)
 //      case nothing, right now:
 //            return (you.temperature >= TEMP_COOL && you.temperature < TEMP_WARM); // 5-8
         case LORC_LAVA_BOOST:
-            return temperature() >= TEMP_WARM && temperature() < TEMP_HOT; // 9-10
+            return temperature() >= TEMP_WARM; // 9-10
         case LORC_FIRE_RES_II:
             return temperature() >= TEMP_WARM; // 9-15
         case LORC_FIRE_RES_III:
-        case LORC_FIRE_BOOST:
+//        case LORC_FIRE_BOOST:
         case LORC_COLD_VULN:
             return temperature() >= TEMP_HOT; // 11-15
         case LORC_PASSIVE_HEAT:
@@ -8315,17 +8591,17 @@ string temperature_text(int temp)
     switch (temp)
     {
         case TEMP_MIN:
-            return "rF+";
+            return "rF+; racial bonus to AC";
         case TEMP_COOL:
             return "";
         case TEMP_WARM:
-            return "rF++; lava magic boost; Stoneskin melts";
+            return "rF++; lava magic boost; Stony skin melts";
         case TEMP_HOT:
-            return "rF+++; rC-; fire magic boost";
+            return "rF+++; rC-; move faster in Power mode";
         case TEMP_FIRE:
             return "Burn attackers";
         case TEMP_MAX:
-            return "Burn surroundings; cannot read scrolls";
+            return "All above effects; fire aura; can't read";
         default:
             return "";
     }
@@ -8540,11 +8816,13 @@ void player_close_door(coord_def doorpos)
             return;
         }
 
+        /*
         if (igrd(dc) != NON_ITEM)
         {
             mprf("There's something blocking the %s.", waynoun);
             return;
         }
+        */
 
         if (you.pos() == dc)
         {
@@ -8819,3 +9097,244 @@ void player_end_berserk()
     Hints.hints_events[HINT_YOU_ENCHANTED] = hints_slow;
     you.redraw_quiver = true; // Can throw again.
 }
+
+const int get_max_exp_level()
+{
+    if (Options.level_27_cap)
+        return 27;
+    return MAX_EXP_LEVEL;
+}
+
+const int get_max_skill_level()
+{
+    if (Options.level_27_cap)
+        return 27;
+    return MAX_SKILL_LEVEL;
+}
+
+const int rune_curse_hp_adjust(int hp)
+{
+    const int runes = runes_in_pack();
+    const int new_hp = qpow(hp, 50 + crawl_state.difficulty, 50, runes);
+    return new_hp;
+}
+
+const int rune_curse_dam_adjust(int dam)
+{
+    const int runes = runes_in_pack();
+    const int new_dam = qpow(dam, 50 + crawl_state.difficulty, 50, runes);
+    return new_dam;
+}
+
+void summoned_monster_died(monster* mons, bool natural_death)
+{
+    const int mp_cost = mons->mp_freeze;
+    unfreeze_summons_mp(mp_cost);
+    mons->mp_freeze = 0;
+    int mp_recovered = mp_cost;
+    if (natural_death)
+    {
+        mp_recovered = div_rand_round(mp_recovered, 2);
+    }
+    inc_mp(mp_recovered);
+
+    remove_from_summoned(mons->mid);
+}
+
+void remove_from_summoned(mid_t mid)
+{
+    for (unsigned int i = 0; i < you.summoned.size(); i++)
+    {
+        if (you.summoned[i] == mid)
+        {
+            you.summoned[i] = MID_NOBODY;
+            break;
+        }
+    }
+}
+
+bool player_summoned_monster(spell_type spell, monster* mons, bool first)
+{
+    bool success = true;
+    const int cost = first ? spell_freeze_mana(spell) : 0;
+    mons->mp_freeze = cost;
+    freeze_summons_mp(cost);
+
+    int open_slot = -1;
+    for (unsigned int i = 0; i < you.summoned.size(); i++)
+    {
+        if (you.summoned[i] == MID_NOBODY)
+        {
+            open_slot = i;
+            break;
+        }
+    }
+
+    if (open_slot == -1)
+    {
+        mpr("Your mind can't handle so many summons at once.");
+        success = false;
+    }
+    else
+    {
+        you.summoned[open_slot] = mons->mid;
+    }
+
+    return success;
+}
+
+// triggered for any ranged or melee attack
+void player_attacked_something()
+{
+    player_was_offensive();
+    if (you.exertion != EXERT_NORMAL)
+        dec_sp(2);
+}
+
+// When any kind of magic spell is cast by the player
+void player_used_magic()
+{
+    player_was_offensive();
+    if (you.exertion == EXERT_POWER)
+        dec_sp(2);
+}
+
+void player_evoked_something()
+{
+    player_was_offensive();
+}
+
+void player_moved()
+{
+    if (you.exertion == EXERT_ESCAPE || you.exertion == EXERT_CAREFUL && player_in_a_dangerous_place())
+        dec_sp(2);
+    if (you.airborne() && you.cancellable_flight())
+        dec_sp(1);
+}
+
+void player_was_offensive()
+{
+    if (you.current_form_spell != SPELL_NO_SPELL)
+    {
+        int fail = raw_spell_fail(you.current_form_spell);
+        const bool flip = fail > 50;
+        if (flip)
+            fail = 100 - fail;
+        fail = fail / 2;
+        if (flip)
+            fail = 100 - fail;
+
+        if (x_chance_in_y(fail + 1, 100))
+        {
+            you.current_form_spell_failure++;
+            if (you.current_form_spell_failure == 2)
+                mprf(MSGCH_WARN, "Your form is beginning to unravel.");
+
+            if (you.current_form_spell_failure == 4)
+                mprf(MSGCH_WARN, "You can't maintain your form for much longer!");
+
+            if (you.current_form_spell_failure > 4)
+                untransform();
+        }
+    }
+}
+
+void player_before_long_safe_action()
+{
+    if (you.exertion == EXERT_ESCAPE)
+        set_exertion(EXERT_NORMAL);
+}
+
+void player_after_long_safe_action(int turns)
+{
+    if (turns > 5)
+    {
+        if (you.current_form_spell_failure)
+        {
+            mpr("You form becomes more stable.");
+            you.current_form_spell_failure = 0;
+        }
+    }
+}
+
+int player_spell_hunger_modifier(int old_hunger)
+{
+    int new_hunger = 0;
+    if (you.duration[DUR_CHANNELING] == 0 && (you.exertion == EXERT_POWER || you.exertion == EXERT_CAREFUL))
+        new_hunger = old_hunger;
+
+    return new_hunger;
+}
+
+int player_spell_cost_modifier(spell_type which_spell, bool raw, int old_cost)
+{
+    int new_cost = old_cost;
+
+    if (is_summon_spell(which_spell) && !raw)
+        new_cost = 0;
+
+//    if (is_self_transforming_spell(which_spell))
+//        new_cost *= 2;
+
+    if (you.duration[DUR_CHANNELING])
+        new_cost = 0;
+    else if (have_passive(passive_t::conserve_mp))
+        new_cost = qpow(new_cost, 97, 100, you.skill(SK_INVOCATIONS));
+
+    return new_cost;
+}
+
+int player_tohit_modifier(int old_tohit)
+{
+    int new_tohit = old_tohit;
+
+    if (you.exertion == EXERT_CAREFUL)
+        new_tohit = div_rand_round(new_tohit * 4, 3) + 5;
+
+    return new_tohit;
+}
+
+int player_damage_modifier(int old_damage)
+{
+    int new_damage = old_damage;
+
+    if (you.exertion == EXERT_POWER)
+        new_damage = div_rand_round(new_damage * 4, 3) + 2;
+
+    return new_damage;
+}
+
+int player_spellpower_modifier(int old_spellpower)
+{
+    int new_spellpower = old_spellpower;
+
+    if (you.exertion == EXERT_POWER)
+        new_spellpower = div_rand_round(new_spellpower * 4, 3) + 10;
+
+    return new_spellpower;
+}
+
+void player_update_last_hit_chance(int chance)
+{
+    if (chance < 0)
+        chance = 0;
+
+    if (chance > 99)
+        chance = 99;
+
+    you.last_hit_chance = chance;
+    you.redraw_tohit = true;
+}
+
+void player_update_tohit(int new_tohit)
+{
+    if (new_tohit == -1)
+    {
+        melee_attack attk(&you, nullptr);
+        new_tohit = attk.calc_to_hit(false);
+    }
+
+    you.last_tohit = new_tohit;
+    you.redraw_tohit = true;
+}
+

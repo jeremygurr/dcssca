@@ -14,6 +14,7 @@
 #include <sstream>
 
 #include "butcher.h"
+#include "chardump.h"
 #include "database.h"
 #include "delay.h"
 #include "env.h"
@@ -46,28 +47,43 @@ static void _describe_food_change(int hunger_increment);
 static bool _vampire_consume_corpse(int slot, bool invent);
 static void _heal_from_food(int hp_amt);
 
-void make_hungry(int hunger_amount, bool suppress_msg,
+bool make_hungry(int hunger_amount, bool suppress_msg,
                  bool magic)
 {
-    if (crawl_state.disables[DIS_HUNGER])
-        return;
+    bool result = true;
+    if (hunger_amount <= 0)
+        return true;
 
-    if (you_foodless())
-        return;
+    if (you.species == SP_VAMPIRE)
+    {
+//        if (crawl_state.disables[DIS_HUNGER])
+//            return;
 
-    if (magic)
-        hunger_amount = calc_hunger(hunger_amount);
+//        if (you_foodless())
+//            return;
 
-    if (hunger_amount == 0 && !suppress_msg)
-        return;
+        if (magic)
+            hunger_amount = calc_hunger(hunger_amount);
 
-    you.hunger -= hunger_amount;
+        if (hunger_amount == 0 && !suppress_msg)
+            return true;
 
-    // So we don't get two messages, ever.
-    bool state_message = food_change();
+        you.hunger -= hunger_amount;
 
-    if (!suppress_msg && !state_message)
-        _describe_food_change(-hunger_amount);
+        // So we don't get two messages, ever.
+        bool state_message = food_change();
+
+        if (!suppress_msg && !state_message)
+            _describe_food_change(-hunger_amount);
+
+    }
+    else
+    {
+        const int sp_loss = div_rand_round(hunger_amount, 20);
+        result = dec_sp(sp_loss, true);
+    }
+
+    return result;
 }
 
 // Must match the order of hunger_state_t enums
@@ -89,7 +105,7 @@ static constexpr int hunger_threshold[HS_ENGORGED + 1] =
  */
 void lessen_hunger(int satiated_amount, bool suppress_msg, int max)
 {
-    if (you_foodless())
+    if (you.species != SP_VAMPIRE || you_foodless())
         return;
 
     you.hunger += satiated_amount;
@@ -414,7 +430,7 @@ bool eat_item(item_def &food)
 
         if (_vampire_consume_corpse(link, in_inventory(food)))
         {
-            count_action(CACT_EAT, -1);
+            count_action(CACT_EAT, -1); // subtype Corpse
             you.turn_is_over = true;
             return true;
         }
@@ -987,6 +1003,28 @@ static void _eat_chunk(item_def& food)
 
 static void _eating(item_def& food)
 {
+    switch (food.sub_type)
+    {
+        case FOOD_FRUIT:
+        {
+            int amount = qpow(50, 3, 2, player_mutation_level(MUT_HERBIVOROUS) - player_mutation_level(MUT_CARNIVOROUS));
+            amount = div_rand_round(amount, 3);
+            inc_sp(amount);
+            mprf("That was refreshing! (sp+%d)", amount);
+            break;
+        }
+        case FOOD_ROYAL_JELLY:
+        {
+            you.duration[DUR_TIRELESS] += 100;
+            if (you.duration[DUR_TIRELESS] > 100)
+                mpr("You feel more tireless");
+            else
+                mpr("You feel tireless");
+            break;
+        }
+    }
+
+    /* old way
     int food_value = ::food_value(food);
     ASSERT(food_value > 0);
 
@@ -996,6 +1034,7 @@ static void _eating(item_def& food)
     start_delay(DELAY_EAT, duration, 0, food.sub_type, duration);
 
     lessen_hunger(food_value, true);
+     */
 }
 
 // Handle messaging at the end of eating.
@@ -1441,8 +1480,7 @@ void handle_starvation()
     if (current_delay_action() == DELAY_EAT)
         return;
 
-    if (!you_foodless() && !you.duration[DUR_DEATHS_DOOR]
-        && you.hunger <= HUNGER_FAINTING)
+    if (!you_foodless() && you.hunger <= HUNGER_FAINTING)
     {
         if (!you.cannot_act() && one_chance_in(40))
         {
@@ -1457,7 +1495,7 @@ void handle_starvation()
                 xom_is_stimulated(get_tension() > 0 ? 200 : 100);
         }
 
-        if (you.hunger <= 0)
+        if (you.hunger <= 0 && !you.duration[DUR_DEATHS_DOOR])
         {
             auto it = min_element(begin(you.inv2), end(you.inv2),
                 [](const item_def& a, const item_def& b) -> bool

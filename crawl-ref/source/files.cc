@@ -100,6 +100,7 @@ const int GHOST_LIMIT = 27; // max number of ghost files per level
 static void _redraw_all()
 {
     you.redraw_hit_points    = true;
+    you.redraw_stamina_points= true;
     you.redraw_magic_points  = true;
     you.redraw_stats.init(true);
     you.redraw_armour_class  = true;
@@ -887,14 +888,14 @@ static bool _grab_follower_at(const coord_def &pos)
 
 static void _grab_followers()
 {
-    const bool can_follow = branch_allows_followers(you.where_are_you);
+    const bool can_follow = true || branch_allows_followers(you.where_are_you);
 
     int non_stair_using_allies = 0;
     int non_stair_using_summons = 0;
 
     monster* dowan = nullptr;
     monster* duvessa = nullptr;
-
+/*
     // Handle nearby ghosts.
     for (adjacent_iterator ai(you.pos()); ai; ++ai)
     {
@@ -946,7 +947,6 @@ static void _grab_followers()
         if (!duvessa->props.exists("can_climb"))
             duvessa->flags &= ~MF_TAKING_STAIRS;
     }
-
     if (can_follow)
     {
         if (non_stair_using_allies > 0)
@@ -983,6 +983,18 @@ static void _grab_followers()
             }
             places[place_set].clear();
             place_set = !place_set;
+        }
+    }
+*/
+
+    for (const mid_t &mid : you.summoned)
+    {
+        if (mid != MID_NOBODY)
+        {
+            monster *const fol = monster_by_mid(mid, true);
+
+            if (fol)
+                _grab_follower_at(fol->pos());
         }
     }
 
@@ -1133,17 +1145,7 @@ static void _make_level(dungeon_feature_type stair_taken,
     env.sanctuary_pos  = coord_def(-1, -1);
     env.sanctuary_time = 0;
 
-    int exp = floor_experience_for_this_floor();
-    if (Options.exp_percent_from_new_branch_floor && exp)
-    {
-        const string change = exp > 0 ? "gained" : "lost";
-        const msg_channel_type channel = exp > 0 ? MSGCH_INTRINSIC_GAIN : MSGCH_WARN;
-        if (exp < 0)
-            exp = -exp;
-
-        mprf(channel, "You %s %d exp for entering this floor.", change.c_str(), exp);
-        gain_floor_exp();
-    }
+    crawl_state.need_floor_exp = true;
 }
 
 /**

@@ -69,7 +69,7 @@ static god_type _altar_identify_ecumenical_altar()
     {
         god = random_god();
     }
-    while (!player_can_join_god(god) || (poor_god_choice_for_player(god) && crawl_state.difficulty != DIFFICULTY_HARD));
+    while (!player_can_join_god(god) || (poor_god_choice_for_player(god) && crawl_state.difficulty != DIFFICULTY_NIGHTMARE));
     dungeon_terrain_changed(you.pos(), altar_for_god(god));
     return god;
 }
@@ -95,7 +95,10 @@ static bool _pray_ecumenical_altar()
         if (you_worship(GOD_RU))
             you.props[RU_SACRIFICE_PROGRESS_KEY] = 9999;
         else
-            gain_piety(20, 1, false);
+            if (you.faith())
+            gain_piety(50, 1, false);
+                else
+                gain_piety(20, 1, false);
 
         mark_milestone("god.ecumenical", "prayed at an ecumenical altar.");
         return true;
@@ -274,9 +277,10 @@ struct slurp_gain
 {
     int jiyva_bonus;
     piety_gain_t piety_gain;
+    int amount;
 
     slurp_gain(int bonus, piety_gain_t gain)
-        : jiyva_bonus(bonus), piety_gain(gain)
+        : jiyva_bonus(bonus), piety_gain(gain), amount(0)
     {
     }
 };
@@ -322,8 +326,10 @@ static slurp_gain _sacrifice_one_item_noncount(const item_def& item)
         && x_chance_in_y(you.piety, MAX_PIETY)
         && you.magic_points < you.max_magic_points)
     {
-        inc_mp(max(random2(item_value), 1));
+        const int mp_gain = max(random2(item_value), 1);
+        inc_mp(mp_gain);
         gain.jiyva_bonus |= JS_MP;
+        gain.amount = mp_gain;
     }
 
     if (have_passive(passive_t::slime_hp)
@@ -331,8 +337,10 @@ static slurp_gain _sacrifice_one_item_noncount(const item_def& item)
         && you.hp < you.hp_max
         && !you.duration[DUR_DEATHS_DOOR])
     {
-        inc_hp(max(random2(item_value), 1));
+        const int hp_gain = max(random2(item_value), 1);
+        inc_hp(hp_gain);
         gain.jiyva_bonus |= JS_HP;
+        gain.amount = hp_gain;
     }
 
     return gain;
@@ -354,10 +362,8 @@ void jiyva_slurp_item_stack(const item_def& item, int quantity)
 
     if (gain.piety_gain > PIETY_NONE)
         simple_god_message(" appreciates your sacrifice.");
-    if (gain.jiyva_bonus & JS_FOOD)
-        mpr("You feel a little less hungry.");
     if (gain.jiyva_bonus & JS_MP)
-        canned_msg(MSG_GAIN_MAGIC);
+        canned_msg(MSG_GAIN_MAGIC, gain.amount);
     if (gain.jiyva_bonus & JS_HP)
-        canned_msg(MSG_GAIN_HEALTH);
+        canned_msg(MSG_GAIN_HEALTH, gain.amount);
 }

@@ -447,7 +447,7 @@ static int _refrigerate_player(actor* agent, int pow, int avg,
             ouch(hurted, KILLED_BY_BEAM, agent->mid,
                  "by Ozocubu's Refrigeration", true,
                  agent->as_monster()->name(DESC_A).c_str());
-            expose_player_to_element(BEAM_COLD, 5, added_effects);
+            you.expose_to_element(BEAM_COLD, 5, added_effects);
 
             // Note: this used to be 12!... and it was also applied even if
             // the player didn't take damage from the cold, so we're being
@@ -456,6 +456,7 @@ static int _refrigerate_player(actor* agent, int pow, int avg,
         else
         {
             ouch(hurted, KILLED_BY_FREEZING);
+            you.expose_to_element(BEAM_COLD, 5, added_effects);
             you.increase_duration(DUR_NO_POTIONS, 7 + random2(9), 15);
         }
     }
@@ -831,6 +832,7 @@ spret_type vampiric_drain(int pow, monster* mons, bool fail)
         return SPRET_SUCCESS;
     }
 
+    // TODO: check known rN instead of holiness
     if (mons->observable() && !(mons->holiness() & MH_NATURAL))
     {
         mpr("You can't drain life from that!");
@@ -865,7 +867,7 @@ spret_type vampiric_drain(int pow, monster* mons, bool fail)
         return SPRET_SUCCESS;
     }
 
-    if (!(mons->holiness() & MH_NATURAL) || mons->res_negative_energy())
+    if (mons->res_negative_energy())
     {
         canned_msg(MSG_NOTHING_HAPPENS);
         return SPRET_SUCCESS;
@@ -923,8 +925,6 @@ spret_type cast_freeze(int pow, monster* mons, bool fail)
     {
         set_attack_conducts(conducts, mons);
 
-        mprf("You freeze %s.", mons->name(DESC_THE).c_str());
-
         behaviour_event(mons, ME_ANNOY, &you);
     }
 
@@ -945,6 +945,8 @@ spret_type cast_freeze(int pow, monster* mons, bool fail)
     const int orig_hurted = roll_dice(1, 3 + pow / 3);
     int hurted = mons_adjust_flavoured(mons, beam, orig_hurted);
     mons->hurt(&you, hurted);
+    mprf("You freeze %s (%d).", mons->name(DESC_THE).c_str(), hurted);
+
 
     if (mons->alive())
     {
@@ -996,17 +998,14 @@ spret_type cast_airstrike(int pow, const dist &beam, bool fail)
     fail_check();
     set_attack_conducts(conducts, mons);
 
-    mprf("The air twists around and %sstrikes %s!",
-         mons->airborne() ? "violently " : "",
-         mons->name(DESC_THE).c_str());
+    int hurted = 8 + random2(random2(4) + (random2(pow) / 6)
+                             + (random2(pow) / 7));
+
     noisy(spell_effect_noise(SPELL_AIRSTRIKE), beam.target);
 
     behaviour_event(mons, ME_ANNOY, &you);
 
     enable_attack_conducts(conducts);
-
-    int hurted = 8 + random2(random2(4) + (random2(pow) / 6)
-                   + (random2(pow) / 7));
 
     bolt pbeam;
     pbeam.flavour = BEAM_AIR;
@@ -1016,6 +1015,10 @@ spret_type cast_airstrike(int pow, const dist &beam, bool fail)
 #endif
     hurted = mons->apply_ac(mons->beam_resists(pbeam, hurted, false));
     dprf("preac: %d, postac: %d", preac, hurted);
+
+    mprf("The air twists around and %sstrikes %s! (%d)",
+         mons->airborne() ? "violently " : "",
+         mons->name(DESC_THE).c_str(), hurted);
 
     mons->hurt(&you, hurted);
     if (mons->alive())
@@ -1632,6 +1635,8 @@ static int _ignite_poison_monsters(coord_def where, int pow, actor *agent)
     if (damage <= 0)
         return 0;
 
+    mon->expose_to_element(BEAM_FIRE, damage);
+
     if (tracer)
         return mons_aligned(mon, agent) ? -1 * damage : damage;
 
@@ -1706,6 +1711,8 @@ static int _ignite_poison_player(coord_def where, int pow, actor *agent)
     ouch(damage, KILLED_BY_BEAM, agent->mid,
          "by burning poison", you.can_see(*agent),
          agent->as_monster()->name(DESC_A, true).c_str());
+    if (damage > 0)
+        you.expose_to_element(BEAM_FIRE, 2);
 
     mprf(MSGCH_RECOVERY, "You are no longer poisoned.");
     you.duration[DUR_POISONING] = 0;
@@ -1874,13 +1881,15 @@ int discharge_monsters(coord_def where, int pow, actor *agent)
 
     if (victim->is_player())
     {
-        mpr("You are struck by lightning.");
+        mprf("You are struck by lightning. (%d)", damage);
         damage = 1 + random2(3 + pow / 15);
         dprf("You: static discharge damage: %d", damage);
         damage = check_your_resists(damage, BEAM_ELECTRICITY,
                                     "static discharge");
         ouch(damage, KILLED_BY_BEAM, agent->mid, "by static electricity", true,
              agent->is_player() ? "you" : agent->name(DESC_A).c_str());
+        if (damage > 0)
+            victim->expose_to_element(BEAM_ELECTRICITY, 2);
     }
     else if (victim->res_elec() > 0)
         return 0;
@@ -1892,11 +1901,13 @@ int discharge_monsters(coord_def where, int pow, actor *agent)
         dprf("%s: static discharge damage: %d",
              mons->name(DESC_PLAIN, true).c_str(), damage);
         damage = mons_adjust_flavoured(mons, beam, damage);
+        if (damage > 0)
+            victim->expose_to_element(BEAM_ELECTRICITY, 2);
 
         if (damage)
         {
-            mprf("%s is struck by lightning.",
-                 mons->name(DESC_THE).c_str());
+            mprf("%s is struck by lightning. (%d)",
+                 mons->name(DESC_THE).c_str(), damage);
             if (agent->is_player())
             {
                 _player_hurt_monster(*mons, damage);

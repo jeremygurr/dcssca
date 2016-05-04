@@ -276,10 +276,10 @@ static void _apply_ood(level_id &place)
     // moderate OODs go up to 100% after a ramp-up period.
 
     if (place.branch == BRANCH_DUNGEON
-    	&& crawl_state.difficulty != DIFFICULTY_HARD
+    	&& crawl_state.difficulty != DIFFICULTY_NIGHTMARE
         && (place.depth == 1 && env.turns_on_level < 701
          || place.depth == 2 && (env.turns_on_level < 584 || one_chance_in(4)))
-		 || place.depth < 6 && crawl_state.difficulty == DIFFICULTY_EASY)
+		 || place.depth < 6 && crawl_state.difficulty == DIFFICULTY_STANDARD)
     {
         return;
     }
@@ -688,8 +688,8 @@ monster_type resolve_monster_type(monster_type mon_type,
                       && _is_banded_monster((monster_type)type)
                    || mon_type == MONS_PLAYER_GHOST
                       && place->branch == BRANCH_DUNGEON
-                      &&   (crawl_state.difficulty == DIFFICULTY_EASY && place->depth < 10
-                         || crawl_state.difficulty == DIFFICULTY_NORMAL && place->depth < 5)
+                      &&   (crawl_state.difficulty == DIFFICULTY_STANDARD && place->depth < 10
+                         || crawl_state.difficulty == DIFFICULTY_CHALLENGE && place->depth < 5)
                 );
 
             int base = vault_mon_bases[i];
@@ -1285,6 +1285,8 @@ static monster* _place_monster_aux(const mgen_data &mg, const monster *leader,
     mon->type         = mg.cls;
     mon->base_monster = mg.base_type;
 
+    mon->summoned_by_spell = (spell_type) mg.summon_type;
+
     // Set pos and link monster into monster grid.
     if (!dont_place && !mon->move_to_pos(fpos))
     {
@@ -1346,7 +1348,8 @@ static monster* _place_monster_aux(const mgen_data &mg, const monster *leader,
     else if (mon->is_priest())
     {
         // Berserkers belong to Trog.
-        if (mg.cls == MONS_SPRIGGAN_BERSERKER)
+        if (mg.cls == MONS_DEEP_DWARF_BERSERKER
+            || mg.cls == MONS_SPRIGGAN_BERSERKER)
             mon->god = GOD_TROG;
         // Death knights belong to Yredelemnul.
         else if (mg.cls == MONS_DEATH_KNIGHT)
@@ -1473,8 +1476,8 @@ static monster* _place_monster_aux(const mgen_data &mg, const monster *leader,
 
     if (!crawl_state.game_is_arena())
     {
-        mon->max_hit_points = min(mon->max_hit_points, MAX_MONSTER_HP);
-        mon->hit_points = min(mon->hit_points, MAX_MONSTER_HP);
+        mon->max_hit_points = min(rune_curse_hp_adjust(mon->max_hit_points), MAX_MONSTER_HP);
+        mon->hit_points = mon->max_hit_points;
     }
 
     // Store the extra flags here.
@@ -1644,7 +1647,10 @@ static monster* _place_monster_aux(const mgen_data &mg, const monster *leader,
         // Dancing weapons can be created with shadow creatures. {due}
         mon->mark_summoned(mg.abjuration_duration,
                            mg.summon_type != SPELL_TUKIMAS_DANCE,
-                           mg.summon_type);
+                           mg.summon_type,
+                           true,
+                           mg.summoner
+        );
 
         if (mg.summon_type > 0 && mg.summoner && !(mg.flags & MG_DONT_CAP))
         {
@@ -2128,6 +2134,9 @@ static const map<monster_type, band_set> bands_by_leader = {
     { MONS_GNOLL_SERGEANT,  { {}, {{ BAND_GNOLLS, {3, 6} }}}},
     { MONS_DEATH_KNIGHT,    { {0, 0, []() { return x_chance_in_y(2, 3); }},
                                   {{ BAND_DEATH_KNIGHT, {3, 5}, true }}}},
+    { MONS_DEEP_DWARF_SCION,{ {}, {{ BAND_DEEP_DWARF, {2, 5} }}}},
+    { MONS_DEEP_DWARF_ARTIFICER,{ {}, {{ BAND_DEEP_DWARF, {2, 5} }}}},
+    { MONS_DEEP_DWARF_DEATH_KNIGHT,{ {}, {{ BAND_DEEP_DWARF, {2, 5} }}}},
     { MONS_GRUM,            { {}, {{ BAND_WOLVES, {2, 5}, true }}}},
     { MONS_WOLF,            { {}, {{ BAND_WOLVES, {2, 6} }}}},
     { MONS_CENTAUR_WARRIOR, { centaur_band_condition,
@@ -2259,6 +2268,14 @@ static const map<monster_type, band_set> bands_by_leader = {
         return you.where_are_you == BRANCH_DEPTHS;
     }},                           {{ BAND_SPARK_WASPS, {1, 4} }}}},
     { MONS_HOWLER_MONKEY,   { {2, 6}, {{ BAND_HOWLER_MONKEY, {1, 4} }}}},
+    { MONS_GIANT_EYEBALL,   { {0, 0, []() {
+        return branch_has_monsters(you.where_are_you)
+            || !vault_mon_types.empty();
+    }},                           {{ BAND_RANDOM_SINGLE, {1, 2} }}}},
+    { MONS_EYE_OF_DRAINING, { {0, 0, []() {
+        return branch_has_monsters(you.where_are_you)
+            || !vault_mon_types.empty();
+    }},                           {{ BAND_RANDOM_SINGLE, {1, 2} }}}},
 
 
     // special-cased band-sizes
@@ -2447,6 +2464,12 @@ static const map<band_type, vector<member_possibilites>> band_membership = {
                                    {MONS_DEEP_ELF_ANNIHILATOR, 1},
                                    {MONS_DEEP_ELF_SORCERER, 1},
                                    {MONS_DEEP_ELF_DEATH_MAGE, 1}}}},
+    { BAND_DEEP_DWARF,          {{
+                                     {MONS_DEEP_DWARF, 31},
+                                     {MONS_DEEP_DWARF_NECROMANCER, 6},
+                                     {MONS_DEEP_DWARF_BERSERKER, 2},
+                                     {MONS_DEEP_DWARF_DEATH_KNIGHT, 1},
+                                 }}},
     { BAND_BALRUG,              {{{MONS_SUN_DEMON, 1},
                                   {MONS_RED_DEVIL, 1}}}},
     { BAND_HELLWING,            {{{MONS_HELLWING, 1},
@@ -2872,14 +2895,7 @@ void debug_bands()
            + comma_separated_fn(unhandled_bands.begin(), unhandled_bands.end(),
                                 [](int i){ return make_stringf("%d", i); });
 
-        fprintf(stderr, "%s", fails.c_str());
-
-        FILE *f = fopen("mon-bands.out", "w");
-        if (!f)
-            sysfail("can't write test output");
-        fprintf(f, "%s", fails.c_str());
-        fclose(f);
-        fail("mon-bands errors (dumped to mon-bands.out)");
+        dump_test_fails(fails, "mon-bands");
     }
 }
 
@@ -3249,7 +3265,7 @@ bool player_angers_monster(monster* mon)
     return false;
 }
 
-monster* create_monster(mgen_data mg, bool fail_msg)
+monster* create_monster(mgen_data mg, bool fail_msg, bool first)
 {
     ASSERT(in_bounds(mg.pos)); // otherwise it's a guaranteed fail
 
@@ -3297,6 +3313,13 @@ monster* create_monster(mgen_data mg, bool fail_msg)
 
         if (!summd && fail_msg && you.see_cell(mg.pos))
             mpr("You see a puff of smoke.");
+    }
+
+    if (mg.summon_type && summd && summd->is_player_summon())
+    {
+        const spell_type spell = (const spell_type) mg.summon_type;
+        if (!player_summoned_monster(spell, summd, first))
+            summd = 0;
     }
 
     return summd;

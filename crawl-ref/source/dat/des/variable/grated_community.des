@@ -60,8 +60,8 @@ KFEAT:  ~ = closed_door
 KFEAT:  7 = tree
 KFEAT:  A = general shop type:Slaves suffix:and_Accessories count:10 ; \
             w:50 whip | wand of enslavement | w:1 wand of hasting
-KFEAT:  B = food shop name:Jack type:Jerk-a-riffic suffix:Jerky count:10 ; \
-            q:5 beef jerky
+KFEAT:  B = food shop name:Jack type:Juice-a-riffic suffix:Juicer count:10 ; \
+            q:5 fruit
 KFEAT:  C = distillery shop type:Miraculous suffix:Elixirs count:10 \
             greed:50 ; potion of mutation
 : local smithy = string.gsub(crawl.make_name(), " ", "_")
@@ -332,13 +332,11 @@ FTILE:  12.c'+%$W8n~ = floor_grass_dirt_mix
 : if crawl.coinflip() then
 MONS:   patrolling centaur warrior, plant
 KITEM:  ' = q:1 arrow
-KITEM:  $ = centaur barding / nothing, q:30 arrow /\
-            q:30 arrow ego:flame, any good_item
+KITEM:  $ = centaur barding / nothing, q:30 arrow / any good_item
 : else
 MONS:   patrolling yaktaur captain, plant
 KITEM:  ' = q:1 bolt
-KITEM:  $ = centaur barding / nothing, q:30 bolt /\
-            q:30 bolt ego:flame, any good_item
+KITEM:  $ = centaur barding / nothing, q:30 bolt / any good_item
 :end
 SHUFFLE: %$
 SUBST:  % = %W

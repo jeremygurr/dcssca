@@ -46,6 +46,7 @@
 #include "travel.h"
 #include "view.h"
 #include "xom.h"
+#include "spl-summoning.h"
 
 bool check_annotation_exclusion_warning()
 {
@@ -803,7 +804,7 @@ void floor_transition(dungeon_feature_type how,
     else
         maybe_update_stashes();
 
-    if ((Options.exp_potion_on_each_floor || Options.uniques_drop_exp_potions) && you.species != SP_MUMMY)
+    if ((Options.exp_potion_on_each_floor || Options.uniques_drop_exp_potions) && you.species != SP_MUMMY && !Options.exp_based_on_player_level)
         mprf("Quaffing an experience potion here would give %d exp.", potion_experience_for_this_floor());
 
     // refresh experience annotations
@@ -821,6 +822,29 @@ void floor_transition(dungeon_feature_type how,
                 add_experience_potion_annotation(li, 1);
             }
         }
+    }
+
+    const int dangerous = get_nearby_monsters(false, true, true).size();
+    if (dangerous && player_has_summons())
+    {
+        mpr("Your summoned creatures have suddenly lost their courage!");
+        unsummon_all();
+    }
+
+    if (crawl_state.need_floor_exp)
+    {
+        int exp = floor_experience_for_this_floor();
+        if (Options.exp_percent_from_new_branch_floor && exp)
+        {
+            const string change = exp > 0 ? "gained" : "lost";
+            const msg_channel_type channel = exp > 0 ? MSGCH_INTRINSIC_GAIN : MSGCH_WARN;
+            if (exp < 0)
+                exp = -exp;
+
+            mprf(channel, "You %s %d exp for entering this floor.", change.c_str(), exp);
+            gain_floor_exp();
+        }
+        crawl_state.need_floor_exp = false;
     }
 
     request_autopickup();

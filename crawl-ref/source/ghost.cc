@@ -169,7 +169,7 @@ static brand_type _random_special_pan_lord_brand()
     do { \
         const auto spell = (which_spell); \
         if (spell != SPELL_NO_SPELL) \
-            spells.emplace_back(spell, 0, MON_SPELL_DEMONIC); \
+            spells.emplace_back(spell, 0, MON_SPELL_MAGICAL); \
     } while (0)
 
 static int _panlord_random_resist_level()
@@ -795,7 +795,7 @@ bool debug_check_ghosts()
             return false;
         if (ghost.max_hp < 1 || ghost.max_hp > MAX_GHOST_HP)
             return false;
-        if (ghost.xl < 1 || ghost.xl > MAX_EXP_LEVEL)
+        if (ghost.xl < 1 || ghost.xl > get_max_exp_level())
             return false;
         if (ghost.ev > MAX_GHOST_EVASION)
             return false;
@@ -809,7 +809,7 @@ bool debug_check_ghosts()
             return false;
         if (ghost.best_skill < SK_FIGHTING || ghost.best_skill >= NUM_SKILLS)
             return false;
-        if (ghost.best_skill_level < 0 || ghost.best_skill_level > MAX_SKILL_LEVEL)
+        if (ghost.best_skill_level < 0 || ghost.best_skill_level > get_max_skill_level())
             return false;
         if (ghost.religion < GOD_NO_GOD || ghost.religion >= NUM_GODS)
             return false;

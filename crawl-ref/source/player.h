@@ -113,6 +113,7 @@ public:
     int magic_points;
     int max_magic_points;
     int mp_max_adj;             // max MP loss (ability costs, tutorial bonus)
+    int mp_frozen_summons;
 
     FixedVector<int8_t, NUM_STATS> stat_loss;
     FixedVector<int8_t, NUM_STATS> base_stats;
@@ -125,6 +126,7 @@ public:
     uint8_t max_level;
     int hit_points_regeneration;
     int magic_points_regeneration;
+    int stamina_points_regeneration;
     unsigned int experience;
     unsigned int total_experience; // Unaffected by draining. Used for skill cost.
     int experience_level;
@@ -160,6 +162,8 @@ public:
     unsigned short pet_target;
 
     durations_t duration;
+    FixedVector<source_type, NUM_DURATIONS> duration_source;
+
     int rotting;
     bool apply_berserk_penalty;         // Whether to apply the berserk penalty at
     // end of the turn.
@@ -379,6 +383,7 @@ public:
 
     bool redraw_title;
     bool redraw_hit_points;
+    bool redraw_stamina_points;
     bool redraw_magic_points;
     bool redraw_temperature;
     FixedVector<bool, NUM_STATS> redraw_stats;
@@ -386,6 +391,7 @@ public:
     bool redraw_armour_class;
     bool redraw_evasion;
     bool redraw_status_lights;
+    bool redraw_tohit;
 
     colour_t flash_colour;
     targetter *flash_where;
@@ -418,8 +424,16 @@ public:
 
     // normally 1, anything else alters how the next potion or scroll works, amplifying or reversing it's effects.
     int amplification;
+    exertion_mode exertion;
+
     // the deepest the player has been
     int max_exp;
+
+    // mp given back to the player. Used to be used by transformations.
+    spell_type current_form_spell;
+    int current_form_spell_failure;
+
+    FixedVector<mid_t, MAX_SUMMONS> summoned;
 
     // used by scrolls of returning
     coord_def returnPosition;
@@ -428,6 +442,8 @@ public:
     // The save file itself.
     // ---------------------
     package *save;
+    int last_hit_chance;
+    int last_tohit;
 
 protected:
     FixedVector<PlaceInfo, NUM_BRANCHES> branch_info;
@@ -824,10 +840,8 @@ public:
     void del_gold(int delta);
     void set_gold(int amount);
 
-    void increase_duration(duration_type dur, int turns, int cap = 0,
-                           const char* msg = nullptr);
-    void set_duration(duration_type dur, int turns, int cap = 0,
-                      const char *msg = nullptr);
+    void increase_duration(duration_type dur, int turns, int cap = 0, const char *msg = nullptr, source_type source = SRC_UNDEFINED);
+    void set_duration(duration_type dur, int turns, int cap = 0, const char *msg = nullptr, source_type source = SRC_UNDEFINED);
 
     bool attempt_escape(int attempts = 1);
     int usable_tentacles() const;
@@ -997,6 +1011,7 @@ bool will_gain_life(int lev);
 
 bool dur_expiring(duration_type dur);
 void display_char_status();
+void remove_from_summoned(mid_t mid);
 
 void forget_map(bool rot = false);
 
@@ -1024,13 +1039,16 @@ bool enough_hp(int minimum, bool suppress_msg, bool abort_macros = true);
 bool enough_mp(int minimum, bool suppress_msg, bool abort_macros = true);
 
 void calc_hp();
+void calc_sp();
 void calc_mp();
 void recalc_and_scale_hp();
 
-void dec_hp(int hp_loss, bool fatal, const char *aux = nullptr);
-void dec_mp(int mp_loss, bool silent = false);
-void drain_mp(int mp_loss);
+bool dec_hp(int hp_loss, bool fatal, const char *aux = nullptr);
+bool dec_mp(int mp_loss, bool silent = false);
+bool drain_mp(int mp_loss);
 
+bool dec_sp(int sp_loss = 1, bool special = false);
+void inc_sp(int sp_gain = 1, bool silent = false);
 void inc_mp(int mp_gain, bool silent = false);
 void inc_hp(int hp_gain);
 void flush_mp();
@@ -1040,6 +1058,8 @@ void rot_hp(int hp_loss);
 int unrot_hp(int hp_recovered);
 int player_rotted();
 void rot_mp(int mp_loss);
+void freeze_summons_mp(int mp_loss);
+void unfreeze_summons_mp(int amount = -1);
 
 void inc_max_hp(int hp_gain);
 void dec_max_hp(int hp_loss);
@@ -1048,14 +1068,17 @@ void deflate_hp(int new_level, bool floor);
 void set_hp(int new_amount);
 
 int get_real_hp(bool trans, bool rotted = false, bool adjust_for_difficulty = true);
-int get_real_mp(bool include_items);
+int get_real_sp(bool include_items = true);
+int get_real_mp(bool include_items = true, bool rotted = false);
 
 int get_contamination_level();
 string describe_contamination(int level);
 
+void set_sp(int new_amount);
 void set_mp(int new_amount);
 
 bool player_regenerates_hp();
+bool player_regenerates_sp();
 bool player_regenerates_mp();
 
 void contaminate_player(int change, bool controlled = false, bool msg = true);
@@ -1081,7 +1104,7 @@ bool slow_player(int turns);
 void dec_slow_player(int delay);
 void dec_exhaust_player(int delay);
 
-bool haste_player(int turns, bool rageext = false);
+bool haste_player(int turns, bool rageext = false, source_type source = SRC_UNDEFINED);
 void dec_haste_player(int delay);
 void dec_elixir_player(int delay);
 void dec_ambrosia_player(int delay);
@@ -1108,7 +1131,11 @@ bool need_expiration_warning(dungeon_feature_type feat);
 bool need_expiration_warning(duration_type dur, coord_def p = you.pos());
 bool need_expiration_warning(coord_def p = you.pos());
 
-void count_action(caction_type type, int subtype = 0);
+bool player_is_tired(bool silent = false);
+bool player_is_very_tired(bool silent = false);
+void set_exertion(const exertion_mode new_exertion);
+void exert_toggle(exertion_mode new_exertion);
+
 bool player_has_orb();
 bool player_on_orb_run();
 
@@ -1153,6 +1180,25 @@ string temperature_text(int temp);
 bool player_ephemeral_passthrough(const string &whatIsAttacking = "", bool showMessage = false);
 bool can_use(const item_def &item);
 bool player_is_immune_to_curses();
-
+const int get_max_exp_level();
+const int get_max_skill_level();
+const int rune_curse_hp_adjust(int hp);
+const int rune_curse_dam_adjust(int dam);
+void player_was_offensive();
+void player_attacked_something();
+void player_used_magic();
+void player_evoked_something();
+void player_moved();
+void player_before_long_safe_action();
+void player_after_long_safe_action(int turns);
+int player_spell_hunger_modifier(int old_hunger);
+int player_spell_cost_modifier(spell_type which_spell, bool raw, int old_cost);
+int player_tohit_modifier(int old_tohit);
+int player_damage_modifier(int old_damage);
+int player_spellpower_modifier(int old_spellpower);
+void player_update_last_hit_chance(int chance);
+void player_update_tohit(int new_tohit = -1);
+void summoned_monster_died(monster* mons, bool natural_death);
+bool player_summoned_monster(spell_type spell, monster* mons, bool first);
 
 #endif

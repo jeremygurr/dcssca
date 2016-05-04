@@ -695,13 +695,17 @@ void TilesFramework::_send_player(bool force_full)
         prank = 2;
     }
     _update_int(force_full, c.piety_rank, prank, "piety_rank");
+    _update_int(force_full, c.piety, you.piety, "piety");
 
     _update_int(force_full, c.form, (uint8_t) you.form, "form");
 
     _update_int(force_full, c.hp, you.hp, "hp");
     _update_int(force_full, c.hp_max, you.hp_max, "hp_max");
+    _update_int(force_full, c.sp, you.sp, "sp");
+    _update_int(force_full, c.sp_max, you.sp_max, "sp_max");
+
     int max_max_hp = get_real_hp(true, true);
-#if TAG_MAJOR_VERSION == 34
+    int max_max_mp = get_real_mp(true, true);
     if (you.species == SP_DJINNI)
         max_max_hp += get_real_mp(true); // compare _print_stats_hp
 
@@ -712,6 +716,8 @@ void TilesFramework::_send_player(bool force_full)
         _update_int(force_full, c.mp, you.magic_points, "mp");
         _update_int(force_full, c.mp_max, you.max_magic_points, "mp_max");
     }
+
+    _update_int(force_full, c.real_mp_max, max_max_mp, "real_mp_max");
 
     if (you.species == SP_DJINNI)
     {
@@ -724,18 +730,12 @@ void TilesFramework::_send_player(bool force_full)
             contam = 16000;
         _update_int(force_full, c.contam, contam, "contam");
     }
-#else
-    _update_int(force_full, c.real_hp_max, max_max_hp, "real_hp_max");
-    _update_int(force_full, c.mp, you.magic_points, "mp");
-    _update_int(force_full, c.mp_max, you.max_magic_points, "mp_max");
-#endif
+
     _update_int(force_full, c.poison_survival, max(0, poison_survival()),
                 "poison_survival");
 
-#if TAG_MAJOR_VERSION == 34
     if (you.species == SP_LAVA_ORC)
         _update_int(force_full, c.heat, temperature(), "heat");
-#endif
 
     _update_int(force_full, c.armour_class, you.armour_class(), "ac");
     _update_int(force_full, c.evasion, you.evasion(), "ev");
@@ -760,6 +760,8 @@ void TilesFramework::_send_player(bool force_full)
     _update_int(force_full, c.experience_level, you.experience_level, "xl");
     _update_int(force_full, c.exp_progress, (int8_t) get_exp_progress(), "progress");
     _update_int(force_full, c.gold, you.gold, "gold");
+    _update_int(force_full, c.tohit, you.last_tohit, "tohit");
+    _update_int(force_full, c.hit_chance, you.last_hit_chance, "hit_chance");
 
     if (you.running == 0) // Don't update during running/resting
     {

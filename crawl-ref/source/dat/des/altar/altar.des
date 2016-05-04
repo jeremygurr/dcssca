@@ -401,10 +401,10 @@ ENDMAP
 ### Ecumenical altars ########################################################
 
 NAME:   ecumenical_altar_1
-DEPTH:  D:2-3
+DEPTH:  D:3-4
 TAGS:  uniq_ecumenical_altar chance_ecumenical_altar
 KFEAT:  _ = altar_ecumenical
-CHANCE: 50 : 10%
+CHANCE: 30 : 100%
 MAP
 .....
 ..x..
@@ -414,10 +414,10 @@ MAP
 ENDMAP
 
 NAME: ecumenical_altar_2
-DEPTH: D:2-3
+DEPTH: D:3-4
 TAGS:  uniq_ecumenical_altar chance_ecumenical_altar
 KFEAT:  _ = altar_ecumenical
-CHANCE: 50 : 10%
+CHANCE: 30 : 100%
 MAP
 .......
 ...G...
@@ -426,4 +426,21 @@ MAP
 ..G.G..
 ...G...
 .......
+ENDMAP
+
+# a 3% chance that this will be just 4 ecu altars, won't happen often 
+# 
+
+NAME:   ecumenical_altar_touched_by_chaotic_gods
+DEPTH:  D:3-4
+ORIENT: float
+TAGS:  uniq_ecumenical_altar chance_ecumenical_altar 
+COLOUR:     1 = random
+KFEAT:  2 = altar_ecumenical
+KFEAT:  _ = w:2 altar_ecumenical / w:5 altar_xom / w:3 altar_jiyva
+CHANCE: 40 : 100%
+MAP
+121
+_G_
+1_1
 ENDMAP

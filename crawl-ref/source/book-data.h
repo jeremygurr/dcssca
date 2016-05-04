@@ -78,7 +78,7 @@ static const vector<spell_type> spellbook_templates[] =
     SPELL_VIOLENT_UNRAVELLING,
     SPELL_SILENCE,
     SPELL_DEFLECT_MISSILES,
-    SPELL_HASTE,
+//    SPELL_HASTE,
     SPELL_DISCORD,
 },
 
@@ -107,7 +107,7 @@ static const vector<spell_type> spellbook_templates[] =
     SPELL_BOLT_OF_DRAINING,
 },
 
-{   // Book of Hinderance
+{   // Book of Misfortune
     SPELL_CONFUSING_TOUCH,
     SPELL_CONFUSE,
     SPELL_GRAVITAS,
@@ -171,8 +171,8 @@ static const vector<spell_type> spellbook_templates[] =
     SPELL_CALL_IMP,
     SPELL_CALL_CANINE_FAMILIAR,
     SPELL_SUMMON_GUARDIAN_GOLEM,
-    SPELL_SUMMON_LIGHTNING_SPIRE,
     SPELL_SUMMON_ICE_BEAST,
+    SPELL_SUMMON_LIGHTNING_SPIRE,
 },
 
 {   // Book of Maledictions
@@ -192,8 +192,8 @@ static const vector<spell_type> spellbook_templates[] =
 },
 
 {   // Book of the Sky
-    SPELL_SUMMON_LIGHTNING_SPIRE,
     SPELL_AIRSTRIKE,
+    SPELL_SUMMON_LIGHTNING_SPIRE,
     SPELL_SILENCE,
     SPELL_DEFLECT_MISSILES,
     SPELL_CONJURE_BALL_LIGHTNING,
@@ -202,6 +202,7 @@ static const vector<spell_type> spellbook_templates[] =
 
 {   // Book of the Warp
     SPELL_RECALL,
+    SPELL_PORTAL_PROJECTILE,
     SPELL_GRAVITAS,
     SPELL_FORCE_LANCE,
     SPELL_WARP_BRAND,
@@ -259,7 +260,7 @@ static const vector<spell_type> spellbook_templates[] =
 {   // Book of Wizardry
     SPELL_FORCE_LANCE,
     SPELL_AGONY,
-    SPELL_HASTE,
+//    SPELL_HASTE,
     SPELL_INVISIBILITY,
     SPELL_SPELLFORGED_SERVITOR,
 },
@@ -300,10 +301,10 @@ static const vector<spell_type> spellbook_templates[] =
 {   // Book of Debilitation
     SPELL_CORONA,
     SPELL_SLOW,
-    SPELL_GRAVITAS,
+    SPELL_TUKIMAS_DANCE,
     SPELL_INNER_FLAME,
     SPELL_CAUSE_FEAR,
-    SPELL_LEDAS_LIQUEFACTION,
+    SPELL_SUMMON_MANA_VIPER,
 },
 
 {   // Book of the Dragon

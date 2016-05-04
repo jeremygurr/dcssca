@@ -1418,6 +1418,8 @@ static void _debug_rap_stats(FILE *ostat)
         "ARTP_CONFUSE",
         "ARTP_FRAGILE",
         "ARTP_SHIELDING",
+        "ARTP_STAMINA",
+        "ARTP_RUNNING",
     };
     COMPILE_CHECK(ARRAYSZ(rap_names) == ARTP_NUM_PROPERTIES);
 

@@ -279,14 +279,14 @@ static string _difficulty_to_str(game_difficulty_level diff)
 {
     switch (diff)
     {
-    case DIFFICULTY_EASY:
-        return "easy";
-    case DIFFICULTY_NORMAL:
-        return "normal";
-    case DIFFICULTY_HARD:
-        return "hard";
+    case DIFFICULTY_STANDARD:
+        return "Standard";
+    case DIFFICULTY_CHALLENGE:
+        return "Challenge";
+    case DIFFICULTY_NIGHTMARE:
+        return "Nightmare";
     default:
-        return "ask";
+        return "Unknown";
     }
 }
 
@@ -947,9 +947,10 @@ void game_options::reset_options()
 
     regex_search = false;
 
-    movement_penalty = 20;
+    movement_penalty = 11;
+
     danger_mode_threshold = 30;
-    level_27_cap = false;
+    level_27_cap = true;
     exp_potion_on_each_floor = false;
     uniques_drop_exp_potions = false;
     exp_percent_from_monsters = 100;
@@ -1133,6 +1134,9 @@ void game_options::reset_options()
     hp_colour.clear();
     hp_colour.emplace_back(50, YELLOW);
     hp_colour.emplace_back(25, RED);
+    sp_colour.clear();
+    sp_colour.emplace_back(50, YELLOW);
+    sp_colour.emplace_back(25, RED);
     mp_colour.clear();
     mp_colour.emplace_back(50, YELLOW);
     mp_colour.emplace_back(25, RED);
@@ -2895,7 +2899,8 @@ void game_options::read_option_line(const string &str, bool runscript)
     }
     else BOOL_OPTION(regex_search);
 
-    else INT_OPTION(movement_penalty, 0, 100);
+        // disable the option for now.
+//    else INT_OPTION(movement_penalty, 0, 100);
 
     else BOOL_OPTION(level_27_cap);
 //    else BOOL_OPTION(exp_potion_on_each_floor);
@@ -2924,7 +2929,7 @@ void game_options::read_option_line(const string &str, bool runscript)
             exp_based_on_player_level = true;
             exp_percent_from_monsters = 0;
             exp_percent_from_potions = 0;
-            exp_percent_from_new_branch_floor = 100;
+            exp_percent_from_new_branch_floor = 40;
         }
         else if (field == "simple_depth")
         {
@@ -2934,7 +2939,7 @@ void game_options::read_option_line(const string &str, bool runscript)
             exp_based_on_player_level = false;
             exp_percent_from_monsters = 0;
             exp_percent_from_potions = 0;
-            exp_percent_from_new_branch_floor = 100;
+            exp_percent_from_new_branch_floor = 40;
         }
         else if (field == "balance")
         {
@@ -2942,19 +2947,19 @@ void game_options::read_option_line(const string &str, bool runscript)
             exp_potion_on_each_floor = true;
             uniques_drop_exp_potions = true;
             exp_based_on_player_level = false;
-            exp_percent_from_monsters = 25;
-            exp_percent_from_potions = 25;
-            exp_percent_from_new_branch_floor = 25;
+            exp_percent_from_monsters = 20;
+            exp_percent_from_potions = 5;
+            exp_percent_from_new_branch_floor = 20;
         }
         else if (field == "serenity")
         {
             experience_mode = EXP_MODE_SERENITY;
-            exp_potion_on_each_floor = true;
-            uniques_drop_exp_potions = true;
+            exp_potion_on_each_floor = false;
+            uniques_drop_exp_potions = false;
             exp_based_on_player_level = true;
-            exp_percent_from_monsters = 25;
-            exp_percent_from_potions = 50;
-            exp_percent_from_new_branch_floor = 25;
+            exp_percent_from_monsters = 20;
+            exp_percent_from_potions = 100;
+            exp_percent_from_new_branch_floor = 20;
         }
         else if (field == "intensity")
         {
@@ -2963,8 +2968,8 @@ void game_options::read_option_line(const string &str, bool runscript)
             uniques_drop_exp_potions = true;
             exp_based_on_player_level = false;
             exp_percent_from_monsters = 0;
-            exp_percent_from_potions = 80;
-            exp_percent_from_new_branch_floor = 20;
+            exp_percent_from_potions = 10;
+            exp_percent_from_new_branch_floor = 0;
         }
         else if (field == "pacifist")
         {
@@ -2972,19 +2977,19 @@ void game_options::read_option_line(const string &str, bool runscript)
             exp_potion_on_each_floor = true;
             uniques_drop_exp_potions = false;
             exp_based_on_player_level = false;
-            exp_percent_from_monsters = -100;
-            exp_percent_from_potions = 30;
-            exp_percent_from_new_branch_floor = 50;
+            exp_percent_from_monsters = -200;
+            exp_percent_from_potions = 20;
+            exp_percent_from_new_branch_floor = 20;
         }
         else if (field == "destroyer")
         {
             experience_mode = EXP_MODE_DESTROYER;
             exp_potion_on_each_floor = false;
             uniques_drop_exp_potions = true;
-            exp_based_on_player_level = false;
+            exp_based_on_player_level = true;
             exp_percent_from_monsters = 120;
-            exp_percent_from_potions = 50;
-            exp_percent_from_new_branch_floor = -50;
+            exp_percent_from_potions = 20;
+            exp_percent_from_new_branch_floor = -20;
         }
         else if (field == "ask")
         {
@@ -3289,6 +3294,46 @@ void game_options::read_option_line(const string &str, bool runscript)
         }
         stable_sort(hp_colour.begin(), hp_colour.end(), _first_greater);
     }
+    else if (key == "sp_color" || key == "sp_colour")
+    {
+        if (plain)
+            sp_colour.clear();
+
+        vector<string> thesplit = split_string(",", field);
+        for (unsigned i = 0; i < thesplit.size(); ++i)
+        {
+            vector<string> insplit = split_string(":", thesplit[i]);
+            int sp_percent = 100;
+
+            if (insplit.empty() || insplit.size() > 2
+                || insplit.size() == 1 && i != 0)
+            {
+                report_error("Bad sp_colour string: %s\n", field.c_str());
+                break;
+            }
+
+            if (insplit.size() == 2)
+                sp_percent = atoi(insplit[0].c_str());
+
+            const string colstr = insplit[(insplit.size() == 1) ? 0 : 1];
+            const int scolour = str_to_colour(colstr);
+            if (scolour > 0)
+            {
+                pair<int, int> entry(sp_percent, scolour);
+                // We do not treat prepend differently since we will be sorting.
+                if (minus_equal)
+                    remove_matching(sp_colour, entry);
+                else
+                    sp_colour.push_back(entry);
+            }
+            else
+            {
+                report_error("Bad sp_colour: %s", colstr.c_str());
+                break;
+            }
+        }
+        stable_sort(sp_colour.begin(), sp_colour.end(), _first_greater);
+    }
     else if (key == "mp_color" || key == "mp_colour")
     {
         if (plain)
@@ -3419,7 +3464,7 @@ void game_options::read_option_line(const string &str, bool runscript)
         for (unsigned i = 0; i < thesplit.size(); ++i)
         {
             int num = atoi(thesplit[i].c_str());
-            if (num > 0 && num <= MAX_SKILL_LEVEL)
+            if (num > 0 && num <= get_max_skill_level())
                 note_skill_levels.set(num, !minus_equal);
             else
             {
@@ -3953,12 +3998,12 @@ void game_options::read_option_line(const string &str, bool runscript)
     }
     else if (key == "difficulty")
     {
-    	if (field == "easy")
-    		game.difficulty = DIFFICULTY_EASY;
-    	else if (field == "normal")
-    		game.difficulty = DIFFICULTY_NORMAL;
-    	else if (field == "hard")
-    		game.difficulty = DIFFICULTY_HARD;
+    	if (field == "standard")
+    		game.difficulty = DIFFICULTY_STANDARD;
+    	else if (field == "challenge")
+    		game.difficulty = DIFFICULTY_CHALLENGE;
+    	else if (field == "nightmare")
+    		game.difficulty = DIFFICULTY_NIGHTMARE;
     	else
     		game.difficulty = DIFFICULTY_ASK;
     }
@@ -4700,6 +4745,7 @@ void game_options::write_webtiles_options(const string& name)
     tiles.json_open_object(name);
 
     _write_colour_list(Options.hp_colour, "hp_colour");
+    _write_colour_list(Options.sp_colour, "sp_colour");
     _write_colour_list(Options.mp_colour, "mp_colour");
     _write_colour_list(Options.stat_colour, "stat_colour");
 

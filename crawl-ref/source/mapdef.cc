@@ -3633,8 +3633,6 @@ void mons_list::parse_mons_spells(mons_spec &spec, vector<string> &spells)
                         cur_spells[i].flags |= MON_SPELL_NATURAL;
                     if (slot_vals[j] == "magical")
                         cur_spells[i].flags |= MON_SPELL_MAGICAL;
-                    if (slot_vals[j] == "demonic")
-                        cur_spells[i].flags |= MON_SPELL_DEMONIC;
                     if (slot_vals[j] == "wizard")
                         cur_spells[i].flags |= MON_SPELL_WIZARD;
                     if (slot_vals[j] == "priest")
@@ -4243,7 +4241,7 @@ mons_spec mons_list::get_hydra_spec(const string &name) const
     else if (nheads > 20)
     {
 #if defined(DEBUG) || defined(DEBUG_DIAGNOSTICS)
-        mprf(MSGCH_DIAGNOSTICS, "Hydra spec wants %d heads, clamping to 20.",
+        dprf("Hydra spec wants %d heads, clamping to 20.",
              nheads);
 #endif
         nheads = 20;
@@ -4271,7 +4269,7 @@ mons_spec mons_list::get_slime_spec(const string &name) const
     else
     {
 #if defined(DEBUG) || defined(DEBUG_DIAGNOSTICS)
-        mprf(MSGCH_DIAGNOSTICS, "Slime spec wants invalid size '%s'",
+        dprf("Slime spec wants invalid size '%s'",
              prefix.c_str());
 #endif
     }
@@ -5260,8 +5258,8 @@ bool item_list::parse_single_spec(item_spec& result, string s)
     // XXX: This is nice-ish now, but could probably do with being improved.
     if (strip_tag(s, "randbook"))
     {
-        result.props["make_book_theme_randart"] = true;
-        // make_book_theme_randart requires the following properties:
+        result.props["build_themed_book"] = true;
+        // build_themed_book requires the following properties:
         // disc: <first discipline>, disc2: <optional second discipline>
         // numspells: <total number of spells>, slevels: <maximum levels>
         // spell: <include this spell>, owner:<name of owner>
@@ -5350,7 +5348,7 @@ bool item_list::parse_single_spec(item_spec& result, string s)
         result.props[RANDBK_OWNER_KEY] = owner;
 
         result.base_type = OBJ_BOOKS;
-        // This is changed in make_book_theme_randart.
+        // This is changed in build_themed_book().
         result.sub_type = BOOK_MINOR_MAGIC;
         result.plus = -1;
 

@@ -87,8 +87,8 @@ static const pop_entry pop_d[] =
   { 13, 23,  675, SEMI, MONS_SHAPESHIFTER },
   { 13, 23,  335, SEMI, MONS_GRIFFON },
   { 13, 27,   89, FALL, MONS_CATOBLEPAS },
-  { 14, 19,  150, RISE, MONS_SALAMANDER_STORMCALLER },
   { 14, 19,  140, FLAT, MONS_WIZARD },
+  { 14, 21,  140, RISE, MONS_SALAMANDER_STORMCALLER },
   { 14, 22,  260, SEMI, MONS_FREEZING_WRAITH },
   { 14, 22,  270, SEMI, MONS_SIMULACRUM },
   { 14, 22,  115, SEMI, MONS_BOGGART },
@@ -193,30 +193,37 @@ static const pop_entry pop_elf[] =
   {  1,  6,   65, SEMI, MONS_GLOWING_SHAPESHIFTER },
   { 0,0,0,FLAT,MONS_0 }
 };
-#if TAG_MAJOR_VERSION == 34
-static const pop_entry pop_dwarf[] =
-{ // Dwarven Hall
-  {  1,  1, 1000, FLAT, MONS_DEEP_DWARF },
-  {  1,  1,  690, FLAT, MONS_DEATH_KNIGHT },
-  {  1,  1,    3, FLAT, MONS_DEEP_TROLL },
-  {  1,  1,    3, FLAT, MONS_DEEP_TROLL_EARTH_MAGE },
-  {  1,  1,    3, FLAT, MONS_DEEP_TROLL_SHAMAN },
-  {  1,  1,    8, FLAT, MONS_STONE_GIANT },
-  {  1,  1,    8, FLAT, MONS_FIRE_GIANT },
-  {  1,  1,    8, FLAT, MONS_FROST_GIANT },
-  {  1,  1,  192, FLAT, MONS_WRAITH },
-  {  1,  1,    3, FLAT, MONS_SHADOW_WRAITH },
-  {  1,  1,    8, FLAT, MONS_EIDOLON },
-  {  1,  1,    8, FLAT, MONS_PHANTASMAL_WARRIOR },
-  { 0,0,0,FLAT,MONS_0 }
-};
 
+#if TAG_MAJOR_VERSION == 34
 static const pop_entry pop_blade[] =
 { // Hall of Blades
   {  1,  1, 1000, FLAT, MONS_DANCING_WEAPON },
   { 0,0,0,FLAT,MONS_0 }
 };
 #endif
+
+static const pop_entry pop_dwarf[] =
+{ // Dwarven Fortress
+    {  1,  1, 1000, FLAT, MONS_DEEP_DWARF },
+    {  1,  1,  826, FLAT, MONS_DEEP_DWARF_SCION },
+    {  1,  1,  826, FLAT, MONS_DEEP_DWARF_ARTIFICER },
+    {  1,  1,  690, FLAT, MONS_DEEP_DWARF_NECROMANCER },
+    {  1,  1,  690, FLAT, MONS_DEEP_DWARF_BERSERKER },
+    {  1,  1,  690, FLAT, MONS_DEEP_DWARF_DEATH_KNIGHT },
+    {  1,  1,  334, FLAT, MONS_UNBORN_DEEP_DWARF },
+    {  1,  1,    3, FLAT, MONS_IRON_TROLL },
+    {  1,  1,    3, FLAT, MONS_DEEP_TROLL },
+    {  1,  1,    3, FLAT, MONS_DEEP_TROLL_EARTH_MAGE },
+    {  1,  1,    3, FLAT, MONS_DEEP_TROLL_SHAMAN },
+    {  1,  1,    8, FLAT, MONS_STONE_GIANT },
+    {  1,  1,    8, FLAT, MONS_FIRE_GIANT },
+    {  1,  1,    8, FLAT, MONS_FROST_GIANT },
+    {  1,  1,  192, FLAT, MONS_WRAITH },
+    {  1,  1,    3, FLAT, MONS_SHADOW_WRAITH },
+    {  1,  1,    8, FLAT, MONS_EIDOLON },
+    {  1,  1,    8, FLAT, MONS_PHANTASMAL_WARRIOR },
+    { 0,0,0,FLAT,MONS_0 }
+};
 
 static const pop_entry pop_lair[] =
 { // Lair
@@ -364,7 +371,8 @@ static const pop_entry pop_slime[] =
   {  1,  9,  390, SEMI, MONS_GREAT_ORB_OF_EYES },
   {  1,  6,  200, RISE, MONS_DEATH_OOZE },
   {  2,  6,  100, RISE, MONS_GIANT_ORANGE_BRAIN },
-  {  1,  6,  800, FLAT, MONS_NO_MONSTER }, // Old ooze weight
+  {  2,  9,   50, SEMI, MONS_GIANT_EYEBALL },
+  {  1,  6,  750, FLAT, MONS_NO_MONSTER }, // Old ooze weight
   { 0,0,0,FLAT,MONS_0 }
 };
 
@@ -1050,6 +1058,7 @@ static const pop_entry pop_depths[] =
   {  1, 14,   60, SEMI, MONS_SPHINX },
   {  2,  8,  135, SEMI, MONS_SPRIGGAN_AIR_MAGE },
   {  2,  8,  185, SEMI, MONS_SPRIGGAN_BERSERKER },
+  {  2, 10,   25, FLAT, MONS_GIANT_EYEBALL },
   {  3, 14,   45, FLAT, MONS_SPRIGGAN_DEFENDER },
   {  4, 14,   80, SEMI, MONS_TENTACLED_MONSTROSITY },
   {  4, 14,   40, FLAT, MONS_STORM_DRAGON },

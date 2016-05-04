@@ -32,6 +32,7 @@
 #include "spl-damage.h"
 #include "spl-summoning.h"
 #include "spl-zap.h"
+#include "stepdown.h"
 #include "stringutil.h"
 #include "target.h"
 #include "terrain.h"
@@ -405,19 +406,16 @@ bool del_spell_from_memory(spell_type spell)
 
 int spell_hunger(spell_type which_spell, bool rod)
 {
-    if (player_energy())
-        return 0;
-
     const int level = spell_difficulty(which_spell);
 
-    const int basehunger[] = { 50, 100, 150, 250, 400, 550, 700, 850, 1000 };
+//    const int basehunger[] = { 50, 100, 150, 250, 400, 550, 700, 850, 1000 };
 
     int hunger;
 
-    if (level < 10 && level > 0)
-        hunger = basehunger[level-1];
-    else
-        hunger = (basehunger[0] * level * level) / 4;
+    hunger = 15 * level * level;
+
+    if (player_energy())
+        hunger >>= 1;
 
     if (rod)
     {
@@ -429,6 +427,8 @@ int spell_hunger(spell_type which_spell, bool rod)
 
     if (hunger < 0)
         hunger = 0;
+
+    hunger = player_spell_hunger_modifier(hunger);
 
     return hunger;
 }
@@ -468,18 +468,23 @@ bool spell_harms_area(spell_type spell)
 
 // applied to spell misfires (more power = worse) and triggers
 // for Xom acting (more power = more likely to grab his attention) {dlb}
-int spell_mana(spell_type which_spell)
+int spell_mana(spell_type which_spell, bool raw)
 {
-    int cost = 0;
-	if (is_summon_spell(which_spell))
-		cost = 1;
-    else
-        cost =  _seekspell(which_spell)->level;
+    int cost = _seekspell(which_spell)->level;
 
-    if (is_self_transforming_spell(which_spell))
-        cost *= 3;
-
+    cost = player_spell_cost_modifier(which_spell, raw, cost);
     return cost;
+}
+
+int spell_freeze_mana(const spell_type spell)
+{
+    int amount = 0;
+    if (is_summon_spell(spell))
+    {
+        const int base_mana = spell_mana(spell, true);
+        amount = base_mana * 2;
+    }
+    return amount;
 }
 
 // applied in naughties (more difficult = higher level knowledge = worse)
@@ -1246,13 +1251,13 @@ string spell_uselessness_reason(spell_type spell, bool temp, bool prevent,
     case SPELL_HYDRA_FORM:
     case SPELL_ICE_FORM:
     case SPELL_SPIDER_FORM:
-        if (you.undead_state(temp) == US_UNDEAD
-            || you.undead_state(temp) == US_HUNGRY_DEAD)
-        {
-            return "your undead flesh cannot be transformed.";
-        }
-        if (temp && you.is_lifeless_undead())
-            return "your current blood level is not sufficient.";
+//        if (you.undead_state(temp) == US_UNDEAD
+//            || you.undead_state(temp) == US_HUNGRY_DEAD)
+//        {
+//            return "your undead flesh cannot be transformed.";
+//        }
+//        if (temp && you.is_lifeless_undead())
+//            return "your current blood level is not sufficient.";
         break;
 
     case SPELL_REGENERATION:

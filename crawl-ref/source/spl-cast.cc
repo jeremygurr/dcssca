@@ -14,6 +14,7 @@
 #include "art-enum.h"
 #include "beam.h"
 #include "branch.h"
+#include "chardump.h"
 #include "cloud.h"
 #include "colour.h"
 #include "database.h"
@@ -187,6 +188,7 @@ static string _spell_wide_description(spell_type spell, bool viewing)
     desc << chop_string(failure, 5);
     desc << "</" << colour_to_str(highlight) << ">";
     desc << chop_string(make_stringf("%d", spell_difficulty(spell)), 6);
+    desc << chop_string(make_stringf("%d", spell_mana(spell)), 3);
 
     // spell schools
     desc << spell_schools_string(spell);
@@ -347,7 +349,7 @@ int list_spells_wide(bool viewing, bool allow_preselect,
         // [enne] - Hack. Make title an item so that it's aligned.
         MenuEntry* me =
             new MenuEntry(
-                " " + titlestring + "        Power Range      Hunger  Fail Level Type",
+                " " + titlestring + "        Power Range      Hunger  Fail Level MP Type",
                 MEL_ITEM);
         me->colour = BLUE;
         spell_menu.add_entry(me);
@@ -355,7 +357,7 @@ int list_spells_wide(bool viewing, bool allow_preselect,
 #else
     spell_menu.set_title(
         new MenuEntry(
-                " " + titlestring + "        Power Range      Hunger  Fail Level Type",
+                " " + titlestring + "        Power Range      Hunger  Fail Level MP Type",
             MEL_TITLE));
 #endif
     spell_menu.set_highlighter(nullptr);
@@ -531,7 +533,7 @@ int raw_spell_fail(spell_type spell)
     chance2 = qpow(chance2, 3, 2, wild);
 
     const int subdued = player_mutation_level(MUT_SUBDUED_MAGIC);
-    chance2 = qpow(chance2, 2, 3, subdued);
+    chance2 = qpow(chance2, 1, 2, subdued);
 
     chance2 += get_form()->spellcasting_penalty;
 
@@ -548,8 +550,14 @@ int raw_spell_fail(spell_type spell)
     // Apply the effects of Vehumet and items of wizardry.
     chance2 = _apply_spellcasting_success_boosts(spell, chance2);
 
+    if (you.exertion == EXERT_CAREFUL)
+        chance2 = max(chance2 - 30, chance2 / 2);
+
     if (chance2 > 100)
         chance2 = 100;
+
+    if (chance2 < 0)
+        chance2 = 0;
 
     return chance2;
 }
@@ -574,11 +582,11 @@ int calc_spell_power(spell_type spell, bool apply_intel, bool fail_rate_check,
         {
             for (const auto bit : spschools_type::range())
                 if (disciplines & bit)
-                    power += you.skill(spell_type2skill(bit), SPELL_POWER_CAP);
+                    power += you.skill(spell_type2skill(bit), 200);
             power /= skillcount;
         }
 
-        power += you.skill(SK_SPELLCASTING, SPELL_POWER_CAP / 3);
+        power += you.skill(SK_SPELLCASTING, 200 / 3);
 
         // Brilliance boosts spell power a bit (equivalent to three
         // spell school levels).
@@ -618,6 +626,9 @@ int calc_spell_power(spell_type spell, bool apply_intel, bool fail_rate_check,
 
         power = stepdown_spellpower(power);
     }
+
+    if (!fail_rate_check)
+        power = player_spellpower_modifier(power);
 
     const int cap = spell_power_cap(spell);
     if (cap > 0 && cap_power)
@@ -732,6 +743,12 @@ void inspect_spells()
 
 static bool _can_cast()
 {
+    if (player_is_very_tired(true) && you.exertion != EXERT_NORMAL)
+    {
+        mpr("You are too tired to use your magic now. You could if you were in normal mode.");
+        return false;
+    }
+
     if (!get_form()->can_cast)
     {
         canned_msg(MSG_PRESENT_FORM);
@@ -826,6 +843,7 @@ bool cast_a_spell(bool check_range, spell_type spell)
     {
         int keyin = 0;
 
+        msgwin_set_temporary(true);
         while (true)
         {
 #ifdef TOUCH_UI
@@ -916,6 +934,9 @@ bool cast_a_spell(bool check_range, spell_type spell)
         }
         else
             spell = get_spell_by_letter(keyin);
+
+        msgwin_clear_temporary();
+        msgwin_set_temporary(false);
     }
 
     if (spell == SPELL_NO_SPELL)
@@ -926,7 +947,8 @@ bool cast_a_spell(bool check_range, spell_type spell)
     }
 
     const int cost = spell_mana(spell);
-    if (!enough_mp(cost, true))
+    const int freeze_cost = spell_freeze_mana(spell);
+    if (!enough_mp(cost + freeze_cost, true))
     {
         mpr("You don't have enough magic to cast that spell.");
         crawl_state.zero_turns_taken();
@@ -1042,6 +1064,10 @@ bool cast_a_spell(bool check_range, spell_type spell)
 
     you.turn_is_over = true;
     alert_nearby_monsters();
+
+    player_used_magic();
+    if (is_self_transforming_spell(spell))
+        you.current_form_spell = spell;
 
     return true;
 }
@@ -1404,6 +1430,9 @@ vector<string> desc_success_chance(const monster_info& mi, int pow, bool evoked,
     return descs;
 }
 
+spret_type _handle_summoning_spells(spell_type spell, int powc,
+                                    bolt &beam, god_type god, bool fail);
+
 /**
  * Targets and fires player-cast spells & spell-like effects.
  *
@@ -1509,7 +1538,14 @@ spret_type your_spells(spell_type spell, int powc,
             args.self = CONFIRM_NONE;
         }
         args.get_desc_func = additional_desc;
-        if (!spell_direction(spd, beam, &args))
+        
+        msgwin_set_temporary(true);
+        const bool direction_chooser_result = !spell_direction(spd, beam, &args);
+        if (!crawl_state.doing_prev_cmd_again)
+            redraw_screen();
+        clear_messages();
+
+        if (direction_chooser_result)
             return SPRET_ABORT;
 
         beam.range = range;
@@ -1726,6 +1762,88 @@ static void _spell_zap_effect(spell_type spell)
     }
 }
 
+spret_type _handle_summoning_spells(spell_type spell, int powc,
+                                    bolt &beam, god_type god, bool fail)
+{
+    switch(spell)
+    {
+        // Summoning spells, and other spells that create new monsters.
+        // If a god is making you cast one of these spells, any monsters
+        // produced will count as god gifts.
+        case SPELL_WEAVE_SHADOWS:
+        {
+            level_id place(BRANCH_DUNGEON, 1);
+            const int level = 5 + div_rand_round(powc, 3);
+            const int depthsabs = branches[BRANCH_DEPTHS].absdepth;
+            if (level >= depthsabs && x_chance_in_y(level + 1 - depthsabs, 5))
+            {
+                place.branch = BRANCH_DEPTHS;
+                place.depth = level  + 1 - depthsabs;
+            }
+            else
+                place.depth = level;
+            return cast_shadow_creatures(spell, god, place, fail);
+        }
+
+        case SPELL_SUMMON_BUTTERFLIES:
+            return cast_summon_butterflies(powc, god, fail);
+
+        case SPELL_SUMMON_SMALL_MAMMAL:
+            return cast_summon_small_mammal(powc, god, fail);
+
+        case SPELL_CALL_CANINE_FAMILIAR:
+            return cast_call_canine_familiar(powc, god, fail);
+
+        case SPELL_SUMMON_ICE_BEAST:
+            return cast_summon_ice_beast(powc, god, fail);
+
+        case SPELL_MONSTROUS_MENAGERIE:
+            return cast_monstrous_menagerie(&you, powc, god, fail);
+
+        case SPELL_SUMMON_DRAGON:
+            return cast_summon_dragon(&you, powc, god, fail);
+
+        case SPELL_DRAGON_CALL:
+            return cast_dragon_call(powc, fail);
+
+        case SPELL_SUMMON_HYDRA:
+            return cast_summon_hydra(&you, powc, god, fail);
+
+        case SPELL_SUMMON_MANA_VIPER:
+            return cast_summon_mana_viper(powc, god, fail);
+
+        case SPELL_SUMMON_LIGHTNING_SPIRE:
+            return cast_summon_lightning_spire(powc, beam.target, god, fail);
+
+        case SPELL_SUMMON_GUARDIAN_GOLEM:
+            return cast_summon_guardian_golem(powc, god, fail);
+
+        case SPELL_CALL_IMP:
+            return cast_call_imp(powc, god, fail);
+
+        case SPELL_SUMMON_DEMON:
+            return cast_summon_demon(powc, god, fail);
+
+        case SPELL_SUMMON_GREATER_DEMON:
+            return cast_summon_greater_demon(powc, god, fail);
+
+        case SPELL_SHADOW_CREATURES:
+            return cast_shadow_creatures(spell, god, level_id::current(), fail);
+
+        case SPELL_SUMMON_HORRIBLE_THINGS:
+            return cast_summon_horrible_things(powc, god, fail);
+
+        case SPELL_MALIGN_GATEWAY:
+            return cast_malign_gateway(&you, powc, god, fail);
+
+        case SPELL_SUMMON_FOREST:
+            return cast_summon_forest(&you, powc, god, fail);
+
+        default:
+            return SPRET_NONE;
+    }
+}
+
 // Returns SPRET_SUCCESS, SPRET_ABORT, SPRET_FAIL
 // or SPRET_NONE (not a player spell).
 static spret_type _do_cast(spell_type spell, int powc,
@@ -1752,6 +1870,9 @@ static spret_type _do_cast(spell_type spell, int powc,
         if (!adjacent(you.pos(), target))
             return SPRET_ABORT;
     }
+
+    if (is_summon_spell(spell))
+        return _handle_summoning_spells(spell, powc, beam, god, fail);
 
     switch (spell)
     {
@@ -1842,68 +1963,11 @@ static spret_type _do_cast(spell_type spell, int powc,
     case SPELL_CLOUD_CONE:
         return cast_cloud_cone(&you, powc, target, fail);
 
-    // Summoning spells, and other spells that create new monsters.
-    // If a god is making you cast one of these spells, any monsters
-    // produced will count as god gifts.
-    case SPELL_SUMMON_BUTTERFLIES:
-        return cast_summon_butterflies(powc, god, fail);
-
-    case SPELL_SUMMON_SMALL_MAMMAL:
-        return cast_summon_small_mammal(powc, god, fail);
-
     case SPELL_STICKS_TO_SNAKES:
         return cast_sticks_to_snakes(powc, god, fail);
 
-    case SPELL_CALL_CANINE_FAMILIAR:
-        return cast_call_canine_familiar(powc, god, fail);
-
-    case SPELL_SUMMON_ICE_BEAST:
-        return cast_summon_ice_beast(powc, god, fail);
-
-    case SPELL_MONSTROUS_MENAGERIE:
-        return cast_monstrous_menagerie(&you, powc, god, fail);
-
-    case SPELL_SUMMON_DRAGON:
-        return cast_summon_dragon(&you, powc, god, fail);
-
-    case SPELL_DRAGON_CALL:
-        return cast_dragon_call(powc, fail);
-
-    case SPELL_SUMMON_HYDRA:
-        return cast_summon_hydra(&you, powc, god, fail);
-
-    case SPELL_SUMMON_MANA_VIPER:
-        return cast_summon_mana_viper(powc, god, fail);
-
     case SPELL_CONJURE_BALL_LIGHTNING:
         return cast_conjure_ball_lightning(powc, god, fail);
-
-    case SPELL_SUMMON_LIGHTNING_SPIRE:
-        return cast_summon_lightning_spire(powc, beam.target, god, fail);
-
-    case SPELL_SUMMON_GUARDIAN_GOLEM:
-        return cast_summon_guardian_golem(powc, god, fail);
-
-    case SPELL_CALL_IMP:
-        return cast_call_imp(powc, god, fail);
-
-    case SPELL_SUMMON_DEMON:
-        return cast_summon_demon(powc, god, fail);
-
-    case SPELL_SUMMON_GREATER_DEMON:
-        return cast_summon_greater_demon(powc, god, fail);
-
-    case SPELL_SHADOW_CREATURES:
-        return cast_shadow_creatures(spell, god, level_id::current(), fail);
-
-    case SPELL_SUMMON_HORRIBLE_THINGS:
-        return cast_summon_horrible_things(powc, god, fail);
-
-    case SPELL_MALIGN_GATEWAY:
-        return cast_malign_gateway(&you, powc, god, fail);
-
-    case SPELL_SUMMON_FOREST:
-        return cast_summon_forest(&you, powc, god, fail);
 
     case SPELL_ANIMATE_SKELETON:
         return cast_animate_skeleton(god, fail);
@@ -1950,21 +2014,6 @@ static spret_type _do_cast(spell_type spell, int powc,
 
     case SPELL_AURA_OF_ABJURATION:
         return cast_aura_of_abjuration(powc, fail);
-
-    case SPELL_WEAVE_SHADOWS:
-    {
-        level_id place(BRANCH_DUNGEON, 1);
-        const int level = 5 + div_rand_round(powc, 3);
-        const int depthsabs = branches[BRANCH_DEPTHS].absdepth;
-        if (level >= depthsabs && x_chance_in_y(level + 1 - depthsabs, 5))
-        {
-            place.branch = BRANCH_DEPTHS;
-            place.depth = level  + 1 - depthsabs;
-        }
-        else
-            place.depth = level;
-        return cast_shadow_creatures(spell, god, place, fail);
-    }
 
     // Healing.
     case SPELL_CURE_POISON:
@@ -2203,6 +2252,7 @@ double get_miscast_chance(spell_type spell, int severity)
             * severity / (k * (k - 1));
         k++;
     }
+
     return chance;
 }
 
@@ -2253,7 +2303,10 @@ int failure_rate_to_int(int fail)
     else if (fail >= 100)
         return (fail + 100)/2;
     else
+        return fail;
+    /* this doesn't make any sense at all, since it isn't used for real failure calculation:
         return max(1, (int) (100 * _get_true_fail_rate(fail)));
+     */
 }
 
 /**

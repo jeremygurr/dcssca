@@ -1243,7 +1243,7 @@ static int _num_items_wanted(int absdepth0)
 {
     if (branches[you.where_are_you].branch_flags & BFLAG_NO_ITEMS)
         return 0;
-    else if (absdepth0 > 5 && one_chance_in(500 - 5 * absdepth0))
+    else if (absdepth0 > 5 && x_chance_in_y(absdepth0, 200))
         return 10 + random2avg(90, 2); // rich level!
     else
         return 3 + roll_dice(3, 11);
@@ -2368,32 +2368,20 @@ int count_neighbours(int x, int y, dungeon_feature_type feat)
 // shallow. Checks each water space.
 static void _prepare_water()
 {
-    dungeon_feature_type which_grid;   // code compaction {dlb}
-    int absdepth0 = env.absdepth0;
-
     for (rectangle_iterator ri(1); ri; ++ri)
     {
-        if (map_masked(*ri, MMT_NO_POOL))
+        if (map_masked(*ri, MMT_NO_POOL) || grd(*ri) != DNGN_DEEP_WATER)
             continue;
 
-        if (grd(*ri) == DNGN_DEEP_WATER)
+        for (adjacent_iterator ai(*ri); ai; ++ai)
         {
-            for (adjacent_iterator ai(*ri); ai; ++ai)
-            {
-                which_grid = grd(*ai);
+            const dungeon_feature_type which_grid = grd(*ai);
 
-                // must come first {dlb}
-                if (which_grid == DNGN_SHALLOW_WATER
-                    && one_chance_in(8 + absdepth0))
-                {
-                    grd(*ri) = DNGN_SHALLOW_WATER;
-                }
-                else if (feat_has_dry_floor(which_grid)
-                         && x_chance_in_y(80 - absdepth0 * 4,
-                                          100))
-                {
-                    _set_grd(*ri, DNGN_SHALLOW_WATER);
-                }
+            if (which_grid == DNGN_SHALLOW_WATER && one_chance_in(20)
+                || feat_has_dry_floor(which_grid) && x_chance_in_y(2, 5))
+            {
+                _set_grd(*ri, DNGN_SHALLOW_WATER);
+                break;
             }
         }
     }
@@ -2451,7 +2439,7 @@ static const map_def *_pick_layout(const map_def *vault)
             }
             layout = random_map_for_tag("layout", true, true);
         }
-        while (layout->has_tag("no_primary_vault")
+        while (!layout || layout->has_tag("no_primary_vault")
                || (tries > 10 && !_vault_can_use_layout(vault, layout)));
     }
 
@@ -4204,7 +4192,7 @@ static bool _apply_item_props(item_def &item, const item_spec &spec,
 {
     const CrawlHashTable props = spec.props;
 
-    if (props.exists("make_book_theme_randart"))
+    if (props.exists("build_themed_book"))
     {
         string owner = props[RANDBK_OWNER_KEY].get_string();
         if (owner == "player")
@@ -4242,6 +4230,7 @@ static bool _apply_item_props(item_def &item, const item_spec &spec,
                           forced_spell_filter(spells,
                                                capped_spell_filter(max_levels)),
                           origin_as_god_gift(item), num_spells, chosen_spells);
+        fixup_randbook_disciplines(disc1, disc2, chosen_spells);
         init_book_theme_randart(item, chosen_spells);
         name_book_theme_randart(item, disc1, disc2, owner, title);
         // XXX: changing the signature of build_themed_book()'s get_discipline

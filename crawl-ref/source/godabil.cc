@@ -166,10 +166,9 @@ bool bless_weapon(god_type god, brand_type brand, colour_t colour)
     string old_name = wpn.name(DESC_A);
     set_equip_desc(wpn, ISFLAG_GLOWING);
     set_item_ego_type(wpn, OBJ_WEAPONS, brand);
-    const bool is_cursed = wpn.cursed();
     enchant_weapon(wpn, true);
     enchant_weapon(wpn, true);
-    if (is_cursed)
+    if (wpn.cursed())
         do_uncurse_item(wpn, MAX_CURSE_LEVEL);
 
     if (god == GOD_SHINING_ONE)
@@ -4378,7 +4377,7 @@ static void _setup_gozag_shop(int index, vector<shop_type> &valid_shops)
     ASSERT(!you.props.exists(make_stringf(GOZAG_SHOPKEEPER_NAME_KEY, index)));
 
     shop_type type = NUM_SHOPS;
-    if (index == 0 && !you_foodless_normally())
+    if (index == 0 && !you_foodless_normally() && false)
         type = SHOP_FOOD;
     else
     {
@@ -5581,10 +5580,12 @@ int get_sacrifice_piety(ability_type sac, bool include_skill)
 
     // Randomize piety gain very slightly to prevent counting.
     // We fuzz the piety gain by up to +-10%, or 5 piety, whichever is smaller.
-    int piety_blur_inc = min(5, piety_gain / 10);
-    int piety_blur = random2((2 * piety_blur_inc) + 1) - piety_blur_inc;
+    // actually, fuck that. what's wrong, we don't trust the player?
+    // we don't want the player to know what's happening with their character?
+    // int piety_blur_inc = min(5, piety_gain / 10);
+    // int piety_blur = random2((2 * piety_blur_inc) + 1) - piety_blur_inc;
 
-    return piety_gain + piety_blur;
+    return piety_gain;
 }
 
 // Remove the offer of sacrifices after they've been offered for sufficient
@@ -5756,6 +5757,13 @@ void ru_offer_new_sacrifices()
 
     simple_god_message(" believes you are ready to make a new sacrifice.");
     // included in default force_more_message
+}
+
+/// What key corresponds to the potential/chosen mut(s) for this sacrifice?
+string ru_sacrifice_vector(ability_type sac)
+{
+    const sacrifice_def &sac_def = _get_sacrifice_def(sac);
+    return sac_def.sacrifice_vector ? sac_def.sacrifice_vector : "";
 }
 
 static const char* _describe_sacrifice_piety_gain(int piety_gain)
@@ -5995,7 +6003,7 @@ bool ru_do_sacrifice(ability_type sac)
                 }
             }
             else
-                sac_text = static_cast<string>(mutation_desc_for_text(mut));
+                sac_text = mut_upgrade_summary(mut);
         }
         offer_text = make_stringf("%s: %s", sac_def.sacrifice_text,
             sac_text.c_str());

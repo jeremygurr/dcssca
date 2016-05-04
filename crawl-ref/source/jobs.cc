@@ -89,11 +89,6 @@ void job_stat_init(job_type job)
             you.base_stats[stat]++;
         }
     }
-
-    if (job == JOB_SUMMONER)
-    {
-    	you.mp_max_adj = 2;
-    }
 }
 
 bool job_has_weapon_choice(job_type job)
@@ -109,6 +104,11 @@ bool job_gets_good_weapons(job_type job)
 bool job_gets_ranged_weapons(job_type job)
 {
     return _job_def(job).wchoice == WCHOICE_RANGED;
+}
+
+bool job_gets_poverty_weapons(job_type job)
+{
+    return _job_def(job).wchoice == WCHOICE_POVERTY;
 }
 
 void give_job_equipment(job_type job)
@@ -168,17 +168,7 @@ void debug_jobdata()
                 fails += error + "\n";
         }
 
-    if (!fails.empty())
-    {
-        fprintf(stderr, "%s", fails.c_str());
-
-        FILE *f = fopen("job-data.out", "w");
-        if (!f)
-            sysfail("can't write test output");
-        fprintf(f, "%s", fails.c_str());
-        fclose(f);
-        fail("job-data errors (dumped to job-data.out)");
-    }
+    dump_test_fails(fails, "job-data");
 }
 
 bool job_recommends_species(job_type job, species_type species)

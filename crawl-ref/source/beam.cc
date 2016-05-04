@@ -21,6 +21,7 @@
 #include "attitude-change.h"
 #include "bloodspatter.h"
 #include "branch.h"
+#include "chardump.h"
 #include "cloud.h"
 #include "colour.h"
 #include "coordit.h"
@@ -496,9 +497,16 @@ void zappy(zap_type z_type, int power, bool is_monster, bolt &pbolt)
                                              : zinfo->player_tohit;
         ASSERT(hit_calc);
         pbolt.hit = (*hit_calc)(power);
+
+        if (!is_monster)
+            pbolt.hit = player_tohit_modifier(pbolt.hit);
+
         if (pbolt.hit != AUTOMATIC_HIT && !is_monster)
             pbolt.hit = max(0, pbolt.hit - 5 * you.inaccuracy());
     }
+
+    if (!is_monster)
+        player_update_tohit(pbolt.hit);
 
     dam_deducer* dam_calc = is_monster ? zinfo->monster_damage
                                        : zinfo->player_damage;
@@ -1975,7 +1983,7 @@ static bool _curare_hits_monster(actor *agent, monster* mons, int levels)
 
         if (hurted)
         {
-            simple_monster_message(mons, " convulses.");
+            monster_message(mons, " convulses. (%d)", hurted);
             mons->hurt(agent, hurted, BEAM_POISON);
         }
     }
@@ -3028,7 +3036,7 @@ bool bolt::fuzz_invis_tracer()
 // A first step towards to-hit sanity for beams. We're still being
 // very kind to the player, but it should be fairer to monsters than
 // 4.0.
-static bool _test_beam_hit(int attack, int defence, bool pierce,
+static bool _test_beam_hit(int attack, int defense, bool pierce,
                            int defl, defer_rand &r)
 {
     if (attack == AUTOMATIC_HIT)
@@ -3037,21 +3045,23 @@ static bool _test_beam_hit(int attack, int defence, bool pierce,
     if (pierce)
     {
         if (defl > 1)
-            attack = r[0].random2(attack * 2) / 3;
+            attack /= 3;
         else if (defl && attack >= 2) // don't increase acc of 0
-            attack = r[0].random_range((attack + 1) / 2 + 1, attack);
+            attack = attack * 3 / 2;
     }
     else if (defl)
-        attack = r[0].random2(attack / defl);
+        attack = attack / defl / 2;
 
-    dprf(DIAG_BEAM, "Beam attack: %d, defence: %d", attack, defence);
+    dprf(DIAG_BEAM, "Beam attack: %d, defense: %d", attack, defense);
 
-    attack = r[1].random2(attack);
-    defence = r[2].random2avg(defence, 2);
+    int chance = 0;
+    const int result = random_diff(attack, defense, &chance);
+    player_update_last_hit_chance(chance);
+    player_update_tohit(attack);
 
-    dprf(DIAG_BEAM, "Beam new attack: %d, defence: %d", attack, defence);
+    dprf(DIAG_BEAM, "Beam new attack: %d, defense: %d", attack, defense);
 
-    return attack >= defence;
+    return result >= 0;
 }
 
 bool bolt::is_harmless(const monster* mon) const
@@ -3211,7 +3221,10 @@ void bolt::reflect()
     bounce_pos.reset();
 
     if (pos() == you.pos())
+    {
         reflector = MID_PLAYER;
+        count_action(CACT_BLOCK, -1, BLOCK_REFLECT);
+    }
     else if (monster* m = monster_at(pos()))
         reflector = m->mid;
     else
@@ -3405,13 +3418,17 @@ bool bolt::misses_player(int hurted)
     int defl = you.missile_deflection();
 
     if (!_test_beam_hit(real_tohit, dodge, pierce, 0, r))
+    {
         mprf("The %s misses you.", name.c_str());
+        count_action(CACT_DODGE, DODGE_EVASION);
+    }
     else if (defl && !_test_beam_hit(real_tohit, dodge, pierce, defl, r))
     {
         // active voice to imply stronger effect
         mprf(defl == 1 ? "The %s is repelled." : "You deflect the %s!",
              name.c_str());
         you.ablate_deflection();
+        count_action(CACT_DODGE, DODGE_DEFLECT);
     }
     else
     {
@@ -3441,8 +3458,9 @@ void bolt::affect_player_enchantment(bool resistible)
     {
         if (x_chance_in_y(absorption_level * absorption_level, 10))
         {
-            mprf("You absorb the magic.");
-            inc_mp(2 + ench_power/10);
+            const int mp_gain = 2 + ench_power / 10;
+            mprf(MSGCH_INTRINSIC_GAIN, "You absorb the magic. (%d)", mp_gain);
+            inc_mp(mp_gain);
             return;
         }
     }
@@ -4025,8 +4043,9 @@ void bolt::affect_player()
             && coinflip())
         {
             mprf("Your attached jelly eats %s!", item->name(DESC_THE).c_str());
-            inc_hp(random2(hurted / 2));
-            canned_msg(MSG_GAIN_HEALTH);
+            const int gain = random2(hurted / 2);
+            inc_hp(gain);
+            canned_msg(MSG_GAIN_HEALTH, gain);
             drop_item = false;
         }
     }
@@ -4042,6 +4061,14 @@ void bolt::affect_player()
             was_affected = true;
         }
     }
+
+    // need to trigger qaz resists after reducing damage from ac/resists.
+    //    for some reason, strength 2 is the standard. This leads to qaz's resists triggering 2 in 5 times at max piety.
+    //    perhaps this should scale with damage?
+    // what to do for hybrid damage?  E.g. bolt of magma, icicle, poison arrow?  Right now just ignore the physical component.
+    // what about acid?
+    you.expose_to_element(flavour, 2, false);
+
 
     // Manticore spikes
     if (origin_spell == SPELL_THROW_BARBS && hurted > 0)
@@ -4138,7 +4165,7 @@ int bolt::apply_AC(const actor *victim, int hurted)
         ac_rule = AC_NONE;
 
     // beams don't obey GDR -> max_damage is 0
-    return victim->apply_ac(hurted, 0, ac_rule);
+    return victim->apply_ac(hurted, 0, ac_rule, 0, !is_tracer);
 }
 
 void bolt::update_hurt_or_helped(monster* mon)
@@ -4976,7 +5003,10 @@ void bolt::affect_monster(monster* mon)
         return;
 
     defer_rand r;
+    /* Don't need this to be random any more
     int rand_ev = random2(mon->evasion());
+     */
+    int rand_ev = mon->evasion() / 2;
     int defl = mon->missile_deflection();
 
     // FIXME: We're randomising mon->evasion, which is further

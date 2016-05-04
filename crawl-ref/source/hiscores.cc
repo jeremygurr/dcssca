@@ -909,7 +909,7 @@ enum old_species_type
     OLD_SP_SLUDGE_ELF = -7,
     OLD_SP_DJINNI = -8,
     OLD_SP_LAVA_ORC = -9,
-    NUM_OLD_SPECIES = OLD_SP_LAVA_ORC
+    NUM_OLD_SPECIES = -OLD_SP_LAVA_ORC
 };
 
 static string _species_name(int race)
@@ -955,7 +955,7 @@ static int _species_by_name(const string& name)
     if (race != SP_UNKNOWN)
         return race;
 
-    for (race = -1; race >= -NUM_OLD_JOBS; race--)
+    for (race = -1; race >= -NUM_OLD_SPECIES; race--)
         if (name == _species_name(race))
             return race;
 
@@ -1490,7 +1490,7 @@ void scorefile_entry::reset()
     zigmax               = 0;
     scrolls_used         = 0;
     potions_used         = 0;
-    difficulty			 = DIFFICULTY_NORMAL;
+    difficulty			 = DIFFICULTY_CHALLENGE;
     experience_mode      = EXP_MODE_CLASSIC;
 }
 
@@ -1612,9 +1612,9 @@ void scorefile_entry::init(time_t dt)
         pt += num_runes * 10000;
         pt += num_runes * (num_runes + 2) * 1000;
 
-        if(crawl_state.difficulty == DIFFICULTY_EASY)
+        if(crawl_state.difficulty == DIFFICULTY_STANDARD)
             pt >>= 2;
-        if(crawl_state.difficulty == DIFFICULTY_HARD)
+        if(crawl_state.difficulty == DIFFICULTY_NIGHTMARE)
             pt <<= 2;
 
         points = pt;
@@ -1637,7 +1637,7 @@ void scorefile_entry::init(time_t dt)
     // Note all skills at level 27, and also all skills at level >= 15.
     for (skill_type sk = SK_FIRST_SKILL; sk < NUM_SKILLS; ++sk)
     {
-        if (you.skills[sk] == MAX_SKILL_LEVEL)
+        if (you.skills[sk] == get_max_skill_level())
         {
             if (!maxed_skills.empty())
                 maxed_skills += ",";
@@ -1723,7 +1723,7 @@ void scorefile_entry::init(time_t dt)
     scrolls_used = 0;
     pair<caction_type, int> p(CACT_USE, OBJ_SCROLLS);
 
-    const int maxlev = min<int>(you.max_level, MAX_SKILL_LEVEL);
+    const int maxlev = min<int>(you.max_level, get_max_skill_level());
     if (you.action_count.count(p))
         for (int i = 0; i < maxlev; i++)
             scrolls_used += you.action_count[p][i];
@@ -1883,14 +1883,14 @@ string scorefile_entry::difficulty_name() const
 	string result;
 	switch(difficulty)
 	{
-	case DIFFICULTY_EASY:
-		result = "EASY";
+	case DIFFICULTY_STANDARD:
+		result = "STANDARD";
 		break;
-	case DIFFICULTY_HARD:
-		result = "HARD";
+	case DIFFICULTY_NIGHTMARE:
+		result = "NIGHTMARE";
 		break;
 	default:
-		result = "NORM";
+		result = "CHALLENGE";
 		break;
 	}
 
@@ -1947,8 +1947,9 @@ scorefile_entry::character_description(death_desc_verbosity verbosity) const
 
     desc += wiz_mode ? ") *WIZ*" :
     		explore_mode ? ") *EXPLORE*" :
-    		difficulty == DIFFICULTY_EASY ? ") *EASY*" :
-    		difficulty == DIFFICULTY_HARD ? ") *HARD*" : ")";
+    		difficulty == DIFFICULTY_STANDARD ? ") *STANDARD*" :
+            difficulty == DIFFICULTY_CHALLENGE ? ") *CHALLENGE*" :
+    		difficulty == DIFFICULTY_NIGHTMARE ? ") *NIGHTMARE*" : ")";
     desc += _hiscore_newline_string();
 
     if (verbose)
@@ -2244,8 +2245,11 @@ string scorefile_entry::death_description(death_desc_verbosity verbosity) const
     case KILLED_BY_STUPIDITY:
         if (terse)
             desc += "stupidity";
-        else if (species_is_unbreathing(static_cast<species_type>(race)))
+        else if (race >= 0 && // not a removed race
+                 species_is_unbreathing(static_cast<species_type>(race)))
+        {
             desc += "Forgot to exist";
+        }
         else
             desc += "Forgot to breathe";
         break;

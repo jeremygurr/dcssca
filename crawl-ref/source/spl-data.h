@@ -3147,7 +3147,7 @@ static const struct spell_desc spelldata[] =
     SPELL_SUMMON_LIGHTNING_SPIRE, "Summon Lightning Spire",
     SPTYP_SUMMONING | SPTYP_AIR,
     SPFLAG_TARGET | SPFLAG_NOT_SELF | SPFLAG_NEUTRAL,
-    4,
+    5,
     100,
     2, 2,
     2, 0,
@@ -3637,7 +3637,7 @@ static const struct spell_desc spelldata[] =
 {
     SPELL_VIOLENT_UNRAVELLING, "Yara's Violent Unravelling",
     SPTYP_HEXES | SPTYP_TRANSMUTATION,
-    SPFLAG_DIR_OR_TARGET | SPFLAG_ALLOW_SELF | SPFLAG_NEEDS_TRACER | SPFLAG_NO_GHOST | SPFLAG_CHAOTIC,
+    SPFLAG_DIR_OR_TARGET | SPFLAG_NEEDS_TRACER | SPFLAG_NO_GHOST | SPFLAG_CHAOTIC,
     5,
     200,
     LOS_RADIUS, LOS_RADIUS,

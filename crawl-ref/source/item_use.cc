@@ -13,6 +13,7 @@
 #include "artefact.h"
 #include "art-enum.h"
 #include "butcher.h"
+#include "chardump.h"
 #include "cloud.h"
 #include "colour.h"
 #include "coordit.h"
@@ -74,7 +75,11 @@ bool _playerUnequipsShield();
 
 bool _playerUnequipsShield()
 {
-	if (yesno("Unequip your shield first?", true, 'n'))
+    // are we already removing our shield?
+    if (you.delay_queue.size() > 0)
+        return true;
+
+	if (yesno("Unequip your shield first?", true, 'n', true, false))
 	{
         takeoff_armour(you.equip[EQ_SHIELD]);
 		return true;
@@ -173,7 +178,7 @@ bool can_wield(const item_def *weapon, bool say_reason,
             id_brand = true;
         }
     }
-    else if (!ignore_temporary_disability
+    else if (false && !ignore_temporary_disability
              && you.hunger_state < HS_FULL
              && get_weapon_brand(*weapon) == SPWPN_VAMPIRISM
              && you.undead_state() == US_ALIVE
@@ -338,6 +343,7 @@ bool wield_weapon(bool auto_wield, int slot, bool show_weff_messages,
         else
             canned_msg(MSG_EMPTY_HANDED_ALREADY);
 
+        player_update_tohit();
         return true;
     }
 
@@ -388,6 +394,8 @@ bool wield_weapon(bool auto_wield, int slot, bool show_weff_messages,
     you.m_quiver.on_weapon_changed();
     you.turn_is_over  = true;
     you.prev_direction.reset();
+
+    player_update_tohit();
 
     return true;
 }
@@ -441,12 +449,6 @@ bool armour_prompt(const string & mesg, int *index, operation_types oper)
 
 void wear_armour(int slot) // slot is for tiles
 {
-    if (you.species == SP_FELID)
-    {
-        mpr("You can't wear anything.");
-        return;
-    }
-
     if (!form_can_wear())
     {
         mpr("You can't wear anything in your present form.");
@@ -492,7 +494,8 @@ static int armour_equip_delay(const item_def &item)
 bool can_wear_armour(const item_def &item, bool verbose, bool ignore_temporary)
 {
     const object_class_type base_type = item.base_type;
-    if (base_type != OBJ_ARMOUR || you.species == SP_FELID)
+    const int sub_type = item.sub_type;
+    if (base_type != OBJ_ARMOUR || you.species == SP_FELID && sub_type != ARM_CLOAK)
     {
         if (verbose)
             mpr("You can't wear that.");
@@ -500,10 +503,9 @@ bool can_wear_armour(const item_def &item, bool verbose, bool ignore_temporary)
         return false;
     }
 
-    const int sub_type = item.sub_type;
     const equipment_type slot = get_armour_slot(item);
 
-    if (you.species == SP_OCTOPODE && slot != EQ_HELMET && slot != EQ_SHIELD)
+    if (you.species == SP_OCTOPODE && slot != EQ_HELMET && slot != EQ_SHIELD && slot != EQ_CLOAK)
     {
         if (verbose)
             mpr("You can't wear that!");
@@ -2031,30 +2033,19 @@ bool enchant_weapon(item_def &wpn, bool quiet)
     // Get item name now before changing enchantment.
     string iname = wpn.name(DESC_YOUR);
 
-    if (is_weapon(wpn))
+    if (is_weapon(wpn)
+        && !is_artefact(wpn)
+        && wpn.base_type == OBJ_WEAPONS
+        && wpn.plus < MAX_WPN_ENCHANT)
     {
-        if (!is_artefact(wpn)
-            && wpn.base_type == OBJ_WEAPONS
-            && wpn.plus < MAX_WPN_ENCHANT)
-        {
-            wpn.plus++;
-            success = true;
-            if (!quiet)
-                mprf("%s glows red for a moment.", iname.c_str());
-        }
-
-        if (wpn.cursed())
-        {
-            if (!success)
-                mprf("%s glows silver for a moment.", iname.c_str());
-            success = true;
-        }
-        // Mark the item as uncursed, whether or not it was cursed initially.
-        do_uncurse_item(wpn, true);
+        wpn.plus++;
+        success = true;
+        if (!quiet)
+            mprf("%s glows red for a moment.", iname.c_str());
     }
 
     if (!success && !quiet)
-        mprf("%s very briefly gains a red sheen.", iname.c_str());
+        canned_msg(MSG_NOTHING_HAPPENS);
 
     if (success)
         you.wield_change = true;
@@ -2164,20 +2155,13 @@ bool enchant_armour(int &ac_change, bool quiet, item_def &arm)
 
     ac_change = 0;
 
-    // Cannot be enchanted nor uncursed.
-    if (!is_enchantable_armour(arm, true))
+    // Cannot be enchanted.
+    if (!is_enchantable_armour(arm))
     {
         if (!quiet)
             canned_msg(MSG_NOTHING_HAPPENS);
-
-        // That proved that it was uncursed.
-        if (!have_passive(passive_t::want_curses))
-            arm.flags |= ISFLAG_KNOW_CURSE;
-
         return false;
     }
-
-    const bool is_cursed = arm.cursed();
 
     // Turn hides into mails where applicable.
     // NOTE: It is assumed that armour which changes in this way does
@@ -2194,27 +2178,8 @@ bool enchant_armour(int &ac_change, bool quiet, item_def &arm)
         hide2armour(arm);
         ac_change = property(arm, PARM_AC) - ac_change;
 
-        do_uncurse_item(arm, true);
-
         // No additional enchantment.
         return true;
-    }
-
-    // Even if not affected, it may be uncursed.
-    if (!is_enchantable_armour(arm, false))
-    {
-        if (!quiet)
-        {
-            if (is_cursed)
-            {
-                mprf("%s glows silver for a moment.",
-                     arm.name(DESC_YOUR).c_str());
-            }
-            else
-                canned_msg(MSG_NOTHING_HAPPENS);
-        }
-        do_uncurse_item(arm, true);
-        return is_cursed; // was_cursed, really
     }
 
     // Output message before changing enchantment and curse status.
@@ -2226,7 +2191,6 @@ bool enchant_armour(int &ac_change, bool quiet, item_def &arm)
 
     arm.plus++;
     ac_change++;
-    do_uncurse_item(arm, true);
 
     return true;
 }
@@ -2263,7 +2227,7 @@ static int _handle_enchant_armour(bool alreadyknown, const string &pre_msg)
 
         item_def& arm(you.inv1[item_slot]);
 
-        if (!is_enchantable_armour(arm, true, true))
+        if (!is_enchantable_armour(arm, true))
         {
             mpr("Choose some type of armour to enchant, or Esc to abort.");
             more();
@@ -2354,6 +2318,12 @@ static void _handle_read_book(int item_slot)
         canned_msg(MSG_TOO_BERSERK);
         return;
     }
+	    // Prevent hot lava orcs reading books
+	if (you.species == SP_LAVA_ORC && temperature_effect(LORC_NO_SCROLLS))
+    {
+        mpr("You'd burn any book you tried to read!");
+        return;
+    }
 
     if (you.duration[DUR_BRAINLESS])
     {
@@ -2361,7 +2331,7 @@ static void _handle_read_book(int item_slot)
         return;
     }
 
-    item_def& book(you.inv1[item_slot]);
+    item_def& book(you.inv2[item_slot]);
     ASSERT(book.sub_type != BOOK_MANUAL);
 
 #if TAG_MAJOR_VERSION == 34
@@ -2470,15 +2440,13 @@ string cannot_read_item_reason(const item_def &item)
     {
         if (item.sub_type == BOOK_MANUAL)
             return "You can't read that!";
+         
         return "";
     }
 
     // and scrolls - but nothing else.
     if (item.base_type != OBJ_SCROLLS)
         return "You can't read that!";
-
-    // the below only applies to scrolls. (it's easier to read books, since
-    // that's just a UI/strategic thing.)
 
     if (silenced(you.pos()))
         return "Magic scrolls do not work when you're silenced!";
@@ -2494,6 +2462,11 @@ string cannot_read_item_reason(const item_def &item)
     // Prevent hot lava orcs reading scrolls
     if (you.species == SP_LAVA_ORC && temperature_effect(LORC_NO_SCROLLS))
         return "You'd burn any scroll you tried to read!";
+        
+     if (you.species == SP_DJINNI)
+        return "You'd burn any scroll you tried to read!";
+    
+ 
 
     if (you.species == SP_DJINNI)
     {

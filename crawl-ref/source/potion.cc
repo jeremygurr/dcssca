@@ -241,22 +241,25 @@ public:
         int amount = 0;
         if (is_device)
         {
-            amount = you.hp_max * (1 - pow((200 - power) / 200.0, 2));
-            mpr("You feel better.");
+            amount = min(you.hp_max, div_rand_round(you.hp_max * power, 100));
+            if (amount > you.hp_max - you.hp)
+                amount = you.hp_max - you.hp;
+
+            mprf("You feel better. (%d)", amount);
         }
         else switch(crawl_state.difficulty)
             {
-                case DIFFICULTY_EASY:
+                case DIFFICULTY_STANDARD:
                     amount = you.hp_max;
-                    mpr("You feel completely better.");
+                    mprf("You feel completely better. (%d)", amount);
                     break;
-                case DIFFICULTY_NORMAL:
+                case DIFFICULTY_CHALLENGE:
                     amount = you.hp_max/2;
-                    mpr("You feel much better.");
+                    mprf("You feel much better. (%d)", amount);
                     break;
-                case DIFFICULTY_HARD:
+                case DIFFICULTY_NIGHTMARE:
                     amount = you.hp_max/4;
-                    mpr("You feel a little better.");
+                    mprf("You feel a little better. (%d)", amount);
                     break;
                 default:
                     // should not be possible
@@ -366,7 +369,7 @@ public:
 
     bool effect(bool=true, int pow = 40, bool=true) const override
     {
-        return haste_player(40 + random2(pow));
+        return haste_player(40 + random2(pow), false, SRC_POTION);
     }
 
     bool quaff(bool was_known) const override
@@ -506,7 +509,7 @@ public:
 class PotionPoison : public PotionEffect
 {
 private:
-    PotionPoison() : PotionEffect(POT_POISON) { }
+    PotionPoison() : PotionEffect(POT_POISON_VULNERABILITY) { }
     DISALLOW_COPY_AND_ASSIGN(PotionPoison);
 public:
     static const PotionPoison &instance()
@@ -620,9 +623,9 @@ public:
 
         // Now multiple invisiblity casts aren't as good. -- bwr
         if (!you.duration[DUR_INVIS])
-            you.set_duration(DUR_INVIS, 15 + random2(pow), 100);
+            you.set_duration(DUR_INVIS, 15 + random2(pow), 100, nullptr, SRC_POTION);
         else
-            you.increase_duration(DUR_INVIS, random2(pow), 100);
+            you.increase_duration(DUR_INVIS, random2(pow), 100, nullptr, SRC_POTION);
         return true;
     }
 
@@ -714,13 +717,13 @@ public:
         int amount = 0;
         switch(crawl_state.difficulty)
         {
-            case DIFFICULTY_EASY:
+            case DIFFICULTY_STANDARD:
                 amount = you.max_magic_points;
                 break;
-            case DIFFICULTY_NORMAL:
+            case DIFFICULTY_CHALLENGE:
                 amount = you.max_magic_points/2;
                 break;
-            case DIFFICULTY_HARD:
+            case DIFFICULTY_NIGHTMARE:
                 amount = you.max_magic_points/4;
                 break;
             default:
@@ -853,11 +856,62 @@ public:
         {
             if (random2(9) >= i)
             {
-                mutated |= delete_mutation(RANDOM_MUTATION,
-                                           "potion of cure mutation", false);
+                const int resilient_dna = player_mutation_level(MUT_RESILIENT_DNA) - player_mutation_level(MUT_WEAK_DNA);
+                mutation_type mutation = x_chance_in_y(resilient_dna + 1, 4) ? RANDOM_BAD_MUTATION : RANDOM_MUTATION;
+                if (resilient_dna < 0)
+                    mutation = x_chance_in_y(-resilient_dna, 4) ? RANDOM_GOOD_MUTATION : RANDOM_MUTATION;
+
+                mutated |= delete_mutation(mutation, "potion of cure mutation", false);
             }
         }
         return mutated;
+    }
+};
+
+class PotionWeakMutation : public PotionEffect
+{
+private:
+    PotionWeakMutation() : PotionEffect(POT_WEAK_MUTATION) { }
+    DISALLOW_COPY_AND_ASSIGN(PotionWeakMutation);
+public:
+    static const PotionWeakMutation &instance()
+    {
+        static PotionWeakMutation inst; return inst;
+    }
+
+    bool can_quaff(string *reason = nullptr) const override
+    {
+        if (_disallow_mutate(reason))
+            return false;
+        return true;
+    }
+
+    bool effect(bool=true, int=40, bool=true) const override
+    {
+        mpr("You feel strange.");
+        bool mutated = mutate(RANDOM_MUTATION, "potion of weak mutation", false);
+        learned_something_new(HINT_YOU_MUTATED);
+        return mutated;
+    }
+
+    bool quaff(bool was_known) const override
+    {
+        if (was_known && !check_known_quaff())
+            return false;
+
+        string msg = "Really drink that potion of weak mutation";
+        msg += you.rmut_from_item() ? " while resistant to mutation?" : "?";
+        if (was_known && (you_worship(GOD_ZIN) || you.rmut_from_item())
+            && !yesno(msg.c_str(), false, 'n'))
+        {
+            canned_msg(MSG_OK);
+            return false;
+        }
+
+        effect();
+        // Zin conduct is violated even if you get lucky and don't mutate
+        did_god_conduct(DID_DELIBERATE_MUTATING, 10, was_known);
+        return true;
     }
 };
 
@@ -1434,6 +1488,7 @@ static const PotionEffect* potion_effects[] =
 	&PotionPatience::instance(),
 	&PotionPoison::instance(),
 	&PotionResistance::instance(),
+    &PotionWeakMutation::instance(),
 #if TAG_MAJOR_VERSION == 34
 	&PotionBloodCoagulated::instance(),
 	&PotionDecay::instance(),

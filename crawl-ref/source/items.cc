@@ -586,7 +586,7 @@ void unlink_item(int dest)
 
 #ifdef DEBUG
     // Okay, the sane ways are gone... let's warn the player:
-    mprf(MSGCH_ERROR, "BUG WARNING: Problems unlinking item '%s', (%d, %d)!!!",
+    dprf("BUG WARNING: Problems unlinking item '%s', (%d, %d)!!!",
          mitm[dest].name(DESC_PLAIN).c_str(),
          mitm[dest].pos.x, mitm[dest].pos.y);
 
@@ -638,7 +638,7 @@ void unlink_item(int dest)
 
     // Okay, finally warn player if we didn't do anything.
     if (!linked)
-        mprf(MSGCH_ERROR, "BUG WARNING: Item didn't seem to be linked at all.");
+        dprf("BUG WARNING: Item didn't seem to be linked at all.");
 #endif
 }
 
@@ -1518,7 +1518,8 @@ bool items_stack(const item_def &item1, const item_def &item2)
     return items_similar(item1, item2)
         // Don't leak information when checking if an "(unknown)" shop item
         // matches an unidentified item in inventory.
-        && fully_identified(item1) == fully_identified(item2);
+//        && fully_identified(item1) == fully_identified(item2)
+         ;
 }
 
 /**
@@ -1539,6 +1540,12 @@ void merge_item_stacks(const item_def &source, item_def &dest, int quant)
         quant = source.quantity;
 
     ASSERT_RANGE(quant, 0 + 1, source.quantity + 1);
+
+    if (source.base_type == OBJ_WANDS && dest.base_type == OBJ_WANDS)
+    {
+        dest.charges += source.charges;
+        dest.set_cap(dest.get_cap() + source.get_cap());
+    }
 
     if (is_perishable_stack(source) && is_perishable_stack(dest))
         merge_perishable_stacks(source, dest, quant);
@@ -1841,30 +1848,30 @@ static bool _merge_stackable_item_into_inv(const item_def &it, int quant_got,
 
     for (inv_slot = 0; inv_slot < ENDOFPACK; inv_slot++)
     {
-        if (!items_stack((*inv)[inv_slot], it))
+        item_def &item = (*inv)[inv_slot];
+
+        if (!items_stack(item, it))
             continue;
 
         // If the object on the ground is inscribed, but not
         // the one in inventory, then the inventory object
         // picks up the other's inscription.
         if (!(it.inscription).empty()
-            && (*inv)[inv_slot].inscription.empty())
+            && item.inscription.empty())
         {
-        	(*inv)[inv_slot].inscription = it.inscription;
+        	item.inscription = it.inscription;
         }
 
-        merge_item_stacks(it, (*inv)[inv_slot], quant_got);
-        if (it.base_type == OBJ_WANDS)
-            (*inv)[inv_slot].charges += it.charges;
-        else
+        merge_item_stacks(it, item, quant_got);
+        if (it.base_type != OBJ_WANDS)
             inc_inv_item_quantity((*inv), inv_slot, quant_got);
 
-        you.last_pickup[&(*inv)[inv_slot]] = quant_got;
+        you.last_pickup[&item] = quant_got;
 
         if (!quiet)
         {
             mprf_nocap("%s (gained %d)",
-                        get_menu_colour_prefix_tags((*inv)[inv_slot],
+                        get_menu_colour_prefix_tags(item,
                                                     DESC_INVENTORY).c_str(),
                         quant_got);
         }
@@ -2159,7 +2166,10 @@ bool move_item_to_grid(int *const obj, const coord_def& p, bool silent)
                 // Add quantity to item already here, and dispose
                 // of obj, while returning the found item. -- bwr
                 merge_item_stacks(item, *si);
-                inc_mitm_item_quantity(si->index(), item.quantity);
+
+                if (item.base_type != OBJ_WANDS)
+                    inc_mitm_item_quantity(si->index(), item.quantity);
+
                 destroy_item(ob);
                 ob = si->index();
                 _gozag_move_gold_to_top(p);
@@ -2250,7 +2260,7 @@ bool copy_item_to_grid(item_def &item, const coord_def& p,
 {
     ASSERT_IN_BOUNDS(p);
 
-    if (quant_drop == 0)
+    if (item.base_type == OBJ_FOOD && item.sub_type == FOOD_CHUNK || quant_drop == 0)
         return false;
 
     if (!silenced(p) && !silent)
@@ -3294,14 +3304,11 @@ bool item_def::has_spells() const
 
 bool item_def::cursed() const
 {
-    return curse_weight > 0;
+    return curse_weight > 10;
 }
 
 bool item_def::super_cursed() const
 {
-    if(curse_weight > 1000)
-        dprf("Super cursed item!");
-
     return curse_weight > 1000;
 }
 

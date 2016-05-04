@@ -165,6 +165,7 @@
 #include "wiz-mon.h"
 #include "wiz-you.h"
 #include "xom.h" // debug_xom_effects()
+// #include "android-project/jni/freetype/include/internal/fttrace.h"
 
 // ----------------------------------------------------------------------
 // Globals whose construction/destruction order needs to be managed
@@ -433,14 +434,14 @@ NORETURN static void _launch_game()
 
         switch(crawl_state.difficulty)
         {
-        case DIFFICULTY_EASY:
-        	msg::stream << "<green>EASY MODE:</green> <yellow>You decided to play it safe, huh? That's okay, I can respect that.</yellow>" << endl;
+        case DIFFICULTY_STANDARD:
+        	msg::stream << "<white>You are playing the Standard difficulty mode, " << get_exp_mode_string() << " experience mode</white> <yellow></yellow>" << endl;
         	break;
-        case DIFFICULTY_NORMAL:
-        	msg::stream << "<yellow>NORMAL MODE: Things will be normal. For crawl anyway. Which isn't anywhere close to normal.</yellow>" << endl;
+        case DIFFICULTY_CHALLENGE:
+        	msg::stream << "<yellow>You are playing the Challenge difficulty mode, " << get_exp_mode_string() << " experience mode</yellow> <yellow></yellow>" << endl;
         	break;
-        case DIFFICULTY_HARD:
-        	msg::stream << "<red>HARD MODE:</red> <yellow>You can give up any hope of winning right now. Seriously. You don't have a chance.</yellow>" << endl;
+        case DIFFICULTY_NIGHTMARE:
+        	msg::stream << "<lightred>You are playing the Nightmare difficulty mode, " << get_exp_mode_string() << " experience mode</lightred><yellow></yellow>" << endl;
         	break;
         default:
         	break;
@@ -488,6 +489,8 @@ NORETURN static void _launch_game()
 #endif
 
     run_uncancels();
+
+    player_update_tohit(0);
 
     cursor_control ccon(!Options.use_fake_player_cursor);
     while (true)
@@ -1912,10 +1915,11 @@ static void _do_rest()
     you.prev_direction.reset();
     if (i_feel_safe())
     {
-        unsummon_all();
+        player_before_long_safe_action();
         if ((you.hp == you.hp_max || !player_regenerates_hp())
             && (you.magic_points == you.max_magic_points
-                || !player_regenerates_mp()))
+                || !player_regenerates_mp())
+            && (you.sp == you.sp_max || !player_regenerates_sp()))
         {
             mpr("You start waiting.");
 
@@ -2296,6 +2300,18 @@ void process_command(command_type cmd)
             case CMD_EAT:
                 if (eat_food())
                     you.prev_direction.reset();
+                break;
+            case CMD_EXERT_NORMAL:
+                set_exertion(EXERT_NORMAL);
+                break;
+            case CMD_EXERT_CAREFUL:
+                set_exertion(EXERT_CAREFUL);
+                break;
+            case CMD_EXERT_POWER:
+                set_exertion(EXERT_POWER);
+                break;
+            case CMD_EXERT_ESCAPE:
+                set_exertion(EXERT_ESCAPE);
                 break;
             case CMD_FIRE:                 fire_thing();             break;
             case CMD_FORCE_CAST_SPELL:     do_cast_spell_cmd(true);  break;
@@ -2834,6 +2850,8 @@ static bool _cancel_confused_move(bool stationary)
 
 static void _swing_at_target(coord_def move)
 {
+    player_attacked_something();
+
     you.prev_direction.reset();
     if (you.attribute[ATTR_HELD])
     {
@@ -2899,7 +2917,6 @@ static void _swing_at_target(coord_def move)
         }
         else if (!you.fumbles_attack())
             mpr("You swing at nothing.");
-        make_hungry(3, true);
         // Take the usual attack delay.
         you.time_taken = you.attack_delay().roll();
     }
@@ -3511,7 +3528,7 @@ static void _move_player(coord_def move)
                  DESC_THE, false).c_str());
             destroy_wall(targ);
             noisy(6, you.pos());
-            make_hungry(50, true);
+            make_hungry(60, true);
             additional_time_taken += BASELINE_DELAY / 5;
         }
 
@@ -3562,22 +3579,15 @@ static void _move_player(coord_def move)
             env.travel_trail.push_back(you.pos());
 
         you.time_taken *= player_movement_speed();
-        if (Options.movement_penalty)
+        if (Options.movement_penalty && you.exertion == EXERT_ESCAPE)
         {
-//            if (move.is_reversal(you.prev_direction))
-//            {
-//                you.time_taken = you.time_taken * 30 / 10;
-//                you.prev_direction = move;
-//            }
-//            else
             if (you.prev_direction.x == 0 && you.prev_direction.y == 0 || move.is_sharp_turn(you.prev_direction))
             {
                 you.time_taken = max(you.time_taken, Options.movement_penalty * 10);
                 you.prev_direction = move;
             }
-            else
-                you.time_taken = you.time_taken * 9 / 10;
         }
+
         you.time_taken = div_rand_round(you.time_taken, 10);
         you.time_taken += additional_time_taken;
 
@@ -3662,6 +3672,8 @@ static void _move_player(coord_def move)
     {
         did_god_conduct(DID_HASTY, 1, true);
     }
+
+    player_moved();
 }
 
 static int _get_num_and_char_keyfun(int &ch)

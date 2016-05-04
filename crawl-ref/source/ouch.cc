@@ -132,9 +132,8 @@ int check_your_resists(int hurted, beam_type flavour, string source,
     case BEAM_STEAM:
         hurted = resist_adjust_damage(&you, flavour, hurted);
         if(you.species == SP_DJINNI) {
-//            you.heal(hurted);
-//        	hurted = 0;
-            canned_msg(MSG_GAIN_HEALTH);
+            if (hurted < 0)
+                canned_msg(MSG_GAIN_HEALTH, -hurted);
         }
         else if (hurted < original && doEffects && you.species != SP_DJINNI)
             canned_msg(MSG_YOU_RESIST);
@@ -148,9 +147,7 @@ int check_your_resists(int hurted, beam_type flavour, string source,
     case BEAM_FIRE:
         hurted = resist_adjust_damage(&you, flavour, hurted);
         if(you.species == SP_DJINNI) {
-//            you.heal(hurted);
-//        	hurted = 0;
-            canned_msg(MSG_GAIN_HEALTH);
+            canned_msg(MSG_GAIN_HEALTH, -hurted);
         }
         else if (hurted < original && doEffects && you.species != SP_DJINNI)
             canned_msg(MSG_YOU_RESIST);
@@ -256,9 +253,7 @@ int check_your_resists(int hurted, beam_type flavour, string source,
         hurted = resist_adjust_damage(&you, flavour, hurted);
 
         if(you.species == SP_DJINNI) {
-//            you.heal(hurted);
-//        	hurted = 0;
-            canned_msg(MSG_GAIN_HEALTH);
+            canned_msg(MSG_GAIN_HEALTH, -hurted);
         }
         else if (hurted < original && doEffects && you.species != SP_DJINNI)
             canned_msg(MSG_YOU_PARTIALLY_RESIST);
@@ -296,9 +291,8 @@ int check_your_resists(int hurted, beam_type flavour, string source,
             hurted = hurted * 3 / 2;
 
         if(you.species == SP_DJINNI) {
-//            you.heal(hurted);
         	hurted = -hurted;
-            canned_msg(MSG_GAIN_HEALTH);
+            canned_msg(MSG_GAIN_HEALTH, -hurted);
         }
         else if (hurted == 0 && doEffects)
             canned_msg(MSG_YOU_RESIST);
@@ -348,16 +342,26 @@ int check_your_resists(int hurted, beam_type flavour, string source,
 
 /**
  * Handle side-effects for exposure to element other than damage.
+ * Historically this handled item destruction, and melting meltable enchantments. Now it takes care of 3 things:
+ *   - triggering qazlal's elemental adaptations
+ *   - slowing cold-blooded players (draconians, hydra form)
+ *   - putting out fires
+ * This function should be called exactly once any time a player is exposed to the
+ * following elements/beam types: cold, fire, elec, water, steam, lava, BEAM_FRAG. For the sake of Qazlal's
+ * elemental adaptation, it should also be called (exactly once) with BEAM_MISSILE when
+ * receiving physical damage. Hybrid damage (brands) should call it twice with appropriate
+ * flavours.
  *
  * @param flavour The beam type.
- * @param strength The strength, which is interpreted as a number of player turns.
+ * @param strength The strength of the attack. Used in different ways for different side-effects.
+ *     For qazlal_elemental_adapt: (i) it is used for the probability of triggering, and (ii) the resulting length of the effect.
  * @param slow_cold_blooded If True, the beam_type is BEAM_COLD, and the player
  *                          is cold-blooded and not cold-resistant, slow the
  *                          player 50% of the time.
  */
 void expose_player_to_element(beam_type flavour, int strength, bool slow_cold_blooded)
 {
-    maybe_melt_player_enchantments(flavour, strength ? strength : 10);
+    dprf("expose_player_to_element, strength %i, flavor %i, slow_cold_blooded is %i", strength, flavour, slow_cold_blooded);
     qazlal_element_adapt(flavour, strength);
 
     if (flavour == BEAM_COLD && slow_cold_blooded
@@ -669,13 +673,7 @@ static void _powered_by_pain(int dam)
         && (random2(dam) > 4 + div_rand_round(you.experience_level, 4)
             || dam >= you.hp_max / 2))
     {
-        int chance = 3;
-        if (crawl_state.difficulty == DIFFICULTY_NORMAL)
-            chance = 2;
-        if (crawl_state.difficulty == DIFFICULTY_HARD)
-            chance = 1;
-
-        if (x_chance_in_y(chance, 3))
+        if (x_chance_in_y(level, 3))
         {
             switch (random2(4))
             {
@@ -936,9 +934,6 @@ void ouch(int dam, kill_method_type death_type, mid_t source, const char *aux,
             dam = dam * 10 / 15;
     }
     ait_hp_loss hpl(dam, death_type);
-    if(dam > 0) {
-        interrupt_activity(source == MID_NOBODY ? AI_HP_LOSS_FROM_OTHER : AI_HP_LOSS_FROM_MONSTER, &hpl);
-    }
 
     if (dam > 0 && death_type != KILLED_BY_POISON)
         you.check_awaken(500);
@@ -1024,6 +1019,10 @@ void ouch(int dam, kill_method_type death_type, mid_t source, const char *aux,
             you.source_damage = 0;
         }
         you.source_damage += dam;
+
+        if(dam > 0) {
+            interrupt_activity(source == MID_NOBODY ? AI_HP_LOSS_FROM_OTHER : AI_HP_LOSS_FROM_MONSTER, &hpl);
+        }
 
         dec_hp(dam, true);
 

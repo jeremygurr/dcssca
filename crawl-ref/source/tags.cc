@@ -1391,6 +1391,7 @@ static void tag_construct_you(writer &th)
     CANARY;
 
     marshallInt(th, you.hit_points_regeneration);
+    marshallInt(th, you.stamina_points_regeneration);
     marshallInt(th, you.magic_points_regeneration);
 
     marshallInt(th, you.experience);
@@ -1407,6 +1408,7 @@ static void tag_construct_you(writer &th)
     marshallShort(th, you.hp_max_adj_temp);
     marshallShort(th, you.hp_max_adj_perm);
     marshallShort(th, you.mp_max_adj);
+    marshallShort(th, you.mp_frozen_summons);
 
     marshallShort(th, you.pos().x);
     marshallShort(th, you.pos().y);
@@ -1469,7 +1471,10 @@ static void tag_construct_you(writer &th)
     // how many durations?
     marshallUByte(th, NUM_DURATIONS);
     for (int j = 0; j < NUM_DURATIONS; ++j)
+    {
         marshallInt(th, you.duration[j]);
+        marshallInt(th, you.duration_source[j]);
+    }
 
     // how many attributes?
     marshallByte(th, NUM_ATTRIBUTES);
@@ -1551,7 +1556,15 @@ static void tag_construct_you(writer &th)
     marshallInt(th, you.num_turns);
     marshallInt(th, you.exploration);
     marshallInt(th, you.amplification);
+    marshallInt(th, you.exertion);
     marshallInt(th, you.max_exp);
+    marshallInt(th, you.current_form_spell);
+    marshallInt(th, you.current_form_spell_failure);
+    marshallInt(th, MAX_SUMMONS);
+    for (int i = 0; i < MAX_SUMMONS; ++i)
+    {
+        marshallInt(th, you.summoned[i]);
+    }
 
     marshallInt(th, you.magic_contamination);
 
@@ -2368,6 +2381,7 @@ static void tag_read_you(reader &th)
     if (th.getMinorVersion() < TAG_MINOR_INT_REGEN)
     {
         you.hit_points_regeneration   = unmarshallByte(th);
+        you.stamina_points_regeneration = unmarshallByte(th);
         you.magic_points_regeneration = unmarshallByte(th);
         unmarshallShort(th);
     }
@@ -2375,6 +2389,7 @@ static void tag_read_you(reader &th)
     {
 #endif
     you.hit_points_regeneration   = unmarshallInt(th);
+    you.stamina_points_regeneration = max(0, unmarshallInt(th));
     you.magic_points_regeneration = unmarshallInt(th);
 #if TAG_MAJOR_VERSION == 34
     }
@@ -2400,6 +2415,7 @@ static void tag_read_you(reader &th)
     you.hp_max_adj_temp           = unmarshallShort(th);
     you.hp_max_adj_perm           = unmarshallShort(th);
     you.mp_max_adj                = unmarshallShort(th);
+    you.mp_frozen_summons                 = unmarshallShort(th);
 #if TAG_MAJOR_VERSION == 34
     if (th.getMinorVersion() < TAG_MINOR_REMOVE_BASE_MP)
     {
@@ -2585,7 +2601,10 @@ static void tag_read_you(reader &th)
     count = unmarshallUByte(th);
     COMPILE_CHECK(NUM_DURATIONS < 256);
     for (int j = 0; j < count && j < NUM_DURATIONS; ++j)
+    {
         you.duration[j] = unmarshallInt(th);
+        you.duration_source[j] = (source_type) unmarshallInt(th);
+    }
     for (int j = NUM_DURATIONS; j < count; ++j)
         unmarshallInt(th);
     if (you.species == SP_LAVA_ORC)
@@ -3192,7 +3211,17 @@ static void tag_read_you(reader &th)
     you.amplification = unmarshallInt(th);
     if(you.amplification > 100 || you.amplification == 0)
         you.amplification = 1;
+    set_exertion((exertion_mode)unmarshallInt(th));
     you.max_exp = unmarshallInt(th);
+    you.current_form_spell = (spell_type) unmarshallInt(th);
+    you.current_form_spell_failure = unmarshallInt(th);
+    const int summon_count = unmarshallInt(th);
+    for (int i = 0; i < summon_count; ++i)
+    {
+        int monster_id = unmarshallInt(th);
+        if (i < you.summoned.size())
+            you.summoned[i] = monster_id;
+    }
 
 #if TAG_MAJOR_VERSION == 34
     if (th.getMinorVersion() < TAG_MINOR_CONTAM_SCALE)
@@ -4219,7 +4248,7 @@ void unmarshallItem(reader &th, item_def &item)
     }
 
     if (item.is_type(OBJ_POTIONS, POT_WATER)
-        || item.is_type(OBJ_POTIONS, POT_POISON))
+        || item.is_type(OBJ_POTIONS, POT_POISON_VULNERABILITY))
     {
         item.sub_type = POT_DEGENERATION;
     }
@@ -4536,7 +4565,7 @@ void unmarshallItem(reader &th, item_def &item)
     // to 0.17-a0-912-g3e33c8f. Also check for overcharged wands, in
     // case someone was patient enough to let it wrap around.
     if (item.base_type == OBJ_WANDS
-        && (item.charges < 0 || item.charges > wand_max_charges(item)))
+        && (item.charges < 0))
     {
         item.charges = 0;
     }
@@ -4845,6 +4874,8 @@ void marshallMonster(writer &th, const monster& m)
     marshallShort(th, m.damage_total);
     marshallByte(th, m.went_unseen_this_turn);
     marshallCoord(th, m.unseen_pos);
+    marshallInt(th, m.mp_freeze);
+    marshallInt(th, m.summoned_by_spell);
 
     if (parts & MP_GHOST_DEMON)
     {
@@ -5250,7 +5281,7 @@ static void tag_construct_level_monsters(writer &th)
     {
         monster& m(menv[i]);
 
-#if defined(DEBUG) || defined(DEBUG_MONS_SCAN)
+#if defined(DEBUG_DEEP) || defined(DEBUG_MONS_SCAN)
         if (m.type != MONS_NO_MONSTER)
         {
             if (invalid_monster_type(m.type))
@@ -5717,6 +5748,8 @@ void unmarshallMonster(reader &th, monster& m)
 #endif
     m.went_unseen_this_turn = unmarshallByte(th);
     m.unseen_pos = unmarshallCoord(th);
+    m.mp_freeze = unmarshallInt(th);
+    m.summoned_by_spell = (spell_type) unmarshallInt(th);
 #if TAG_MAJOR_VERSION == 34
     }
 #endif
@@ -6022,20 +6055,19 @@ static void tag_read_level_monsters(reader &th)
 #if defined(DEBUG) || defined(DEBUG_MONS_SCAN)
         if (invalid_monster_type(m.type))
         {
-            mprf(MSGCH_ERROR, "Unmarshalled monster #%d %s",
+            dprf("Unmarshalled monster #%d %s",
                  i, m.name(DESC_PLAIN, true).c_str());
         }
         if (!in_bounds(m.pos()))
         {
-            mprf(MSGCH_ERROR,
-                 "Unmarshalled monster #%d %s out of bounds at (%d, %d)",
+            dprf("Unmarshalled monster #%d %s out of bounds at (%d, %d)",
                  i, m.name(DESC_PLAIN, true).c_str(),
                  m.pos().x, m.pos().y);
         }
         int midx = mgrd(m.pos());
         if (midx != NON_MONSTER)
         {
-            mprf(MSGCH_ERROR, "(%d, %d) for %s already occupied by %s",
+            dprf("(%d, %d) for %s already occupied by %s",
                  m.pos().x, m.pos().y,
                  m.name(DESC_PLAIN, true).c_str(),
                  menv[midx].name(DESC_PLAIN, true).c_str());
@@ -6350,6 +6382,14 @@ static void unmarshallSpells(reader &th, monster_spells &spells
         spells[j].freq = unmarshallByte(th);
         spells[j].flags.flags = unmarshallShort(th);
 #if TAG_MAJOR_VERSION == 34
+            if (th.getMinorVersion() < TAG_MINOR_DEMONIC_SPELLS)
+            {
+                if (spells[j].flags & MON_SPELL_DEMONIC)
+                {
+                    spells[j].flags &= ~MON_SPELL_DEMONIC;
+                    spells[j].flags |= MON_SPELL_MAGICAL;
+                }
+            }
         }
 #endif
     }

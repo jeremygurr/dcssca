@@ -229,9 +229,9 @@ static int _body_acquirement_weight(armour_type armour,
 
     // highest chance when armour skill = (displayed) evp - 3
     const int evp = armour_prop(armour, PARM_EVASION);
-    const int skill = min(MAX_SKILL_LEVEL, you.skills[SK_ARMOUR] + 3);
+    const int skill = min(get_max_skill_level(), you.skills[SK_ARMOUR] + 3);
     const int sk_diff = skill + evp / 10;
-    const int inv_diff = max(1, MAX_SKILL_LEVEL - sk_diff);
+    const int inv_diff = max(1, get_max_skill_level() - sk_diff);
     // armour closest to ideal evp is MAX_SKILL_LEVEL^3 times as likely as the furthest away
     return base_weight * inv_diff * inv_diff * inv_diff;
 }
@@ -650,16 +650,15 @@ static int _acquirement_rod_subtype(bool /*divine*/, int & /*quantity*/)
 
 /**
  * Return a miscellaneous evokable item for acquirement.
- * @param divine Whether this acquirement is divine in nature.
  * @return   The item type chosen.
  */
-static int _acquirement_misc_subtype(bool divine, int & /*quantity*/)
+static int _acquirement_misc_subtype(bool /*divine*/, int & /*quantity*/)
 {
     // Give a crystal ball based on both evocations and either spellcasting or
     // invocations if we haven't seen one.
     int skills = you.skills[SK_EVOCATIONS]
         * max(you.skills[SK_SPELLCASTING], you.skills[SK_INVOCATIONS]);
-    if (!divine && x_chance_in_y(skills, MAX_SKILL_LEVEL * MAX_SKILL_LEVEL)
+    if (x_chance_in_y(skills, get_max_skill_level() * get_max_skill_level())
         && !you.seen_misc[MISC_CRYSTAL_BALL_OF_ENERGY])
     {
         return MISC_CRYSTAL_BALL_OF_ENERGY;
@@ -669,9 +668,9 @@ static int _acquirement_misc_subtype(bool divine, int & /*quantity*/)
     const vector<pair<int, int> > choices =
     {
         // Decks have lowest weight.
-        {MISC_DECK_OF_WONDERS,              (divine ? 0 :  1)},
-        {MISC_DECK_OF_CHANGES,              (divine ? 0 :  2)},
-        {MISC_DECK_OF_DEFENCE,              (divine ? 0 :  2)},
+        {MISC_DECK_OF_WONDERS,                             1 },
+        {MISC_DECK_OF_CHANGES,                             2 },
+        {MISC_DECK_OF_DEFENCE,                             2 },
         // These have charges, so give them a constant weight.
         {MISC_BOX_OF_BEASTS,
             (player_mutation_level(MUT_NO_LOVE) ?     0 :  7)},
@@ -701,13 +700,8 @@ static int _acquirement_misc_subtype(bool divine, int & /*quantity*/)
  * What weight should wands of Heal Wounds be given in wand acquirement, based
  * on their utility to the player? (More utile -> higher weight -> more likely)
  */
-static int _hw_wand_weight(bool divine)
+static int _hw_wand_weight()
 {
-    if (divine && you_worship(GOD_PAKELLAS)
-        && you.num_total_gifts[GOD_PAKELLAS] == 0)
-    {
-        return 0; // no good wands for the first gift
-    }
     if (you.innate_mutation[MUT_NO_DEVICE_HEAL] != 3)
         return 25; // quite powerful
     if (!player_mutation_level(MUT_NO_LOVE))
@@ -719,13 +713,8 @@ static int _hw_wand_weight(bool divine)
  * What weight should wands of Haste be given in wand acquirement, based on
  * their utility to the player? (More utile -> higher weight -> more likely)
  */
-static int _haste_wand_weight(bool divine)
+static int _haste_wand_weight()
 {
-    if (divine && you_worship(GOD_PAKELLAS)
-        && you.num_total_gifts[GOD_PAKELLAS] == 0)
-    {
-        return 0; // no good wands for the first gift
-    }
     if (you.species != SP_FORMICID)
         return 25; // quite powerful
     if (!player_mutation_level(MUT_NO_LOVE))
@@ -738,13 +727,8 @@ static int _haste_wand_weight(bool divine)
  * based on their utility to the player? (More utile -> higher weight -> more
  * likely)
  */
-static int _tele_wand_weight(bool divine)
+static int _tele_wand_weight()
 {
-    if (divine && you_worship(GOD_PAKELLAS)
-        && you.num_total_gifts[GOD_PAKELLAS] == 0)
-    {
-        return 0; // no good wands for the first gift
-    }
     if (you.species == SP_FORMICID || crawl_state.game_is_sprint())
         return 1; // can only be used to tele away enemies
     return 15;
@@ -756,20 +740,17 @@ static int _tele_wand_weight(bool divine)
  * Heavily weighted toward more useful wands and wands the player hasn't yet
  * seen.
  *
- * @param divine    Whether the item is a god gift, rather than from
- *                  acquirement proper.
- *
  * @return          A random wand type.
  */
-static int _acquirement_wand_subtype(bool divine, int & /*quantity*/)
+static int _acquirement_wand_subtype(bool /*divine*/, int & /*quantity*/)
 {
     // basic total: 140
     vector<pair<wand_type, int>> weights = {
         // normally 25
-        { WAND_HEAL_WOUNDS,     _hw_wand_weight(divine) },
-        { WAND_HASTING,         _haste_wand_weight(divine) },
+        { WAND_HEAL_WOUNDS,     _hw_wand_weight() },
+        { WAND_HASTING,         _haste_wand_weight() },
         // normally 15
-        { WAND_TELEPORTATION,   _tele_wand_weight(divine) },
+        { WAND_TELEPORTATION,   _tele_wand_weight() },
         { WAND_LIGHTNING,       16 },
         { WAND_ACID,            16 },
         { WAND_ICEBLAST,        16 },
@@ -785,10 +766,9 @@ static int _acquirement_wand_subtype(bool divine, int & /*quantity*/)
     };
 
     // Unknown wands get a huge weight bonus.
-    // Pakellas will try to give you wands you haven't seen before.
     for (auto &weight : weights)
         if (!get_ident_type(OBJ_WANDS, weight.first))
-            weight.second *= divine ? 50 : 2;
+            weight.second *= 2;
 
     const wand_type* wand = random_choose_weighted(weights);
     ASSERT(wand);
@@ -818,7 +798,7 @@ static const acquirement_subtype_finder _subtype_finders[] =
 
 static int _find_acquirement_subtype(object_class_type &class_wanted,
                                      int &quantity, bool divine,
-                                     int agent = -1)
+                                     int agent)
 {
     COMPILE_CHECK(ARRAYSZ(_subtype_finders) == NUM_OBJECT_CLASSES);
     ASSERT(class_wanted != OBJ_RANDOM);
@@ -836,10 +816,6 @@ static int _find_acquirement_subtype(object_class_type &class_wanted,
         if (class_wanted == OBJ_STAVES || class_wanted == OBJ_RODS)
             class_wanted = _want_rod(agent) ? OBJ_RODS : OBJ_STAVES;
 
-        // Vampires acquire blood, not food.
-        if (class_wanted == OBJ_FOOD && you.species == SP_VAMPIRE)
-            class_wanted = OBJ_POTIONS;
-
         if (_subtype_finders[class_wanted])
             type_wanted = (*_subtype_finders[class_wanted])(divine, quantity);
 
@@ -849,8 +825,12 @@ static int _find_acquirement_subtype(object_class_type &class_wanted,
         dummy.plus = 1; // empty wands would be useless
         dummy.flags |= ISFLAG_IDENT_MASK;
 
-        if (!is_useless_item(dummy, false) && !god_hates_item(dummy))
+        if (!is_useless_item(dummy, false) && !god_hates_item(dummy)
+            && (agent >= NUM_GODS || god_likes_item_type(dummy,
+                                                         (god_type)agent)))
+        {
             break;
+        }
     }
     while (useless_count++ < 200);
 
@@ -1006,7 +986,7 @@ static bool _acquire_manual(item_def &book)
     {
         int skl = you.skills[sk];
 
-        if (skl == MAX_SKILL_LEVEL || is_useless_skill(sk))
+        if (skl == get_max_skill_level() || is_useless_skill(sk))
             continue;
 
         int w = (skl < 12) ? skl + 3 : max(0, 25 - skl);
@@ -1575,7 +1555,7 @@ bool acquirement(object_class_type class_wanted, int agent,
         bad_class.set(OBJ_WANDS);
     }
 
-    bad_class.set(OBJ_FOOD, you_foodless_normally() && !you_worship(GOD_FEDHAS));
+//    bad_class.set(OBJ_FOOD, you_foodless_normally() && !you_worship(GOD_FEDHAS));
 
     static struct { object_class_type type; const char* name; } acq_classes[] =
     {
@@ -1586,14 +1566,14 @@ bool acquirement(object_class_type class_wanted, int agent,
         { OBJ_STAVES,     "Staff" },
         { OBJ_WANDS,      "Wand" },
         { OBJ_MISCELLANY, "Miscellaneous" },
-        { OBJ_FOOD,       0 }, // amended below
+//        { OBJ_FOOD,       0 }, // amended below
         { OBJ_GOLD,       "Gold" },
         { OBJ_MISSILES,   "Ammunition" },
     };
-    ASSERT(acq_classes[7].type == OBJ_FOOD);
-    acq_classes[7].name = you_worship(GOD_FEDHAS) ? "Fruit":
-                          you.species == SP_VAMPIRE  ? "Blood":
-                                                       "Food";
+//    ASSERT(acq_classes[7].type == OBJ_FOOD);
+//    acq_classes[7].name = you_worship(GOD_FEDHAS) ? "Fruit":
+//                          you.species == SP_VAMPIRE  ? "Blood":
+//                                                       "Food";
 
     int thing_created = NON_ITEM;
 

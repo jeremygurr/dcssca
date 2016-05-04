@@ -1616,8 +1616,8 @@ undead_form_reason lifeless_prevents_form(transformation_type which_trans)
     if (which_trans == TRAN_SHADOW)
         return UFR_GOOD; // even the undead can use dith's shadow form
 
-    if (you.species != SP_VAMPIRE)
-        return UFR_TOO_DEAD; // ghouls & mummies can't become anything else
+//    if (you.species != SP_VAMPIRE)
+//        return UFR_TOO_DEAD; // ghouls & mummies can't become anything else
 
     if (which_trans == TRAN_LICH)
         return UFR_TOO_DEAD; // vampires can never lichform
@@ -1626,7 +1626,10 @@ undead_form_reason lifeless_prevents_form(transformation_type which_trans)
         return you.hunger_state <= HS_SATIATED ? UFR_GOOD : UFR_TOO_ALIVE;
 
     // other forms can only be entered when full or above.
-    return you.hunger_state > HS_SATIATED ? UFR_GOOD : UFR_TOO_DEAD;
+    if (you.species == SP_VAMPIRE)
+        return you.hunger_state > HS_SATIATED ? UFR_GOOD : UFR_TOO_DEAD;
+
+    return UFR_GOOD;
 }
 
 /**
@@ -1696,8 +1699,17 @@ bool transform(int pow, transformation_type which_trans, bool involuntary,
     // This must occur before the untransform() and the undead_state() check.
     if (previous_trans == which_trans)
     {
-        mpr("You are already in that form.");
-        return false;
+        if (you.current_form_spell_failure > 0)
+        {
+            you.current_form_spell_failure = 0;
+            mpr("Your form becomes more stable.");
+            return true;
+        }
+        else
+        {
+            mpr("You are already in that form, and it's as stable as it can get.");
+            return false;
+        }
     }
 
     // the undead cannot enter most forms.
@@ -1947,6 +1959,9 @@ void untransform(bool skip_move)
 {
     const bool was_flying = you.airborne();
 
+    you.current_form_spell_failure      = 0;
+    you.current_form_spell = SPELL_NO_SPELL;
+
     you.redraw_quiver           = true;
     you.redraw_evasion          = true;
     you.redraw_armour_class     = true;
@@ -2059,6 +2074,7 @@ void untransform(bool skip_move)
         set_hp(hp);
     }
     calc_hp();
+    calc_sp();
 
     if (you.hp <= 0)
     {

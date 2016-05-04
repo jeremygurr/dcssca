@@ -1,9 +1,10 @@
 # Dungeon Crawl Stone Soup: Circus Animals variation
 
-Checkout branch v1.2.3 if you want to try it yourself. The master branch will be where future, save game breaking features will be implemented, and then broken off into v1.2.
+Checkout branch v1.4.2 if you want to try it yourself. The master branch will be where future, save game breaking features will be implemented, and then broken off.
+
 For those who don't know how to clone from a git repo: install git on your system, then type:
 
-    git clone https://github.com/jeremygurr/dcssca.git -b v1.2.3
+    git clone https://github.com/jeremygurr/dcssca.git -b v1.4.2
 
 This fork of DCSS is a playground for some ideas I wanted to try. 
 Many of my changes center around increasing the richness of the different species in DCSS. 
@@ -17,11 +18,13 @@ This fork is in sync with the original DCSS repo as of Apr 2016. I intend to kee
 Check out the FUTURE.md file in the same directory as the README.md for details about what features I'm considering on implementing.
 
 There are two known servers running this fork at this time: 
-- http://crawl.homedns.org/      (always has the latest code)
-- https://crawl.project357.org/  (probably more stable)
+- http://crawl.homedns.org/      
+- https://crawl.project357.org/  
 
 Feel free to create issues on github for either problems with the crawl.homedns.org server, or bugs in the game itself, or ideas you have that you think are in line
 with my goals here, or with concerns you have about my future plans. 
+
+A player has created an IRC channel for discussion of this fork. Grab an IRC client and come start the conversation - it's a quiet place right now! The channel is ##circusfork on the Freenode IRC server. If you're already hanging out in ##crawl, all you have to do is type /join ##circusfork!
 
 ## Objectives
 
@@ -49,6 +52,118 @@ with my goals here, or with concerns you have about my future plans.
 
 ## Major modifications from the original DCSS
 
+### v1.4.2
+
+* Summoning simplification
+    * Summoning now simply reduces the players magic capacity until the summons are released.
+    * Summons cost 2x the normal price of the spell.
+    * Summons may be maintained as long as the player wants to continue with the reduced magic capacity.
+    * Spell power may affect various attributes of the summoned creature, but it does not affect duration or cost.
+    * Added a "release summons" ability, so you can free up your magic pool if you no longer need those summons. 
+    * If a summon is released, all of the magic used to summon it is returned to the player
+    * The number of summons a player can have is only limited by their magic pool, with a maximum cap of 20 total summons.
+    * When a summon dies, they player gets 1/2 of the mp used on that creature
+    * When going up or down stairs, if there are no monsters in sight, summons automatically follow the player.
+
+### v1.4.1
+
+* Transmutation
+    * transformations don't time out
+    * power of the transformation is based on spell power
+    * when the player takes any offensive action (attacks, casts, evokes), the spell failure of the form is tested. 
+      Once the spell "fails" 5 times, the form unravells and the player returns to normal. 
+    * each failure chance is squared towards failure, so 50% failure becomes 75% failure, 20% failure becomes 36% failure.
+      so if you can't get the failure below about 20%, you won't be able to maintain the form for long.
+    * undead can transmute
+        * in living forms, undead can also mutate
+
+### v1.3
+
+* Wand recharging
+    * Wands gain half of the normal capacity for that wand type. So a healing wand gives 5 each recharge. 
+    * Wands lose 1/2 of what they gain from their capacity 
+    * But they will never end up with less than 2 charges
+
+* Hill Orcs
+    * Gave them Summoning +3, because we needed another good summoner.
+    * Gave them Bad Dna 1, because they were too awesome overall, and need a nerf.
+
+* Doors can be closed even if there are items on the floor
+
+* All races can wear cloaks. (including Fe and Op)
+
+* Mummy curses a little more threatening
+    * 50% chance that they will curse weapon or ring slots
+    * otherwise they just pick a random slot to curse
+    * 1/10 chance of triple cursing
+
+* Mutations
+    * added a bunch more super rare mutations that could really throw a curveball at the player.
+    * created the good dna, bad dna, and clean dna mutations
+        * good dna: increases chances that mutators will add a good mutation
+        * bad dna: increases chances that mutators will add a bad mutation
+        * clean dna: increases chances that mutators will remove a bad mutation 
+
+* Sif Muna
+    * get book gifts at 2* piety instead of 5*
+    * channeling ability has been dramatically changed. Instead there is a 50 piety cost to make spells cost 0 mp
+      for 20-40 turns, based on invocations.
+    * passive ability added: conserve MP: with higher invocations levels, spells cost less MP to cast. Starts at 1*.
+
+* Implement stamina points, alongside magic points and health points
+    * four exertion levels
+        * normal mode (press 'c' if in another mode)
+            * no stamina cost for most actions, except for spell casting which has a stamina cost caused by spell hunger
+            * movement speed is 1.1 for all species, except naga, which is 1.4
+        * power mode (change to this by pressing 'e')
+            * stamina is depleted for each attack or spell cast
+            * melee and ranged damage is higher (1.3x normal)
+            * spellpower is greater (1.5x normal)
+            * can't stab
+        * escape mode (change to this by pressing 's')
+            * movement costs stamina
+            * stealth is reduced (0.25x normal)
+            * movement speed is 0.9 for most species
+                * 0.5 for spriggan
+                * 0.7 for centaur
+                * 1.4 for naga, since they can't run, so they don't have a stamina cost for moving in power mode
+            * movement speed is penalized if the player stops or changes direction more than 45 degrees from original heading
+        * careful mode (change to this by pressing 'E')
+            * attacks, spells cast, and movement cost stamina
+            * spell hunger -> stamina cost is doubled
+            * stealth is amplified (1.5x normal)
+            * accuracy is increased (1.5x normal)
+            * spell failure chance is reduced (-30 or 1/2, whichever is worse)
+    * when stamina is depleted, game switches back to normal exertion mode automatically
+    * species differences:
+        * centaurs and nagas have a larger than normal stamina pool
+        * spriggans consume half as much stamina when running
+        * trolls consume stamina more quickly than normal, but immediately eat 50% of corpses dropped to recover some stamina. 
+        * ghouls immediately consume 50% of corpses dropped to recover some health / remove rot. 
+    * vampiric weapons consume stamina as they heal the player, and stop healing the player when stamina runs out
+    * eating royal jelly reduces stamina costs to 0 temporarily
+
+* Minor background tweaks
+    * Fighters no longer have a special exception to prevent them from choosing a quarterstaff.
+    * Skald, Warper, and Arcane Marksman have some minor improvements to their starting package. The Arcane Marksman in particular has a much better spellbook.
+        
+* Remove food
+    * no more chopping or eating
+    * fruits and royal jelly can still be consumed with the quaff command
+        * fruit is used by fedhas still or may be consumed for stamina
+        * consuming royal jelly reduces stamina costs to 0 temporarily
+    * vampire still drink blood to change their satiation level
+    * ghouls automatically eat some of the corpses they kill to heal and cure rot
+
+* Enchanted Forest and Dwarven Halls (now called Dwarven Fortress) brought back
+    * I haven't done anything to them yet, but I intend to make them interesting and fun enough to want to keep around. 
+    * If you don't want to play in a likely broken or boring area, avoid these branches for now. 
+    * If you want to help test and refine them, go ahead and explore, and tell me what you think will make them
+      better.
+    * Dwarf will eventually be 5 floors
+    * Dwarf and Forest are intended to be late game challenges that are substantially harder than vaults and Pan. It will take
+      some work to get them to this point, but that's the direction I want to take them. 
+      
 ### v1.2.3
 
 * Experience modes
@@ -75,6 +190,9 @@ with my goals here, or with concerns you have about my future plans.
             * 1 experience potion spawns on each floor
             * experience potions are dropped by each unique and player ghost
             * experience is evenly divided between reaching new floors, killing monsters, and drinking potions
+            * strategy: you want to delay drinking potions or going down floors for as long as possible, and kill everything possible, since the
+              amount of experience you get from floors and potions is based on your current xl. But don't wait too long or you will be too 
+              underpowered to survive. 
         * experience_mode = intensity
             * like balance, but more intense
             * 1 experience potion spawns on each floor
@@ -90,7 +208,9 @@ with my goals here, or with concerns you have about my future plans.
             * experience is gained for killing monsters
             * experience potions are dropped by each unique and player ghost
             * experience is lost for each new floor reached
-            * experience potions give experience based on how deep they are quaffed
+            * experience potions give experience based on player xl
+            * a good approach here is to clear all monsters from each floor, but delay drinking exp potions for a long as possible,
+              since the amount of xp they give will be higher if the player is at a higher xl. 
 
 ### v1.2.2
 
@@ -115,56 +235,7 @@ with my goals here, or with concerns you have about my future plans.
     * level_27_cap = false
         * when false, the level and skill cap is 99, and a smooth scale is used to determine how much exp is required for each level
         * when true, the old experience cap and scale is in place
-    * exp_potion_on_each_floor = false
-        * when true, an experience potion is placed on every floor
-            * this is used in combination with other options, for example, getting rid of monster experience and making the potion give you experience based
-              on the floor you drink it on. 
-    * uniques_drop_exp_potions = false
-        * when true, uniques and player ghosts will always drop an exp potion
-        * when false, they don't, like before
-    * exp_percent_from_monsters = 100 (-1000 - 1000)
-        * when 0, killing a monster gives 0 experience
-        * when 100, killing a monster gives the full experience it gave in standard crawl
-    * exp_percent_from_potions = 100 (-1000 - 1000)
-        * if exp_based_on_player_level = true
-            * when 0, drinking a potion of experience gives 0 experience
-            * when 100, drinking a potion of experience gives it's full amount 
-        * if exp_based_on_player_level = false
-            * when 20, drinking a potion of experience gives 20% of the experience needed for the player
-              to advance to the next xp level
-            * when 100, drinking a potion of experience gives 100% of the experience needed for the player
-              to advance to the next xp level
-    * exp_percent_from_new_branch_floor = 0 (-1000 - 1000)
-        * if 0, no experience is gained by reaching a new floor
-        * if 50 
-            * and exp_based_on_player_level = false
-                * each new floor the player reaches gives the player experience based on the depth of the floor
-                * 50 here means 50% of the "normal" amount. 100% would give a balanced game if there were no other sources of experience.
-            * and exp_based_on_player_level = true
-                * each new floor the player reaches gives the player 50% of the experience needed to advanced to the next level.
-        * only applies to floors that can have monsters on them. No experience is gained for safe floors (temple, trove, bazaar, or D:1)
-    * exp_based_on_player_level = true
-        * when false, potions of experience give experience relative to the floor the player is on
-            * this encourages the player to take additional risks by plunging deeper into the dungeon before drinking the potion
-            * for example, drinking the potion on D:1, would give 1 xp, but drinking it on D:4 would give 35 xp. 
-        * when true, experience is given relative to the players xl
-            * if exp_percent_from_potions_on_floor = 100, for example, then the player gets 100% of the 
-              experience needed to advance to the next xl when drinking a potion.
-            * this means that it doesn't matter where the potion is quaffed, they will get the same amount of experience. 
-            * example: player is level 1, they drink a potion of exp, they are now level 2. If they are level 2, and drink it,
-              they will be level 3. If exp_percent_from_potions_on_floor < 100, then it will take more than one potion to go
-              up a full level. 
-              
-So, to recap the above, you can copy these options (which include their defaults) into your rc file and tweak them:
-              
-    level_27_cap = false
-    exp_potion_on_each_floor = false
-    uniques_drop_exp_potions = false
-    exp_percent_from_monsters = 100
-    exp_percent_from_potions = 100
-    exp_percent_from_new_branch_floor = 0
-    exp_based_on_player_level = true
-
+        
 ### v1.1
 
 * Better low health warnings, especially for new players
@@ -176,23 +247,6 @@ So, to recap the above, you can copy these options (which include their defaults
       damage. 5 is less than 30% of 20, so no warning message is given. Then the player is hit for 5 points of damage again, and since 5 damage is more
       than 30% of 15, the danger message is given, and danger mode is turned on. No more warnings will be given until things quiet down. 
     * This is disabled by setting danger_mode_threshold to 0.
-    
-* Eliminate pillar dancing and extended kiting (don't knock it until you've given it a fair chance, it really works)
-    * The first time a player moves, it takes 2.0 aut, independent of other factors.
-    * If the player moves again in the same general direction (within 45 degress or less of the original movement), then they move 10% faster than their normal
-      speed. As long as they don't stop (by doing something other than moving in a similar direction), they keep moving at the 10% faster than normal rate. 
-    * If they stop to attack, then next time they move it will take exactly 2.0 aut. It might take longer if their normal movement speed would take longer. 
-    * If they change directions by 90 degrees or more, they will pay again the 2.0 aut movement penalty. 
-    * Monsters move just like before, no change there. 
-    * Pillar dancing no longer will work because most monsters will easily be able to catch up.
-    * Players can still escape from monsters like before, with speed boosts (haste, species speed, swiftness, etc) making it easier.
-    * Extended kiting is impractical even for the fastest species with haste. Try it and you'll see what I mean. 
-    * The 2.0 aut penalty mentioned is actually the greater of 2.0 or the normal speed of the player, so if you are playing Naga of Chei, your normal speed
-      might exceed 2.0, in which case your change-movement penalty is your normal speed. In effect, that means there is no penalty for creatures that are 
-      already slower than 2.0, since they can't kite anyway. 
-    * This is tweakable with the rc file option: movement_penalty = 20 
-        * 20 is the default, meaning 2.0 turns
-        * set to 0 to have the old behavior
     
 * Curse enhancement
     * Curses now have a curse level. 
@@ -228,21 +282,6 @@ So, to recap the above, you can copy these options (which include their defaults
       personally find it a bit less tedious to try out different attack strategies when I can see the numbers, instead of trying to guess from vague
       descriptions whether or not a change is actually improving my attacking effectiveness. 
 
-* Summoning
-    * no summon caps. Instead, summoned creatures continuously drain mana from the summoner, until there is no longer mana to support them, and then they
-      disappear. More powerful summoned creatures drain a greater amount of mana. This opens up new strategies, enabling a player to summon one powerful
-      creature for a longer period of time, or many of them for a very short time. For now, this only applies to the player summons. Monster summons work as
-      before. 
-    * how much magic a summon drains is reduced by higher spell power
-    * added a "release summons" ability, so you can free up your mana pool if you no longer need those summons. 
-    * summoners start with a +1 dagger to make getting off the ground a little more possible. It's still tough though. Don't summon more than
-      one at once, and focus on boosting your spell power until you can sustain more powerful creatures. 
-
-* Transmutation
-    * It costs 3x more to cast a self-transforming spell
-    * transformations don't time out
-    * power of the transformation is based on spell power
-
 * Game difficulty levels
     * At game start, or in the init file, you can specify that the game is easy, normal, or hard. 
     * Normal is the standard, unmodified parameters.
@@ -250,6 +289,7 @@ So, to recap the above, you can copy these options (which include their defaults
         * reduces the chances of out of depth monsters spawning
         * player has 50% more hp
         * player has 50% more mp
+        * player has 33% more sp
         * increases the amount of gold spawned by 33%
         * starts player with a healing potion
         * faster level advancement (exp apt + 2)
@@ -263,7 +303,9 @@ So, to recap the above, you can copy these options (which include their defaults
         * increases the chances of out of depth monsters spawning
         * slower level advancement (exp apt - 2)
         * 33% less gold spawned
-        * 33% less health
+        * 33% less hp
+        * 33% less mp
+        * 25% less sp
         * 4x normal score
         * healing potions heal 25% of health, minimum of 20 points
     * This is just the beginning. I'm sure with more testing and experience, we can find ways to make these difficulty levels a lot more interesting.
@@ -274,9 +316,6 @@ So, to recap the above, you can copy these options (which include their defaults
 * Traps
     * Shafting doesn't happen in the first 2 floors of dungeon
 
-* Flying
-    * metabolism is multiplied by 4 while flying, unless you are a Djinni. So flying around all day as a tengu will now cost something. 
-
 * Djinni brought back from the dead and greatly enhanced.
     * Unusual contamination mechanism that they originally had has been removed. They also consume food like normal species, so excessive spell casting has the
       normal consequence.
@@ -285,7 +324,8 @@ So, to recap the above, you can copy these options (which include their defaults
       costs one permanent MP.
     * Since they can't read identify scrolls, they can either identify items by using them (very dangerous for potentially cursed items), or wait and use the
       new insight mutation that they start with which, over time, randomly identifies attributes of items in their inventory. This mutation can also randomly be
-      gained by other species as they drink mutation potions, etc.
+      gained by other species as they drink mutation potions, etc. An item with an earlier inventory letter will likely be identified before an item with a later
+      one ('b' will be identified sooner than 'z' in most cases).
     * Fire damage heals them. Standing in a flame cloud is a way to heal, but the flame cloud is absorbed by the Djinni and disappears more quickly
       than normal. Be careful though, increasing their fire resistance (through an item, ring, etc), will reduce their healing. Maybe you can find a source of
       lowering their fire resistance?
@@ -312,7 +352,7 @@ So, to recap the above, you can copy these options (which include their defaults
     * no loss of experience when death happens
 
 * Ghouls
-    * start with a permanent empowered by death mutation, making them regenerate much faster after going on a killing spree. 
+    * ghouls automatically eat some of the corpses they kill to heal and cure rot
 
 * Halfling
     * added wild magic mutation at the level 6, 12, and 18, making it much more difficult for them to cast spells, but they are quite powerful when they do. 
@@ -325,6 +365,7 @@ So, to recap the above, you can copy these options (which include their defaults
       a bad mutation with a good, making drinking mutation potions a safer strategy for kobolds. Unlike demonspawn which get permanent mutations, the mutations
       a kobold gets through evolve are temporary, making cure mutation potions often a very bad thing. And of course they only get ordinary mutations, not the
       cool demonspawn specific ones.
+    * They start with evolve 2, but after reaching xl 10, they lose one level of it. 
     * as a result of their highly mutable nature, they cannot worship Zin.
       
 * Sludge Elf
@@ -408,7 +449,7 @@ So, to recap the above, you can copy these options (which include their defaults
     * heal based on evocations skill
     * always take 2 turns, uninterruptable
         * this means that they aren't as good as a potion of health in the middle of a battle
-        * they are more for dwarves between battles
+        * they are more for dwarves to use between battles
 
 * Recharge scrolls
     * less common, but fully recharge the wand.
@@ -435,4 +476,4 @@ So, to recap the above, you can copy these options (which include their defaults
       gold benefit the same as before. 
 
 * Minor item tweaks
-    * ring of magical power now gives you 50% more mp, or 9 mp (like before), whichever is higher, making this ring still have some late game value.
+    * ring of magical power now gives you 25% more mp, or 9 mp (like before), whichever is higher, making this ring still have some late game value.

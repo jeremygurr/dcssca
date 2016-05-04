@@ -11,12 +11,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cmath>
 
 #include "areas.h"
 #include "art-enum.h"
 #include "attitude-change.h"
 #include "bloodspatter.h"
 #include "butcher.h"
+#include "chardump.h"
 #include "cloud.h"
 #include "coordit.h"
 #include "delay.h"
@@ -159,7 +161,7 @@ bool melee_attack::handle_phase_attempted()
                 count_action(CACT_MELEE, WPN_STAFF);
         }
         else
-            count_action(CACT_MELEE, -1);
+            count_action(CACT_MELEE, -1, -1); // unarmed subtype/auxtype
     }
     else
     {
@@ -191,7 +193,7 @@ bool melee_attack::handle_phase_attempted()
     }
 
     // The attacker loses nutrition.
-    attacker->make_hungry(3, true);
+//    attacker->make_hungry(3, true);
 
     // Xom thinks fumbles are funny...
     if (attacker->fumbles_attack())
@@ -263,6 +265,8 @@ bool melee_attack::handle_phase_dodged()
                  attack_strength_punctuation(damage_done).c_str());
         }
     }
+    if (defender->is_player())
+        count_action(CACT_DODGE, DODGE_EVASION);
 
     if (attacker != defender && adjacent(defender->pos(), attack_position))
     {
@@ -594,7 +598,7 @@ static void _hydra_devour(monster &victim)
                               + random2(victim.get_experience_level() * 3 / 4);
         you.heal(healing);
         calc_hp();
-        canned_msg(MSG_GAIN_HEALTH);
+        canned_msg(MSG_GAIN_HEALTH, healing);
         dprf("healed for %d (%d hd)", healing, victim.get_experience_level());
     }
 
@@ -1295,6 +1299,8 @@ bool melee_attack::player_aux_apply(unarmed_attack_type atk)
 {
     did_hit = true;
 
+    count_action(CACT_MELEE, -1, atk); // aux_attack subtype/auxtype
+
     aux_damage  = player_aux_stat_modify_damage(aux_damage);
 
     aux_damage  = random2(aux_damage);
@@ -1488,6 +1494,8 @@ int melee_attack::player_apply_final_multipliers(int damage)
 
     if (you.duration[DUR_CONFUSING_TOUCH] && wpn_skill == SK_UNARMED_COMBAT)
         return 0;
+
+    damage = player_damage_modifier(damage);
 
     return damage;
 }
@@ -2113,7 +2121,7 @@ void melee_attack::apply_staff_damage()
     if (!weapon)
         return;
 
-    if (player_mutation_level(MUT_NO_ARTIFICE))
+    if (attacker->is_player() && player_mutation_level(MUT_NO_ARTIFICE))
         return;
 
     if (weapon->base_type != OBJ_STAVES)
@@ -2193,6 +2201,9 @@ void melee_attack::apply_staff_damage()
                     defender->name(DESC_THE).c_str(),
 					special_damage);
             special_damage_flavour = BEAM_FIRE;
+
+            if (defender->is_player())
+                maybe_melt_player_enchantments(BEAM_FIRE, special_damage);
         }
         break;
 
@@ -2741,25 +2752,29 @@ void melee_attack::mons_apply_attack_flavour()
         if (!defender->can_bleed())
             break;
 
-        // Disallow draining of summoned monsters since they can't bleed.
-        // XXX: Is this too harsh?
-        if (defender->is_summoned())
-            break;
-
         if (defender->res_negative_energy())
             break;
 
         if (defender->stat_hp() < defender->stat_maxhp())
         {
-        	const int healing = 1 + random2(damage_done);
-            if (attacker->heal(healing) && needs_message)
+            if (!attacker->is_player() || !player_is_very_tired())
             {
-                mprf("%s %s strength from %s injuries! (%d)",
-                     atk_name(DESC_THE).c_str(),
-                     attacker->conj_verb("draw").c_str(),
-                     def_name(DESC_ITS).c_str(),
-					 healing
-					 );
+                const int healing = 1 + random2(damage_done);
+                if (attacker->heal(healing))
+                {
+                    if (needs_message)
+                    {
+                        mprf("%s %s strength from %s injuries! (%d)",
+                             atk_name(DESC_THE).c_str(),
+                             attacker->conj_verb("draw").c_str(),
+                             def_name(DESC_ITS).c_str(),
+                             healing
+                        );
+                    }
+                }
+
+                if (attacker->is_player())
+                    dec_sp(1, true);
             }
         }
         break;
@@ -3251,7 +3266,7 @@ void melee_attack::do_spines()
 
         if (mut && attacker->alive() && coinflip())
         {
-            int dmg = roll_dice(1 + mut, 5);
+            int dmg = random_range(mut, 3 + ceil(mut * you.experience_level / 4));
             int hurt = attacker->apply_ac(dmg);
 
             dprf(DIAG_COMBAT, "Spiny: dmg = %d hurt = %d", dmg, hurt);
@@ -3307,10 +3322,10 @@ void melee_attack::emit_foul_stench()
     {
         const int mut = player_mutation_level(MUT_FOUL_STENCH);
 
-        if (one_chance_in(3))
+        if (x_chance_in_y(2, 5))
             mon->sicken(50 + random2(100));
 
-        if (damage_done > 4 && x_chance_in_y(mut, 5)
+        if (damage_done > 4 && x_chance_in_y(mut, 4)
             && !cell_is_solid(mon->pos())
             && !cloud_at(mon->pos()))
         {
@@ -3685,7 +3700,7 @@ bool melee_attack::_player_vampire_draws_blood(const monster* mon, const int dam
         if (heal > 0 && !you.duration[DUR_DEATHS_DOOR])
         {
             inc_hp(heal);
-            canned_msg(MSG_GAIN_HEALTH);
+            canned_msg(MSG_GAIN_HEALTH, heal);
         }
     }
 

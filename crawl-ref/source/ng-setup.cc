@@ -218,21 +218,21 @@ static void _give_ammo(weapon_type weapon, int plus)
     {
     case WPN_THROWN:
         if (species_can_throw_large_rocks(you.species))
-            newgame_make_item(OBJ_MISSILES, MI_LARGE_ROCK, 4 + plus);
+            newgame_make_item(OBJ_MISSILES, MI_LARGE_ROCK, 12 + 2 * plus);
         else if (you.body_size(PSIZE_TORSO) <= SIZE_SMALL)
-            newgame_make_item(OBJ_MISSILES, MI_TOMAHAWK, 8 + 2 * plus);
+            newgame_make_item(OBJ_MISSILES, MI_TOMAHAWK, 24 + 4 * plus);
         else
-            newgame_make_item(OBJ_MISSILES, MI_JAVELIN, 5 + plus);
-        newgame_make_item(OBJ_MISSILES, MI_THROWING_NET, 2);
+            newgame_make_item(OBJ_MISSILES, MI_JAVELIN, 15 + 2 * plus);
+        newgame_make_item(OBJ_MISSILES, MI_THROWING_NET, 4);
         break;
     case WPN_SHORTBOW:
-        newgame_make_item(OBJ_MISSILES, MI_ARROW, 20);
+        newgame_make_item(OBJ_MISSILES, MI_ARROW, 100);
         break;
     case WPN_HAND_CROSSBOW:
-        newgame_make_item(OBJ_MISSILES, MI_BOLT, 20);
+        newgame_make_item(OBJ_MISSILES, MI_BOLT, 100);
         break;
     case WPN_HUNTING_SLING:
-        newgame_make_item(OBJ_MISSILES, MI_SLING_BULLET, 20);
+        newgame_make_item(OBJ_MISSILES, MI_SLING_BULLET, 100);
         break;
     default:
         break;
@@ -326,7 +326,7 @@ static void _give_items_skills(const newgame_def& ng)
 static void _give_starting_food()
 {
     // No food for those who don't need it.
-    if (you_foodless())
+    if (you.species != SP_VAMPIRE || you_foodless())
         return;
 
     object_class_type base_type = OBJ_FOOD;
@@ -496,7 +496,7 @@ static void _setup_generic(const newgame_def& ng)
     if (crawl_state.game_is_sprint())
         _give_bonus_items();
 
-    if (crawl_state.difficulty == DIFFICULTY_EASY && you.species != SP_MUMMY && you.species != SP_VINE_STALKER)
+    if (crawl_state.difficulty == DIFFICULTY_STANDARD && you.species != SP_MUMMY && you.species != SP_VINE_STALKER)
         newgame_make_item(OBJ_POTIONS, POT_HEAL_WOUNDS);
 
     if (you.species == SP_FORMICID)
@@ -586,10 +586,12 @@ static void _setup_generic(const newgame_def& ng)
     // We calculate hp and mp here; all relevant factors should be
     // finalised by now. (GDL)
     calc_hp();
+    calc_sp();
     calc_mp();
 
     // Make sure the starting player is fully charged up.
     set_hp(you.hp_max);
+    set_sp(you.sp_max);
     set_mp(you.max_magic_points);
 
     initialise_branch_depths();
