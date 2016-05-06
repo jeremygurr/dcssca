@@ -2145,6 +2145,7 @@ static spret_type _do_cast(spell_type spell, int powc,
 
 #if TAG_MAJOR_VERSION == 34
     // Removed spells.
+    // note all of these spells for Spell Reform. most should stay dead, but some could be fun to resurrect.
     case SPELL_ABJURATION:
     case SPELL_CIGOTUVIS_DEGENERATION:
     case SPELL_CONDENSATION_SHIELD:
