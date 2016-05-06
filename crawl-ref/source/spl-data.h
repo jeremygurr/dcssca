@@ -88,8 +88,8 @@ static const struct spell_desc spelldata[] =
 },
 
 {
-    SPELL_CONJURE_FLAME, "Conjure Flame",
-    SPTYP_CONJURATION | SPTYP_FIRE,
+    SPELL_CONJURE_FLAME, "Summon Flame",
+    SPTYP_SUMMONING | SPTYP_FIRE,
     SPFLAG_TARGET | SPFLAG_NOT_SELF,
     3,
     100,
@@ -143,6 +143,17 @@ static const struct spell_desc spelldata[] =
 },
 
 {
+    SPELL_BLINKBOLT_PLAYER, "Lightning Dash",
+    SPTYP_AIR | SPTYP_TRANSLOCATION,
+    SPFLAG_DIR_OR_TARGET | SPFLAG_NOISY | SPFLAG_NEEDS_TRACER,
+    6,
+    200,
+    5, 5,
+    5, 20,
+    TILEG_BLINKBOLT,
+},
+
+{
     SPELL_BLINKBOLT, "Blinkbolt",
     SPTYP_AIR | SPTYP_TRANSLOCATION,
     SPFLAG_DIR_OR_TARGET | SPFLAG_MONSTER | SPFLAG_NOISY | SPFLAG_NEEDS_TRACER,
@@ -155,7 +166,7 @@ static const struct spell_desc spelldata[] =
 
 {
     SPELL_BOLT_OF_MAGMA, "Bolt of Magma",
-    SPTYP_CONJURATION | SPTYP_FIRE | SPTYP_EARTH,
+    SPTYP_FIRE | SPTYP_EARTH,
     SPFLAG_DIR_OR_TARGET | SPFLAG_NEEDS_TRACER,
     5,
     200,
@@ -279,7 +290,7 @@ static const struct spell_desc spelldata[] =
 
 {
     SPELL_FREEZING_CLOUD, "Freezing Cloud",
-    SPTYP_CONJURATION | SPTYP_ICE | SPTYP_AIR,
+    SPTYP_ICE | SPTYP_AIR,
     SPFLAG_TARGET | SPFLAG_AREA | SPFLAG_ALLOW_SELF | SPFLAG_NEEDS_TRACER
         | SPFLAG_CLOUD,
     6,
@@ -472,7 +483,7 @@ static const struct spell_desc spelldata[] =
 
 {
     SPELL_POISONOUS_CLOUD, "Poisonous Cloud",
-    SPTYP_CONJURATION | SPTYP_POISON | SPTYP_AIR,
+    SPTYP_POISON | SPTYP_AIR,
     SPFLAG_TARGET | SPFLAG_AREA | SPFLAG_ALLOW_SELF | SPFLAG_NEEDS_TRACER
         | SPFLAG_CLOUD,
     6,
@@ -2567,7 +2578,7 @@ static const struct spell_desc spelldata[] =
 
 {
     SPELL_BATTLESPHERE, "Iskenderun's Battlesphere",
-    SPTYP_CONJURATION | SPTYP_CHARMS,
+    SPTYP_SUMMONING | SPTYP_CHARMS,
     SPFLAG_UTILITY,
     5,
     100,
