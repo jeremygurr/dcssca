@@ -302,7 +302,7 @@ static const struct spell_desc spelldata[] =
 
 {
     SPELL_MEPHITIC_CLOUD, "Mephitic Cloud",
-    SPTYP_CONJURATION | SPTYP_POISON | SPTYP_AIR,
+    SPTYP_POISON | SPTYP_AIR,
     SPFLAG_DIR_OR_TARGET | SPFLAG_AREA | SPFLAG_ALLOW_SELF
         | SPFLAG_NEEDS_TRACER | SPFLAG_CLOUD,
     3,
@@ -1772,7 +1772,7 @@ static const struct spell_desc spelldata[] =
 
 {
     SPELL_NOXIOUS_CLOUD, "Noxious Cloud",
-    SPTYP_CONJURATION | SPTYP_POISON | SPTYP_AIR,
+    SPTYP_POISON | SPTYP_AIR,
     SPFLAG_TARGET | SPFLAG_AREA | SPFLAG_MONSTER | SPFLAG_NEEDS_TRACER
         | SPFLAG_CLOUD,
     5,
@@ -2578,7 +2578,7 @@ static const struct spell_desc spelldata[] =
 
 {
     SPELL_BATTLESPHERE, "Iskenderun's Battlesphere",
-    SPTYP_SUMMONING | SPTYP_CHARMS,
+    SPTYP_CONJURATION | SPTYP_CHARMS,
     SPFLAG_UTILITY,
     5,
     100,
