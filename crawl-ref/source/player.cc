@@ -7940,7 +7940,7 @@ vector<PlaceInfo> player::get_all_place_info(bool visited_only,
 // different effect from the player invokable ability.
 bool player::do_shaft()
 
-    if (!is_valid_shaft_level()) || if (species == SP_FORMICID)
+    if (!is_valid_shaft_level())
         return false;
 
     // Handle instances of do_shaft() being invoked magically when
