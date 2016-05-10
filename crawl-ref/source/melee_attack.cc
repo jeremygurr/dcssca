@@ -147,6 +147,10 @@ bool melee_attack::handle_phase_attempted()
     {
         // Set delay now that we know the attack won't be cancelled.
         you.time_taken = you.attack_delay().roll();
+
+        if (sp_cost)
+            dec_sp(sp_cost, true);
+
         if (weapon)
         {
             if (weapon->base_type == OBJ_WEAPONS)
@@ -3720,4 +3724,9 @@ bool melee_attack::_vamp_wants_blood_from_monster(const monster* mon)
            && !mon->is_summoned()
            && mons_has_blood(mon->type)
            && !testbits(mon->flags, MF_SPECTRALISED);
+}
+
+const item_def* melee_attack::get_weapon_used()
+{
+    return weapon;
 }

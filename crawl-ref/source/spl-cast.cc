@@ -177,7 +177,10 @@ static string _spell_wide_description(spell_type spell, bool viewing)
 
     desc << chop_string(spell_power, 6)
          << chop_string(rangestring, 11 + tagged_string_tag_length(rangestring))
-         << chop_string(spell_hunger_string(spell), 8);
+    /* no longer needed
+         << chop_string(spell_hunger_string(spell), 8)
+         */
+        ;
 
     desc << "</" << colour_to_str(highlight) <<">";
 
@@ -188,7 +191,12 @@ static string _spell_wide_description(spell_type spell, bool viewing)
     desc << chop_string(failure, 5);
     desc << "</" << colour_to_str(highlight) << ">";
     desc << chop_string(make_stringf("%d", spell_difficulty(spell)), 6);
-    desc << chop_string(make_stringf("%d", spell_mana(spell)), 3);
+
+    int mp_cost = spell_mana(spell);
+    if (mp_cost == 0)
+        mp_cost = spell_freeze_mana(spell);
+
+    desc << chop_string(make_stringf("%d", mp_cost), 3);
 
     // spell schools
     desc << spell_schools_string(spell);
@@ -349,7 +357,7 @@ int list_spells_wide(bool viewing, bool allow_preselect,
         // [enne] - Hack. Make title an item so that it's aligned.
         MenuEntry* me =
             new MenuEntry(
-                " " + titlestring + "        Power Range      Hunger  Fail Level MP Type",
+                " " + titlestring + "        Power Range      Fail Level MP Type",
                 MEL_ITEM);
         me->colour = BLUE;
         spell_menu.add_entry(me);
@@ -357,7 +365,7 @@ int list_spells_wide(bool viewing, bool allow_preselect,
 #else
     spell_menu.set_title(
         new MenuEntry(
-                " " + titlestring + "        Power Range      Hunger  Fail Level MP Type",
+                " " + titlestring + "        Power Range      Fail Level MP Type",
             MEL_TITLE));
 #endif
     spell_menu.set_highlighter(nullptr);
@@ -475,7 +483,7 @@ int raw_spell_fail(spell_type spell)
 
     // Don't cap power for failure rate purposes.
     chance -= 6 * calc_spell_power(spell, false, true, false);
-    chance -= (you.intel() * 2);
+    chance -= you.dex() * you.intel() / 5;
 
     const int armour_shield_penalty = player_armour_shield_spell_penalty();
     dprf("Armour+Shield spell failure penalty: %d", armour_shield_penalty);
@@ -536,7 +544,7 @@ int raw_spell_fail(spell_type spell)
     // Apply the effects of Vehumet and items of wizardry.
     chance2 = _apply_spellcasting_success_boosts(spell, chance2);
 
-    if (you.exertion == EXERT_CAREFUL)
+    if (you.exertion == EXERT_FOCUS)
         chance2 = max(chance2 - 10, chance2 / 2);
 
     if (chance2 > 100)
@@ -586,15 +594,14 @@ int calc_spell_power(spell_type spell, bool apply_intel, bool fail_rate_check,
         {
             // [dshaligram] Enhancers don't affect fail rates any more, only spell
             // power. Note that this does not affect Vehumet's boost in castability.
-            power = apply_enhancement(power, _spell_enhancement(spell));
+            const int enhancement = _spell_enhancement(spell);
+            power = apply_enhancement(power, enhancement);
 
             // Wild magic boosts spell power but decreases success rate.
             const int wild = player_mutation_level(MUT_WILD_MAGIC);
             const int subdued = player_mutation_level(MUT_SUBDUED_MAGIC);
-            if (wild)
-                power *= (10 + 3 * wild * wild);
-            if (subdued)
-                power /= (10 + 3 * subdued * subdued);
+            power *= (10 + 3 * wild * wild);
+            power /= (10 + 3 * subdued * subdued);
 
             // Augmentation boosts spell power at high HP.
             power *= 10 + 4 * augmentation_amount();
@@ -727,12 +734,6 @@ void inspect_spells()
 
 static bool _can_cast()
 {
-    if (player_is_very_tired(true) && you.exertion != EXERT_NORMAL)
-    {
-        mpr("You are too tired to use your magic now. You could if you were in normal mode.");
-        return false;
-    }
-
     if (!get_form()->can_cast)
     {
         canned_msg(MSG_PRESENT_FORM);
@@ -1002,7 +1003,6 @@ bool cast_a_spell(bool check_range, spell_type spell)
         }
     }
 
-    const bool staff_energy = player_energy();
     you.last_cast_spell = spell;
     // Silently take MP before the spell.
     dec_mp(cost, true);
@@ -1036,6 +1036,7 @@ bool cast_a_spell(bool check_range, spell_type spell)
     else // Redraw MP
         flush_mp();
 
+    /* no longer applicable
     if (!staff_energy && you.undead_state() != US_UNDEAD)
     {
         const int spellh = spell_hunger(spell);
@@ -1045,6 +1046,7 @@ bool cast_a_spell(bool check_range, spell_type spell)
             learned_something_new(HINT_SPELL_HUNGER);
         }
     }
+     */
 
     you.turn_is_over = true;
     alert_nearby_monsters();

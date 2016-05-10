@@ -1,0 +1,44 @@
+## v1.5
+
+* Stamina overhaul
+    * Normal mode fighting actions cost sp, power mode increases cost.
+    * SP cost of attack based on fighting skill, strength, weapon weight.
+        * Heavier weapons will cost more stamina to swing than lighter ones.
+    * When a fighter runs out of SP, they can still attack, but at 75% damage and 75% accuracy.
+    * Spells only cost mp, no more spell hunger.
+    * MP cost is based on spellcasting, intelligence, spell level.
+    * Fixed size mp pool like sp pool.
+    * Power mode adds an SP cost to affected actions.
+    * Careful mode renamed to focus mode.
+    * Focus mode adds an MP cost to affected actions.
+    * Escape mode was removed and in it's place a separate quick / normal mode
+        * This can operate independently of exertion mode, i.e. you can have Quick mode + Careful mode.
+        * Quick mode has the benefits of the old escape mode, which are faster movement speed and increased evasion. But
+          there is also an additional stamina cost. Stealth is also dramatically reduced.
+        * Normal mode doesn't have those benefits, but it doesn't have the additional stamina cost.
+    * If you run out of stamina in power mode, and it switches you back to normal mode, once you've recovered 50% of your
+      sp, the game will switch you back to power mode automatically.
+    * Switching exertion modes (normal, power, focus), costs 1 turn.
+    * Switching speed mode from normal to quick, costs 0 turns.
+    * Switching speed mode from quick to normal, costs 1 turn.
+
+* Keyboard changes
+    * instead of 's' to open spell list, now you press 'S'
+    * 'g' will switch to quick mode (go)
+    * 's' will switch to normal speed mode (slow)
+
+* Spell failure
+    * Spell failure is reduced by intelligence * dexterity / 5
+        * Used to be intelligency * 2
+
+* New branch layout
+    * Dungeon contains: Orc (no rune), Lair of Beasts, Enchanted Forest, and Depths.
+        * Orc has 4 floors, and contains an arena to battle in.
+    * Enchanted Forest appears a little after Lair in the dungeon, and has 7 floors
+    * Lair has 7 floors and contains four rune branches: Swamp, Shoals, Spider, and Snake (every game), each
+      containing 4 floors.
+    * Enchanted Forest has 7 floors and contains four rune branches: Crypt, Slime, Elven Halls, and Dwarven Fortress,
+      each with 4 floors and a rune.
+    * Depths contains: Vaults, Zot, Ziggurat, Abyss, Vestibule, and Pandemonium. All have 4 floors except vestibule
+      and pan.
+
