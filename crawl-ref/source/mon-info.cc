@@ -1610,16 +1610,16 @@ int monster_info::res_magic() const
 
 string monster_info::speed_description() const
 {
-    if (mbase_speed < 7)
-        return "very slow";
-    else if (mbase_speed < 10)
-        return "slow";
+    if (mbase_speed == player_speed)
+        return "the same speed as you";
+    else if (mbase_speed < 7)
+        return "extremely slow";
     else if (mbase_speed > 20)
         return "extremely fast";
-    else if (mbase_speed > 15)
-        return "very fast";
-    else if (mbase_speed > 10)
-        return "fast";
+    else if (mbase_speed > player_speed)
+        return "faster than you";
+    else if (mbase_speed > player_speed)
+        return "slower than you";
 
     // This only ever displays through Lua.
     return "normal";
