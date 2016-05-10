@@ -1618,7 +1618,7 @@ string monster_info::speed_description() const
         return "extremely fast";
     else if (mbase_speed > player_speed)
         return "faster than you";
-    else if (mbase_speed > player_speed)
+    else if (mbase_speed < player_speed)
         return "slower than you";
 
     // This only ever displays through Lua.
