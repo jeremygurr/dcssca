@@ -1611,7 +1611,7 @@ int monster_info::res_magic() const
 string monster_info::speed_description() const
 {
     if (mbase_speed == mv)
-        return "the same speed as you";
+        return "as swift as you are";
     else if (mbase_speed < 7)
         return "extremely slow";
     else if (mbase_speed > 20)
