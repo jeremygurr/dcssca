@@ -146,7 +146,11 @@ bool melee_attack::handle_phase_attempted()
     if (attacker->is_player())
     {
         // Set delay now that we know the attack won't be cancelled.
-        you.time_taken = you.attack_delay().roll();
+        you.time_taken = you.attack_delay();
+
+        if (sp_cost)
+            dec_sp(sp_cost, true);
+
         if (weapon)
         {
             if (weapon->base_type == OBJ_WEAPONS)
@@ -169,7 +173,7 @@ bool melee_attack::handle_phase_attempted()
         if (!effective_attack_number)
         {
             int energy = attacker->as_monster()->action_energy(EUT_ATTACK);
-            int delay = attacker->attack_delay().roll();
+            int delay = attacker->attack_delay();
             dprf(DIAG_COMBAT, "Attack delay %d, multiplier %1.1f", delay, energy * 0.1);
             ASSERT(energy > 0);
             ASSERT(delay > 0);
@@ -2774,7 +2778,7 @@ void melee_attack::mons_apply_attack_flavour()
                 }
 
                 if (attacker->is_player())
-                    dec_sp(1, true);
+                    dec_sp(healing / 2, true);
             }
         }
         break;
@@ -3266,7 +3270,7 @@ void melee_attack::do_spines()
 
         if (mut && attacker->alive() && coinflip())
         {
-            int dmg = random_range(mut, 3 + ceil(mut * you.experience_level / 4));
+            int dmg = random_range(mut, 3 + ceil(mut * effective_xl() / 4));
             int hurt = attacker->apply_ac(dmg);
 
             dprf(DIAG_COMBAT, "Spiny: dmg = %d hurt = %d", dmg, hurt);
@@ -3694,8 +3698,8 @@ bool melee_attack::_player_vampire_draws_blood(const monster* mon, const int dam
     if (you.hp < you.hp_max)
     {
         int heal = 2 + random2(damage) + random2(damage);
-        if (heal > you.experience_level)
-            heal = you.experience_level;
+        if (heal > effective_xl())
+            heal = effective_xl();
 
         if (heal > 0 && !you.duration[DUR_DEATHS_DOOR])
         {
@@ -3721,3 +3725,9 @@ bool melee_attack::_vamp_wants_blood_from_monster(const monster* mon)
            && mons_has_blood(mon->type)
            && !testbits(mon->flags, MF_SPECTRALISED);
 }
+
+const item_def* melee_attack::get_weapon_used()
+{
+    return weapon;
+}
+

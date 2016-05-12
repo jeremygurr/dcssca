@@ -424,7 +424,17 @@ public:
 
     // normally 1, anything else alters how the next potion or scroll works, amplifying or reversing it's effects.
     int amplification;
+
+    // stamina stuff
     exertion_mode exertion;
+    exertion_mode restore_exertion;
+
+    FixedVector<int, NUM_RUNE_TYPES> rune_charges;
+    FixedBitVector<NUM_RUNE_TYPES> rune_curse_active;
+    int first_hit_time;
+
+    int stamina_flags;
+    int peace;
 
     // the deepest the player has been
     int max_exp;
@@ -585,7 +595,7 @@ public:
                           bool base = false) const override;
     brand_type  damage_brand(int which_attack = -1) override;
     int         damage_type(int which_attack = -1) override;
-    random_var  attack_delay(const item_def *projectile = nullptr,
+    int         attack_delay(const item_def *projectile = nullptr,
                              bool rescale = true) const override;
     int         constriction_damage() const override;
 
@@ -1047,8 +1057,8 @@ bool dec_hp(int hp_loss, bool fatal, const char *aux = nullptr);
 bool dec_mp(int mp_loss, bool silent = false);
 bool drain_mp(int mp_loss);
 
-bool dec_sp(int sp_loss = 1, bool special = false);
-void inc_sp(int sp_gain = 1, bool silent = false);
+bool dec_sp(int sp_loss = 1, bool silent = false);
+void inc_sp(int sp_gain = 1, bool silent = false, bool manual = true);
 void inc_mp(int mp_gain, bool silent = false);
 void inc_hp(int hp_gain);
 void flush_mp();
@@ -1067,6 +1077,7 @@ void dec_max_hp(int hp_loss);
 void deflate_hp(int new_level, bool floor);
 void set_hp(int new_amount);
 
+int effective_xl();
 int get_real_hp(bool trans, bool rotted = false, bool adjust_for_difficulty = true);
 int get_real_sp(bool include_items = true);
 int get_real_mp(bool include_items = true, bool rotted = false);
@@ -1076,6 +1087,8 @@ string describe_contamination(int level);
 
 void set_sp(int new_amount);
 void set_mp(int new_amount);
+
+int get_unfrozen_mp();
 
 bool player_regenerates_hp();
 bool player_regenerates_sp();
@@ -1133,7 +1146,10 @@ bool need_expiration_warning(coord_def p = you.pos());
 
 bool player_is_tired(bool silent = false);
 bool player_is_very_tired(bool silent = false);
-void set_exertion(const exertion_mode new_exertion);
+bool player_is_exhausted(bool silent = false);
+bool in_quick_mode();
+void set_quick_mode(const bool new_quick_mode);
+void set_exertion(const exertion_mode new_exertion, bool manual = true);
 void exert_toggle(exertion_mode new_exertion);
 
 bool player_has_orb();
@@ -1192,11 +1208,17 @@ void player_evoked_something();
 void player_moved();
 void player_before_long_safe_action();
 void player_after_long_safe_action(int turns);
+void player_after_each_turn();
 int player_spell_hunger_modifier(int old_hunger);
 int player_spell_cost_modifier(spell_type which_spell, bool raw, int old_cost);
+int player_spell_mp_freeze_modifier(spell_type which_spell, bool raw, int old_cost);
 int player_tohit_modifier(int old_tohit);
-int player_damage_modifier(int old_damage);
+int player_damage_modifier(int old_damage, bool silent = false);
 int player_spellpower_modifier(int old_spellpower);
+int player_spellfailure_modifier(int spellfaifailureure);
+int player_attack_delay_modifier(int attk_delay);
+int player_stealth_modifier(int old_stealth);
+int player_evasion_modifier(int old_evasion);
 void player_update_last_hit_chance(int chance);
 void player_update_tohit(int new_tohit = -1);
 void summoned_monster_died(monster* mons, bool natural_death);

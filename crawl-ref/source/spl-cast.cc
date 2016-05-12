@@ -9,6 +9,8 @@
 
 #include <iomanip>
 #include <sstream>
+#include <cmath>
+#include <algorithm>
 
 #include "areas.h"
 #include "art-enum.h"
@@ -177,7 +179,10 @@ static string _spell_wide_description(spell_type spell, bool viewing)
 
     desc << chop_string(spell_power, 6)
          << chop_string(rangestring, 11 + tagged_string_tag_length(rangestring))
-         << chop_string(spell_hunger_string(spell), 8);
+    /* no longer needed
+         << chop_string(spell_hunger_string(spell), 8)
+         */
+        ;
 
     desc << "</" << colour_to_str(highlight) <<">";
 
@@ -188,7 +193,12 @@ static string _spell_wide_description(spell_type spell, bool viewing)
     desc << chop_string(failure, 5);
     desc << "</" << colour_to_str(highlight) << ">";
     desc << chop_string(make_stringf("%d", spell_difficulty(spell)), 6);
-    desc << chop_string(make_stringf("%d", spell_mana(spell)), 3);
+
+    int mp_cost = spell_mana(spell);
+    if (mp_cost == 0)
+        mp_cost = spell_freeze_mana(spell);
+
+    desc << chop_string(make_stringf("%d", mp_cost), 3);
 
     // spell schools
     desc << spell_schools_string(spell);
@@ -349,7 +359,7 @@ int list_spells_wide(bool viewing, bool allow_preselect,
         // [enne] - Hack. Make title an item so that it's aligned.
         MenuEntry* me =
             new MenuEntry(
-                " " + titlestring + "        Power Range      Hunger  Fail Level MP Type",
+                " " + titlestring + "        Power Range      Fail Level MP Type",
                 MEL_ITEM);
         me->colour = BLUE;
         spell_menu.add_entry(me);
@@ -357,7 +367,7 @@ int list_spells_wide(bool viewing, bool allow_preselect,
 #else
     spell_menu.set_title(
         new MenuEntry(
-                " " + titlestring + "        Power Range      Hunger  Fail Level MP Type",
+                " " + titlestring + "        Power Range      Fail Level MP Type",
             MEL_TITLE));
 #endif
     spell_menu.set_highlighter(nullptr);
@@ -469,83 +479,71 @@ static int _apply_spellcasting_success_boosts(spell_type spell, int chance)
     return chance * fail_reduce / 100;
 }
 
+/**
+ * Calculate the player's failure rate with the given spell, including all
+ * modifiers. (Armour, mutations, statuses effects, etc.)
+ *
+ * @param spell     The spell in question.
+ * @return          A failure rate. This is *not* a percentage - for a human-
+ *                  readable version, call _get_true_fail_rate().
+ */
 int raw_spell_fail(spell_type spell)
 {
-    int chance = 60;
-
-    // Don't cap power for failure rate purposes.
-    chance -= 6 * calc_spell_power(spell, false, true, false);
-    chance -= (you.intel() * 2);
-
+    const int spell_level = spell_difficulty(spell);
+    float resist = 1 << spell_level;
     const int armour_shield_penalty = player_armour_shield_spell_penalty();
     dprf("Armour+Shield spell failure penalty: %d", armour_shield_penalty);
-    chance += armour_shield_penalty;
-
-    static const int difficulty_by_level[] =
-    {
-        0,
-        3,
-        15,
-        35,
-
-        70,
-        100,
-        150,
-
-        200,
-        260,
-        330,
-    };
-    const int spell_level = spell_difficulty(spell);
-    ASSERT_RANGE(spell_level, 0, (int) ARRAYSZ(difficulty_by_level));
-    chance += difficulty_by_level[spell_level];
-
-    int chance2 = chance;
-
-    const int chance_breaks[][2] =
-    {
-        {45, 45}, {42, 43}, {38, 41}, {35, 40}, {32, 38}, {28, 36},
-        {22, 34}, {16, 32}, {10, 30}, {2, 28}, {-7, 26}, {-12, 24},
-        {-18, 22}, {-24, 20}, {-30, 18}, {-38, 16}, {-46, 14},
-        {-60, 12}, {-80, 10}, {-100, 8}, {-120, 6}, {-140, 4},
-        {-160, 2}, {-180, 0}
-    };
-
-    for (const int (&cbrk)[2] : chance_breaks)
-        if (chance < cbrk[0])
-            chance2 = cbrk[1];
+    resist = resist * (20 + armour_shield_penalty) / 20;
+    resist = resist * (20 + get_form()->spellcasting_penalty) / 20;
+    resist = resist * (player_mutation_level(MUT_ANTI_WIZARDRY) + 1);
+    resist = resist * (you.duration[DUR_VERTIGO] ? 1.5 : 1.0);
 
     const int wild = player_mutation_level(MUT_WILD_MAGIC);
-    chance2 = qpow(chance2, 3, 2, wild);
+    resist = qpow(resist, 3, 2, wild);
+
+    // with all factors being 10, player should have a 50% chance of casting a level 5 spell
+    float force = 1 << 5;
+
+    force *= (1.0 + you.dex(true)) / 10;
+    force *= (1.0 + you.intel(true)) / 10;
+    force *= (1.0 + you.skill(SK_SPELLCASTING)) / 10;
+
+    const spschools_type disciplines = get_spell_disciplines(spell);
+    const int skill_factor = average_schools(disciplines);
+    force *= (1.0 + skill_factor) / 10;
 
     const int subdued = player_mutation_level(MUT_SUBDUED_MAGIC);
-    chance2 = qpow(chance2, 1, 2, subdued);
-
-    chance2 += get_form()->spellcasting_penalty;
-
-    chance2 += 4 * player_mutation_level(MUT_ANTI_WIZARDRY);
+    force = qpow(force, 3, 2, subdued);
 
     if (player_equip_unrand(UNRAND_HIGH_COUNCIL))
-        chance2 += 7;
+        force *= 2;
 
-    if (you.props.exists(SAP_MAGIC_KEY))
-        chance2 += you.props[SAP_MAGIC_KEY].get_int() * 12;
+    // I have no idea what this does, so I'm leaving it for now.
+//    if (you.props.exists(SAP_MAGIC_KEY))
+//        force *= you.props[SAP_MAGIC_KEY].get_int() * 12;
 
-    chance2 += you.duration[DUR_VERTIGO] ? 7 : 0;
+    force = fmax(1, force);
+    resist = fmax(1, resist);
+
+    int fail_chance;
+
+    if (force >= resist)
+        fail_chance = 50 / (force / resist);
+    else
+        fail_chance = 100 - 50 / (resist / force);
 
     // Apply the effects of Vehumet and items of wizardry.
-    chance2 = _apply_spellcasting_success_boosts(spell, chance2);
+    fail_chance = _apply_spellcasting_success_boosts(spell, fail_chance);
 
-    if (you.exertion == EXERT_CAREFUL)
-        chance2 = max(chance2 - 10, chance2 / 2);
+    fail_chance = player_spellfailure_modifier(fail_chance);
 
-    if (chance2 > 100)
-        chance2 = 100;
+    if (fail_chance > 99)
+        fail_chance = 99;
 
-    if (chance2 < 0)
-        chance2 = 0;
+    if (fail_chance < 1)
+        fail_chance = 1;
 
-    return chance2;
+    return fail_chance;
 }
 
 int stepdown_spellpower(int power)
@@ -568,33 +566,34 @@ int calc_spell_power(spell_type spell, bool apply_intel, bool fail_rate_check,
         {
             for (const auto bit : spschools_type::range())
                 if (disciplines & bit)
-                    power += you.skill(spell_type2skill(bit), 200);
+                    power += you.skill(spell_type2skill(bit), 250);
             power /= skillcount;
         }
 
+        /* spellcasting does not add to spellpower
         power += you.skill(SK_SPELLCASTING, 200 / 3);
+         */
 
         // Brilliance boosts spell power a bit (equivalent to three
         // spell school levels).
         if (!fail_rate_check && you.duration[DUR_BRILLIANCE])
-            power = max(600, power * 3 / 2);
+            power = max(750, power * 3 / 2);
 
         if (apply_intel)
-            power = (power * you.intel()) / 10;
+            power = power * (you.intel() + 1) / 10;
 
         if (!fail_rate_check)
         {
             // [dshaligram] Enhancers don't affect fail rates any more, only spell
             // power. Note that this does not affect Vehumet's boost in castability.
-            power = apply_enhancement(power, _spell_enhancement(spell));
+            const int enhancement = _spell_enhancement(spell);
+            power = apply_enhancement(power, enhancement);
 
             // Wild magic boosts spell power but decreases success rate.
             const int wild = player_mutation_level(MUT_WILD_MAGIC);
             const int subdued = player_mutation_level(MUT_SUBDUED_MAGIC);
-            if (wild)
-                power *= (10 + 3 * wild * wild);
-            if (subdued)
-                power /= (10 + 3 * subdued * subdued);
+            power *= (10 + 3 * wild * wild);
+            power /= (10 + 3 * subdued * subdued);
 
             // Augmentation boosts spell power at high HP.
             power *= 10 + 4 * augmentation_amount();
@@ -727,12 +726,6 @@ void inspect_spells()
 
 static bool _can_cast()
 {
-    if (player_is_very_tired(true) && you.exertion != EXERT_NORMAL)
-    {
-        mpr("You are too tired to use your magic now. You could if you were in normal mode.");
-        return false;
-    }
-
     if (!get_form()->can_cast)
     {
         canned_msg(MSG_PRESENT_FORM);
@@ -1002,7 +995,6 @@ bool cast_a_spell(bool check_range, spell_type spell)
         }
     }
 
-    const bool staff_energy = player_energy();
     you.last_cast_spell = spell;
     // Silently take MP before the spell.
     dec_mp(cost, true);
@@ -1036,6 +1028,7 @@ bool cast_a_spell(bool check_range, spell_type spell)
     else // Redraw MP
         flush_mp();
 
+    /* no longer applicable
     if (!staff_energy && you.undead_state() != US_UNDEAD)
     {
         const int spellh = spell_hunger(spell);
@@ -1045,6 +1038,7 @@ bool cast_a_spell(bool check_range, spell_type spell)
             learned_something_new(HINT_SPELL_HUNGER);
         }
     }
+     */
 
     you.turn_is_over = true;
     alert_nearby_monsters();
@@ -1481,7 +1475,11 @@ spret_type your_spells(spell_type spell, int powc,
         if (dir == DIR_DIR)
             mprf(MSGCH_PROMPT, "%s", prompt ? prompt : "Which direction?");
 
-        const bool needs_path = !testbits(flags, SPFLAG_TARGET);
+        const bool needs_path = !testbits(flags, SPFLAG_TARGET)
+                                // Apportation must be SPFLAG_TARGET, since a
+                                // shift-direction makes no sense for it, but
+                                // it nevertheless requires line-of-fire.
+                                || spell == SPELL_APPORTATION;
 
         const int range = calc_spell_range(spell, powc);
 

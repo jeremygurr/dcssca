@@ -260,7 +260,7 @@ public:
                           bool base = false) const override;
     brand_type  damage_brand(int which_attack = -1) override;
     int         damage_type(int which_attack = -1) override;
-    random_var  attack_delay(const item_def *projectile = nullptr,
+    int         attack_delay(const item_def *projectile = nullptr,
                              bool rescale = true) const override;
     int         has_claws(bool allow_tran = true) const override;
 
@@ -301,7 +301,7 @@ public:
     bool      drop_item(mon_inv_type eslot, bool msg);
     bool      unequip(item_def &item, bool msg, bool force = false);
     void      steal_item_from_player();
-    item_def* take_item(int steal_what, mon_inv_type mslot);
+    item_def *take_item(int steal_what, mon_inv_type mslot, FixedVector< item_def, ENDOFPACK > &inv);
     item_def* disarm();
 
     bool      can_use_missile(const item_def &item) const;

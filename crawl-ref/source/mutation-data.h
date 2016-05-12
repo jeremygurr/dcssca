@@ -72,9 +72,9 @@ static const mutation_def mut_data[] =
 { MUT_CARNIVOROUS, 20, 3, mutflag::BAD, false,
   "carnivore",
 
-  {"Your digestive system is specialised to digest meat.",
-   "Your digestive system is highly specialised to digest meat.",
-   "You are carnivorous and can eat meat at any time."},
+  {"You digest fruit inefficiently.",
+   "You digest fruit very inefficiently.",
+   "You are a carnivore and can only eat meat at any time."},
 
   {"You hunger for flesh.",
    "You hunger for flesh.",
@@ -86,19 +86,19 @@ static const mutation_def mut_data[] =
 },
 
 { MUT_HERBIVOROUS, 20, 3, mutflag::GOOD, false,
-  "herbivore",
+  "powered by fruit",
 
-  {"You digest meat inefficiently.",
-   "You digest meat very inefficiently.",
-   "You are a herbivore."},
+  {"You digest fruit efficiently.",
+   "You digest fruit very efficiently.",
+   "You gain tons of stamina from non-meat foods."},
 
   {"You hunger for vegetation.",
    "You hunger for vegetation.",
    "You hunger for vegetation."},
 
-  {"You feel able to eat a more balanced diet.",
-   "You feel able to eat a more balanced diet.",
-   "You feel able to eat a more balanced diet."},
+  {"You will gain less power from fruits and veggies.",
+   "You will gain less power from fruits and veggies.",
+   "You will gain less power from fruits and veggies."},
 },
 
 { MUT_HEAT_RESISTANCE, 40, 3, mutflag::GOOD, true,
@@ -239,29 +239,29 @@ static const mutation_def mut_data[] =
    "You have a very fast metabolism.",
    "Your metabolism is lightning-fast."},
 
-  {"You feel a little hungry.",
-   "You feel a little hungry.",
-   "You feel a little hungry."},
+  {"Your metabolism speeds up!",
+   "Your metabolism speeds up!",
+   "Your metabolism speeds up!"},
 
   {"Your metabolism slows.",
    "Your metabolism slows.",
    "Your metabolism slows."},
 },
 
-{ MUT_SLOW_METABOLISM, 20, 2, mutflag::GOOD, false,
+{ MUT_SLOW_METABOLISM, 20, 3, mutflag::GOOD, false,
   "slow metabolism",
 
   {"You have a slow metabolism.",
    "You need consume almost no food.",
-   ""},
+   "You feel like you could run 10 marathons!"},
 
   {"Your metabolism slows.",
    "Your metabolism slows.",
-   ""},
+   "Your metabolism slows."},
 
-  {"You feel a little hungry.",
-   "You feel a little hungry.",
-   ""},
+  {"Your metabolism speeds up!",
+   "Your metabolism speeds up!",
+   "Your metabolism speeds up!"},
 },
 
 { MUT_WEAK, 80, 2, mutflag::BAD | mutflag::XOM, false,
@@ -577,7 +577,7 @@ static const mutation_def mut_data[] =
    "You feel genetically unstable."},
 },
 
-{ MUT_EVOLUTION, 80, 2, mutflag::GOOD, false,
+{ MUT_EVOLUTION, 80, 2, mutflag::DEPENDS, false,
   "evolution",
 
   {"You evolve.",
@@ -2166,41 +2166,20 @@ static const mutation_def mut_data[] =
    "Your dna gains focus."},
 },
 
-// deprecated
-{ MUT_STAMINA_EFFICIENT_NORMAL, 0, 3, mutflag::GOOD, false,
-  "stamina efficient",
+{ MUT_HUNGERLESS, 1, 1, mutflag::GOOD, false,
+  "hungerless",
 
-  {"Normal actions take a little less stamina. (-25%)",
-   "Normal actions take less stamina. (-50%)",
-   "Normal actions take a lot less stamina. (-75%)"},
+  {"Spellcasting doesn't affect your hunger (mp cost is reduced)",
+   "",
+   ""},
 
-  {"You use stamina more efficiently.",
-   "You use stamina more efficiently.",
-   "You use stamina more efficiently."},
+  {"Spellcasting no longer makes you hungry.",
+   "",
+   ""},
 
-  {
-      "You use stamina less efficiently.",
-      "You use stamina less efficiently.",
-      "You use stamina less efficiently.",
-  },
-},
-
-// deprecated
-{ MUT_STAMINA_EFFICIENT_SPECIAL, 0, 3, mutflag::GOOD, false,
-  "stamina efficient special",
-
-  {"Advanced actions take a little less stamina. (-25%)",
-   "Advanced actions take less stamina. (-50%)",
-   "Advanced actions take a lot less stamina. (-75%)"},
-
-  {"You use stamina more efficiently for advanced tasks.",
-   "You use stamina more efficiently for advanced tasks.",
-   "You use stamina more efficiently for advanced tasks."},
-
-  {
-      "You use stamina less efficiently for advanced tasks.",
-      "You use stamina less efficiently for advanced tasks.",
-      "You use stamina less efficiently for advanced tasks.",
+  {"Spellcasting makes you hungry again.",
+   "",
+   "",
   },
 },
 

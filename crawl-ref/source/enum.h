@@ -150,6 +150,9 @@ public:
 // The last line above is really just to eat a semicolon; template
 // substitution of enum_bitfield would have already failed.
 
+// Work around MSVC's idiosyncratic interpretation of __VA_ARGS__ as a
+// single macro argument: http://stackoverflow.com/questions/5134523
+#define EXPANDMACRO(x) x
 /**
  * Define fieldT as a bitfield of the enum flagT, and make bitwise
  * operators on flagT yield a fieldT.
@@ -176,8 +179,8 @@ public:
  */
 #define DEF_BITFIELD(fieldT, ...) \
     typedef enum_bitfield<__VA_ARGS__> fieldT; \
-    DEF_BITFIELD_OPERATORS(fieldT, __VA_ARGS__, )
-// The comma suppresses "ISO C99 requires rest arguments to be used"
+    EXPANDMACRO(DEF_BITFIELD_OPERATORS(fieldT, __VA_ARGS__, ))
+// The trailing comma suppresses "ISO C99 requires rest arguments to be used"
 
 enum exp_mode
 {
@@ -562,6 +565,7 @@ enum attribute_type
     ATTR_STAT_LOSS_XP,         // Unmodified XP needed for stat recovery.
     ATTR_PAKELLAS_DEVICE_SURGE,// Surge power applied to next evocation.
     ATTR_PAKELLAS_EXTRA_MP,    // MP to be collected to get a !magic from P
+    ATTR_INSIGHT,              // tracks experience over time to unlock unidentified items
     NUM_ATTRIBUTES
 };
 
@@ -766,51 +770,42 @@ enum book_type
 
 enum branch_type                // you.where_are_you
 {
+    BRANCH_ABYSS,
+    BRANCH_FIRST = BRANCH_ABYSS,
+    BRANCH_BAILEY,
+    BRANCH_BAZAAR,
+    BRANCH_COCYTUS,
+    BRANCH_CRYPT,
+    BRANCH_DEPTHS,
+    BRANCH_DIS,
     BRANCH_DUNGEON,
-    BRANCH_TEMPLE,
-    BRANCH_FIRST_NON_DUNGEON = BRANCH_TEMPLE,
-    BRANCH_ORC,
-    BRANCH_ELF,
     BRANCH_DWARF,
+    BRANCH_ELF,
+    BRANCH_FOREST,
+    BRANCH_GEHENNA,
+    BRANCH_ICE_CAVE,
+    BRANCH_LABYRINTH,
     BRANCH_LAIR,
-    BRANCH_SWAMP,
+    BRANCH_ORC,
+    BRANCH_OSSUARY,
+    BRANCH_PANDEMONIUM,
+    BRANCH_SEWER,
     BRANCH_SHOALS,
+    BRANCH_SLIME,
     BRANCH_SNAKE,
     BRANCH_SPIDER,
-    BRANCH_SLIME,
-    BRANCH_VAULTS,
-#if TAG_MAJOR_VERSION == 34
-    BRANCH_BLADE,
-#endif
-    BRANCH_CRYPT,
-    BRANCH_TOMB,
-#if TAG_MAJOR_VERSION > 34
-    BRANCH_DEPTHS,
-#endif
-    BRANCH_VESTIBULE,
-    BRANCH_DIS,
-    BRANCH_GEHENNA,
-    BRANCH_COCYTUS,
+    BRANCH_SWAMP,
     BRANCH_TARTARUS,
-      BRANCH_FIRST_HELL = BRANCH_DIS,
-      BRANCH_LAST_HELL = BRANCH_TARTARUS,
-    BRANCH_ZOT,
-    BRANCH_FOREST,
-    BRANCH_ABYSS,
-    BRANCH_PANDEMONIUM,
-    BRANCH_ZIGGURAT,
-    BRANCH_LABYRINTH,
-    BRANCH_BAZAAR,
+    BRANCH_TEMPLE,
+    BRANCH_TOMB,
     BRANCH_TROVE,
-    BRANCH_SEWER,
-    BRANCH_OSSUARY,
-    BRANCH_BAILEY,
-    BRANCH_ICE_CAVE,
+    BRANCH_VAULTS,
+    BRANCH_VESTIBULE,
     BRANCH_VOLCANO,
     BRANCH_WIZLAB,
-#if TAG_MAJOR_VERSION == 34
-    BRANCH_DEPTHS,
-#endif
+    BRANCH_ZIGGURAT,
+    BRANCH_ZOT,
+
     NUM_BRANCHES
 };
 
@@ -1023,9 +1018,10 @@ enum command_type
     CMD_USE_ABILITY,
     CMD_PRAY,
     CMD_EAT,
+    CMD_EXERT_FAST,
+    CMD_EXERT_SLOW,
     CMD_EXERT_POWER,
-    CMD_EXERT_ESCAPE,
-    CMD_EXERT_CAREFUL,
+    CMD_EXERT_FOCUS,
     CMD_EXERT_NORMAL,
     CMD_QUAFF,
     CMD_READ,
@@ -1945,9 +1941,9 @@ enum duration_type
     DUR_DOOM_HOWL_IMMUNITY,
 #endif
     DUR_VERTIGO,
-    DUR_POWER,
-    DUR_CARE,
-    DUR_ESCAPE,
+    DUR_POWER_MODE,
+    DUR_FOCUS_MODE,
+    DUR_QUICK_MODE,
     DUR_CHANNELING,
     NUM_DURATIONS
 };
@@ -2192,10 +2188,15 @@ enum eq_type_flags
 
 enum exertion_mode
 {
-    EXERT_CAREFUL = -1,
+    EXERT_FOCUS = -1,
     EXERT_NORMAL = 0,
     EXERT_POWER,
-    EXERT_ESCAPE,
+};
+
+enum stamina_flag
+{
+    STAMF_QUICK_MODE                = (1 << 0),
+    STAMF_SKIP_MOVEMENT_PENALTY     = (1 << 1),
 };
 
 enum flush_reason_type
@@ -3723,8 +3724,7 @@ enum mutation_type
     MUT_HIGH_MAGIC,
     MUT_HIGH_STAMINA,
     MUT_LOW_STAMINA,
-    MUT_STAMINA_EFFICIENT_NORMAL, // not used anymore
-    MUT_STAMINA_EFFICIENT_SPECIAL, // not used anymore
+    MUT_HUNGERLESS,
 #if TAG_MAJOR_VERSION > 34
     MUT_FREEZING_CLOUD_IMMUNITY,
 #endif
@@ -3980,6 +3980,7 @@ enum potion_type
 	POT_POISON_VULNERABILITY,
 	POT_RESISTANCE,
     POT_WEAK_MUTATION,
+    POT_STAMINA,
 #if TAG_MAJOR_VERSION == 34
     POT_BLOOD_COAGULATED,
     POT_DECAY,
@@ -4103,7 +4104,7 @@ enum shop_type
     SHOP_JEWELLERY,
     SHOP_EVOKABLES, // wands, rods, and misc items
     SHOP_BOOK,
-    SHOP_FOOD,
+//    SHOP_FOOD,
     SHOP_DISTILLERY,
     SHOP_SCROLL,
     SHOP_GENERAL,

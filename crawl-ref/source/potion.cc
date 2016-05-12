@@ -280,7 +280,7 @@ public:
              */
                 amount = you.scale_device_healing(10 + random2avg(28, 3));
 
-            mprf("You feel better. (%d)", amount);
+            mprf("You feel better. (HP+%d)", amount);
         }
         else switch(crawl_state.difficulty)
             {
@@ -705,7 +705,7 @@ public:
             // Defer calling level_change() until later in drink() to prevent
             // SIGHUP abuse.
 
-            if (Options.exp_potion_on_each_floor || Options.uniques_drop_exp_potions)
+            if (Options.exp_potion_on_each_floor || Options.uniques_drop_exp_potions || !Options.exp_based_on_player_level)
                 gain_potion_exp();
             else
                 adjust_level(1, true);
@@ -758,24 +758,68 @@ public:
         switch(crawl_state.difficulty)
         {
             case DIFFICULTY_STANDARD:
-                amount = you.max_magic_points;
+                amount = 40;
                 break;
             case DIFFICULTY_CHALLENGE:
-                amount = you.max_magic_points/2;
+                amount = 30;
                 break;
             case DIFFICULTY_NIGHTMARE:
-                amount = you.max_magic_points/4;
+                amount = 20;
                 break;
             default:
                 // should not be possible
                 break;
         }
 
-        // give at least 10 points
-        amount = max(10, amount);
-
         inc_mp(amount);
-        mpr("Magic courses through your body.");
+        mprf("Magic courses through your body. (MP+%d)", amount);
+        return true;
+    }
+};
+
+class PotionStamina : public PotionEffect
+{
+private:
+    PotionStamina() : PotionEffect(POT_MAGIC) { }
+    DISALLOW_COPY_AND_ASSIGN(PotionStamina);
+public:
+    static const PotionStamina &instance()
+    {
+        static PotionStamina inst; return inst;
+    }
+
+    bool can_quaff(string *reason = nullptr) const override
+    {
+        if (you.sp == you.sp_max)
+        {
+            if (reason)
+                *reason = "Your stamina is already full.";
+            return false;
+        }
+        return true;
+    }
+
+    bool effect(bool=true, int pow = 40, bool=true) const override
+    {
+        int amount = 0;
+        switch(crawl_state.difficulty)
+        {
+            case DIFFICULTY_STANDARD:
+                amount = 40;
+                break;
+            case DIFFICULTY_CHALLENGE:
+                amount = 30;
+                break;
+            case DIFFICULTY_NIGHTMARE:
+                amount = 20;
+                break;
+            default:
+                // should not be possible
+                break;
+        }
+
+        inc_sp(amount);
+        mprf("Energy courses through your body. (SP+%d)", amount);
         return true;
     }
 };
@@ -1529,6 +1573,7 @@ static const PotionEffect* potion_effects[] =
 	&PotionPoison::instance(),
 	&PotionResistance::instance(),
     &PotionWeakMutation::instance(),
+    &PotionStamina::instance(),
 #if TAG_MAJOR_VERSION == 34
 	&PotionBloodCoagulated::instance(),
 	&PotionDecay::instance(),

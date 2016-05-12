@@ -686,6 +686,7 @@ unsigned int item_value(item_def item, bool ident)
                 break;
 
             case POT_MAGIC:
+            case POT_STAMINA:
             case POT_INVISIBILITY:
             case POT_CANCELLATION:
             case POT_AMBROSIA:
@@ -1433,6 +1434,12 @@ void ShopMenu::purchase_selected()
          });
     vector<int> bought_indices;
     int outside_items = 0;
+
+    // Store last_pickup in case we need to restore it.
+    // Then clear it to fill with items purchased.
+    map<item_def*,int> tmp_l_p = you.last_pickup;
+    you.last_pickup.clear();
+
     // Will iterate backwards through the shop (because of the earlier sort).
     // This means we can erase() from shop.stock (since it only invalidates
     // pointers to later elements), but nothing else.
@@ -1455,6 +1462,9 @@ void ShopMenu::purchase_selected()
         bought_indices.push_back(i);
         bought_something = true;
     }
+
+    if (you.last_pickup.empty())
+        you.last_pickup = tmp_l_p;
 
     // Since the old ShopEntrys may now point to past the end of shop.stock (or
     // just the wrong place in general) nuke the whole thing and start over.
@@ -1715,8 +1725,8 @@ string shop_type_name(shop_type type)
             return "Gadget";
         case SHOP_BOOK:
             return "Book";
-        case SHOP_FOOD:
-            return "Food";
+//        case SHOP_FOOD:
+//            return "Food";
         case SHOP_SCROLL:
             return "Magic Scroll";
         case SHOP_GENERAL_ANTIQUE:
@@ -1815,7 +1825,7 @@ static const char *shop_types[] =
     "jewellery",
     "gadget",
     "book",
-    "food",
+//    "food",
     "distillery",
     "scroll",
     "general",

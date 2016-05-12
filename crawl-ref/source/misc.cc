@@ -376,7 +376,7 @@ bool player_in_a_dangerous_place(bool *invis)
     if (invis == nullptr)
         invis = &junk;
 
-    const double logexp = log((double)you.experience);
+    const double logexp = log((double)you.experience + 1);
     double gen_threat = 0.0, hi_threat = 0.0;
     _monster_threat_values(&gen_threat, &hi_threat, invis);
 
@@ -463,6 +463,7 @@ void revive()
     you.attribute[ATTR_INVIS_UNCANCELLABLE] = 0;
     you.attribute[ATTR_FLIGHT_UNCANCELLABLE] = 0;
     you.attribute[ATTR_XP_DRAIN] = 0;
+    you.attribute[ATTR_INSIGHT] = 0;
     if (you.duration[DUR_SCRYING])
         you.xray_vision = false;
 
@@ -795,8 +796,11 @@ int apply_chunked_AC(int dam, int ac)
 
 void handle_real_time(chrono::time_point<chrono::system_clock> now)
 {
-    you.real_time_delta = chrono::duration_cast<chrono::milliseconds>(
-            now - you.last_keypress_time);
+    const chrono::milliseconds elapsed =
+     chrono::duration_cast<chrono::milliseconds>(now - you.last_keypress_time);
+    you.real_time_delta = min<chrono::milliseconds>(
+      elapsed,
+      (chrono::milliseconds)(IDLE_TIME_CLAMP * 1000));
     you.real_time_ms += you.real_time_delta;
     you.last_keypress_time = now;
 }

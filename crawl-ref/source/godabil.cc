@@ -1713,7 +1713,12 @@ bool beogh_gift_item()
     if (!beogh_can_gift_items_to(mons, false))
         return false;
 
-    int item_slot = prompt_invent_item(you.inv1, "Give which item?",
+    FixedVector< item_def, ENDOFPACK > *inv_to_give_from;
+
+    if (!inv_from_prompt(inv_to_give_from, "Give"))
+        return false;
+
+    int item_slot = prompt_invent_item(*inv_to_give_from, "Give which item?",
                                        MT_INVLIST, OSEL_BEOGH_GIFT, true);
 
     if (item_slot == PROMPT_ABORT || item_slot == PROMPT_NOTHING)
@@ -1722,7 +1727,7 @@ bool beogh_gift_item()
         return false;
     }
 
-    item_def& gift = you.inv1[item_slot];
+    item_def& gift = (*inv_to_give_from)[item_slot];
 
     const bool shield = is_shield(gift);
     const bool body_armour = gift.base_type == OBJ_ARMOUR
@@ -1758,16 +1763,15 @@ bool beogh_gift_item()
                                  is_range_weapon(*mons_weapon);
 
     mons->take_item(item_slot, body_armour ? MSLOT_ARMOUR :
-                                    shield ? MSLOT_SHIELD :
-                              use_alt_slot ? MSLOT_ALT_WEAPON :
-                                             MSLOT_WEAPON);
+                               shield ? MSLOT_SHIELD :
+                               use_alt_slot ? MSLOT_ALT_WEAPON :
+                               MSLOT_WEAPON, *inv_to_give_from);
     if (use_alt_slot)
         mons->swap_weapons();
 
     dprf("is_ranged weap: %d", range_weapon);
     if (range_weapon)
         gift_ammo_to_orc(mons, true); // give a small initial ammo freebie
-
 
     if (shield)
         mons->props[BEOGH_SH_GIFT_KEY] = true;
@@ -3057,9 +3061,9 @@ static void _decrease_amount(vector<pair<int, int> >& available, int amount)
         dec_inv_item_quantity(you.inv2, avail.second, decrease_amount);
     }
     if (total_decrease > 1)
-        mprf("%d pieces of fruit are consumed!", total_decrease);
+        mprf("%d stamina potions are consumed!", total_decrease);
     else
-        mpr("A piece of fruit is consumed!");
+        mpr("A stamina potion is consumed!");
 }
 
 // Create a ring or partial ring around the caster. The user is
@@ -3092,7 +3096,7 @@ bool fedhas_plant_ring_from_fruit()
         if (adjacent.empty())
             mpr("No empty adjacent squares.");
         else
-            mpr("No fruit available.");
+            mpr("No stamina potions available.");
 
         return false;
     }
@@ -3492,7 +3496,7 @@ spret_type fedhas_evolve_flora(bool fail)
 
         if (total_fruit < upgrade.fruit_cost)
         {
-            mpr("Not enough fruit available.");
+            mpr("Not enough stamina potions available.");
             return SPRET_ABORT;
         }
     }
@@ -4092,7 +4096,9 @@ static potion_type _gozag_potion_list[][4] =
     { POT_HEAL_WOUNDS, NUM_POTIONS, NUM_POTIONS, NUM_POTIONS },
     { POT_HEAL_WOUNDS, POT_CURING, NUM_POTIONS, NUM_POTIONS },
     { POT_HEAL_WOUNDS, POT_MAGIC, NUM_POTIONS, NUM_POTIONS, },
+    { POT_HEAL_WOUNDS, POT_STAMINA, NUM_POTIONS, NUM_POTIONS, },
     { POT_CURING, POT_MAGIC, NUM_POTIONS, NUM_POTIONS },
+    { POT_CURING, POT_STAMINA, NUM_POTIONS, NUM_POTIONS },
     { POT_HEAL_WOUNDS, POT_BERSERK_RAGE, NUM_POTIONS, NUM_POTIONS },
     { POT_HASTE, POT_HEAL_WOUNDS, NUM_POTIONS, NUM_POTIONS },
     { POT_HASTE, POT_BRILLIANCE, NUM_POTIONS, NUM_POTIONS },
@@ -4104,6 +4110,7 @@ static potion_type _gozag_potion_list[][4] =
     { POT_RESISTANCE, POT_FLIGHT, NUM_POTIONS, NUM_POTIONS },
     { POT_INVISIBILITY, POT_AGILITY, NUM_POTIONS , NUM_POTIONS },
     { POT_HEAL_WOUNDS, POT_CURING, POT_MAGIC, NUM_POTIONS },
+    { POT_HEAL_WOUNDS, POT_CURING, POT_STAMINA, NUM_POTIONS },
     { POT_HEAL_WOUNDS, POT_CURING, POT_BERSERK_RAGE, NUM_POTIONS },
     { POT_HEAL_WOUNDS, POT_HASTE, POT_AGILITY, NUM_POTIONS },
     { POT_MIGHT, POT_AGILITY, POT_BRILLIANCE, NUM_POTIONS },
@@ -4377,9 +4384,9 @@ static void _setup_gozag_shop(int index, vector<shop_type> &valid_shops)
     ASSERT(!you.props.exists(make_stringf(GOZAG_SHOPKEEPER_NAME_KEY, index)));
 
     shop_type type = NUM_SHOPS;
-    if (index == 0 && !you_foodless_normally() && false)
-        type = SHOP_FOOD;
-    else
+//    if (index == 0 && !you_foodless_normally() && false)
+//        type = SHOP_FOOD;
+//    else
     {
         int choice = random2(valid_shops.size());
         type = valid_shops[choice];
@@ -4413,13 +4420,13 @@ static void _setup_gozag_shop(int index, vector<shop_type> &valid_shops)
  */
 static string _gozag_special_shop_name(shop_type type)
 {
-    if (type == SHOP_FOOD)
-    {
-        if (you.species == SP_VAMPIRE)
-            return "Blood";
-        else if (you.species == SP_GHOUL)
-            return "Carrion"; // yum!
-    }
+//    if (type == SHOP_FOOD)
+//    {
+//        if (you.species == SP_VAMPIRE)
+//            return "Blood";
+//        else if (you.species == SP_GHOUL)
+//            return "Carrion"; // yum!
+//    }
 
     return "";
 }
@@ -4530,7 +4537,7 @@ static void _gozag_place_shop(int index)
     feature_spec feat = kmspec.get_feat();
     shop_spec *spec = feat.shop.get();
     ASSERT(spec);
-    place_spec_shop(you.pos(), *spec, you.experience_level);
+    place_spec_shop(you.pos(), *spec, effective_xl());
 
     link_items();
     env.markers.add(new map_feature_marker(you.pos(), DNGN_ABANDONED_SHOP));
@@ -4559,8 +4566,8 @@ bool gozag_call_merchant()
         shop_type type = static_cast<shop_type>(i);
         // if they are useful to the player, food shops are handled through the
         // first index.
-        if (type == SHOP_FOOD)
-            continue;
+//        if (type == SHOP_FOOD)
+//            continue;
         if (type == SHOP_DISTILLERY && you.species == SP_MUMMY)
             continue;
         if (type == SHOP_EVOKABLES && player_mutation_level(MUT_NO_ARTIFICE))
@@ -4624,6 +4631,8 @@ static const map<branch_type, int> branch_bribability_factor =
     { BRANCH_DUNGEON,     2 },
     { BRANCH_ORC,         2 },
     { BRANCH_ELF,         3 },
+    { BRANCH_DWARF,       3 },
+    { BRANCH_FOREST,      3 },
     { BRANCH_SNAKE,       3 },
     { BRANCH_SHOALS,      3 },
     { BRANCH_CRYPT,       3 },
@@ -6015,11 +6024,11 @@ bool ru_do_sacrifice(ability_type sac)
         variable_sac = false;
         mut = sac_def.mutation;
         num_sacrifices = 1;
-        const char* handtxt = "";
+        string handtxt = "";
         if (sac == ABIL_RU_SACRIFICE_HAND)
-            handtxt = you.hand_name(true).c_str();
+            handtxt = you.hand_name(true);
 
-        offer_text = make_stringf("%s%s", sac_def.sacrifice_text, handtxt);
+        offer_text = sac_def.sacrifice_text + handtxt;
         mile_text = make_stringf("%s.", sac_def.milestone_text);
     }
 
@@ -6393,7 +6402,7 @@ bool ru_power_leap()
 
         //damage scales with XL amd piety
         mon->hurt((actor*)&you, roll_dice(1 + div_rand_round(you.piety *
-            (54 + you.experience_level), 777), 3),
+            (54 + effective_xl()), 777), 3),
             BEAM_ENERGY, KILLED_BY_BEAM, "", "", true);
     }
 
@@ -6457,7 +6466,7 @@ static int _apply_apocalypse(coord_def where)
 
     //damage scales with XL and piety
     const int pow = you.piety;
-    int die_size = 1 + div_rand_round(pow * (54 + you.experience_level), 584);
+    int die_size = 1 + div_rand_round(pow * (54 + effective_xl()), 584);
     int dmg = 10 + roll_dice(num_dice, die_size);
 
     mons->hurt(&you, dmg, BEAM_ENERGY, KILLED_BY_BEAM, "", "", true);
