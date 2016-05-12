@@ -596,7 +596,7 @@ void attack::pain_affects_defender()
     	{
     		2 * you.piety_rank() + 1
     	}
-    	))
+    	)))
     {
         if (defender_visible)
         {
