@@ -2468,6 +2468,12 @@ string cannot_read_item_reason(const item_def &item)
     
  
 
+    if (you.species == SP_DJINNI)
+    {
+        canned_msg(MSG_DJINNI_CANT_READ);
+        return false;
+    }
+
     // don't waste the player's time reading known scrolls in situations where
     // they'd be useless
 
