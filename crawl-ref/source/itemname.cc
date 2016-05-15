@@ -1065,6 +1065,7 @@ static const char* _book_type_name(int booktype)
     case BOOK_ENVENOMATIONS:          return "Envenomations";
     case BOOK_ANNIHILATIONS:          return "Annihilations";
     case BOOK_UNLIFE:                 return "Unlife";
+    case BOOK_BLINKBOLT:              return "Faffing About";
 #if TAG_MAJOR_VERSION == 34
     case BOOK_CONTROL:                return "Control";
 #endif
