@@ -92,7 +92,7 @@ public:
             return false;
         }
         if (!you.can_device_heal()
-            || you.hp == you.hp_max && player_rotted() == 0)
+            || get_hp() == get_hp_max() && player_rotted() == 0)
         {
             if (reason)
                 *reason = "You have no ailments to cure.";
@@ -216,7 +216,7 @@ public:
                 *reason = "You cannot heal while in Death's door!";
             return false;
         }
-        if (you.hp == you.hp_max && player_rotted() == 0)
+        if (get_hp() == get_hp_max() && player_rotted() == 0)
         {
             if (reason)
                 *reason = "Your health is already full!";
@@ -238,27 +238,66 @@ public:
             return false;
         }
 
+        int minimum_healing;
+        switch(crawl_state.difficulty)
+        {
+            case DIFFICULTY_STANDARD:
+                minimum_healing = 20;
+                break;
+            case DIFFICULTY_CHALLENGE:
+                minimum_healing = 10;
+                break;
+            case DIFFICULTY_NIGHTMARE:
+                minimum_healing = 5;
+                break;
+            default:
+                // should not be possible
+                break;
+        }
+
         int amount = 0;
         if (is_device)
         {
-            amount = min(you.hp_max, div_rand_round(you.hp_max * power, 100));
-            if (amount > you.hp_max - you.hp)
-                amount = you.hp_max - you.hp;
+            /*
+            int divisor = 50;
+            switch(crawl_state.difficulty)
+            {
+                case DIFFICULTY_CHALLENGE:
+                    divisor = 100;
+                    break;
+                case DIFFICULTY_NIGHTMARE:
+                    divisor = 200;
+                    break;
+                default:
+                    break;
+            }
+            amount = min(get_hp_max(), div_rand_round(get_hp_max() * power, divisor));
+            if (amount > get_hp_max() - get_hp())
+                amount = get_hp_max() - get_hp();
+            amount = max(minimum_healing, amount);
 
-            mprf("You feel better. (%d)", amount);
+            if (crawl_state.difficulty == DIFFICULTY_NIGHTMARE)
+             */
+                amount = you.scale_device_healing(10 + random2avg(28, 3));
+
+            mprf("You feel better. (HP+%d)", amount);
         }
         else switch(crawl_state.difficulty)
             {
                 case DIFFICULTY_STANDARD:
-                    amount = you.hp_max;
+                    /*
+                    amount = get_hp_max();
                     mprf("You feel completely better. (%d)", amount);
                     break;
+                     */
                 case DIFFICULTY_CHALLENGE:
-                    amount = you.hp_max/2;
+                    /*
+                    amount = get_hp_max()/2;
                     mprf("You feel much better. (%d)", amount);
                     break;
+                     */
                 case DIFFICULTY_NIGHTMARE:
-                    amount = you.hp_max/4;
+                    amount = minimum_healing + random2avg(28, 3);
                     mprf("You feel a little better. (%d)", amount);
                     break;
                 default:
@@ -267,8 +306,9 @@ public:
             }
 
 
-        // heal at least 20 points
-        amount = max(20, amount);
+        /*
+        amount = max(minimum_healing, amount);
+         */
 
         // Pay for rot right off the top.
         amount = unrot_hp(amount);
@@ -665,7 +705,7 @@ public:
             // Defer calling level_change() until later in drink() to prevent
             // SIGHUP abuse.
 
-            if (Options.exp_potion_on_each_floor || Options.uniques_drop_exp_potions)
+            if (Options.exp_potion_on_each_floor || Options.uniques_drop_exp_potions || !Options.exp_based_on_player_level)
                 gain_potion_exp();
             else
                 adjust_level(1, true);
@@ -696,7 +736,7 @@ public:
     {
         if (you.species == SP_DJINNI)
             return PotionHealWounds::instance().can_quaff(reason);
-        if (you.magic_points == you.max_magic_points)
+        if (get_mp() == get_mp_max())
         {
             if (reason)
                 *reason = "Your magic is already full.";
@@ -718,24 +758,79 @@ public:
         switch(crawl_state.difficulty)
         {
             case DIFFICULTY_STANDARD:
-                amount = you.max_magic_points;
+                amount = 40;
                 break;
             case DIFFICULTY_CHALLENGE:
-                amount = you.max_magic_points/2;
+                amount = 30;
                 break;
             case DIFFICULTY_NIGHTMARE:
-                amount = you.max_magic_points/4;
+                amount = 20;
                 break;
             default:
                 // should not be possible
                 break;
         }
 
-        // give at least 10 points
-        amount = max(10, amount);
-
         inc_mp(amount);
-        mpr("Magic courses through your body.");
+        mprf("Magic courses through your body. (MP+%d)", amount);
+        return true;
+    }
+};
+
+class PotionStamina : public PotionEffect
+{
+private:
+    PotionStamina() : PotionEffect(POT_MAGIC) { }
+    DISALLOW_COPY_AND_ASSIGN(PotionStamina);
+public:
+    static const PotionStamina &instance()
+    {
+        static PotionStamina inst; return inst;
+    }
+
+    bool can_quaff(string *reason = nullptr) const override
+    {
+        if (you.species == SP_DJINNI)
+            return PotionHealWounds::instance().can_quaff(reason);
+
+        if (get_sp() == get_sp_max())
+        {
+            if (reason)
+                *reason = "Your stamina is already full.";
+            return false;
+        }
+        return true;
+    }
+
+    bool effect(bool=true, int pow = 40, bool=true) const override
+    {
+        // Allow repairing rot, disallow going through Death's Door.
+        if (you.species == SP_DJINNI
+            && PotionHealWounds::instance().can_quaff())
+        {
+            return PotionHealWounds::instance().effect(true, pow, false);
+        }
+
+        int amount = 0;
+
+        switch(crawl_state.difficulty)
+        {
+            case DIFFICULTY_STANDARD:
+                amount = 40;
+                break;
+            case DIFFICULTY_CHALLENGE:
+                amount = 30;
+                break;
+            case DIFFICULTY_NIGHTMARE:
+                amount = 20;
+                break;
+            default:
+                // should not be possible
+                break;
+        }
+
+        inc_sp(amount);
+        mprf("This potion tastes like fruit juice. Energy courses through your body! (SP+%d)", amount);
         return true;
     }
 };
@@ -1489,6 +1584,7 @@ static const PotionEffect* potion_effects[] =
 	&PotionPoison::instance(),
 	&PotionResistance::instance(),
     &PotionWeakMutation::instance(),
+    &PotionStamina::instance(),
 #if TAG_MAJOR_VERSION == 34
 	&PotionBloodCoagulated::instance(),
 	&PotionDecay::instance(),

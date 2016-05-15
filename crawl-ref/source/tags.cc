@@ -1316,7 +1316,11 @@ static void tag_construct_char(writer &th)
     marshallByte(th, you.religion);
     marshallString2(th, you.jiyva_second_name);
 
+#if defined(FULLDEBUG)
+    marshallByte(th, 0);
+#else
     marshallByte(th, you.wizard);
+#endif
 
     marshallByte(th, crawl_state.type);
     marshallByte(th, crawl_state.difficulty);
@@ -1375,9 +1379,9 @@ static void tag_construct_you(writer &th)
     marshallUByte(th, you.sp);
     marshallUByte(th, you.sp_max);
 
-    ASSERT_RANGE(you.magic_points, 0, you.max_magic_points + 1);
-    marshallUByte(th, you.magic_points);
-    marshallUByte(th, you.max_magic_points);
+    ASSERT_RANGE(you.mp, 0, you.mp_max + 1);
+    marshallUByte(th, you.mp);
+    marshallUByte(th, you.mp_max);
 
     marshallUByte(th, you.target_hunger_state);
     marshallUByte(th, you.motion);
@@ -1557,7 +1561,19 @@ static void tag_construct_you(writer &th)
     marshallInt(th, you.exploration);
     marshallInt(th, you.amplification);
     marshallInt(th, you.exertion);
+    marshallInt(th, you.restore_exertion);
+
+    for (int i = 0; i < NUM_RUNE_TYPES; ++i)
+    {
+        marshallInt(th, you.rune_charges[i]);
+    }
+    marshallFixedBitVector<NUM_RUNE_TYPES>(th, you.rune_curse_active);
+    // todo
+//    marshallInt(th, you.first_hit_time);
+    marshallInt(th, you.peace);
+
     marshallInt(th, you.max_exp);
+    marshallInt(th, you.stamina_flags);
     marshallInt(th, you.current_form_spell);
     marshallInt(th, you.current_form_spell_failure);
     marshallInt(th, MAX_SUMMONS);
@@ -2216,6 +2232,15 @@ void tag_read_char(reader &th, uint8_t format, uint8_t major, uint8_t minor)
         crawl_state.map = "";
 
     crawl_state.difficulty = (game_difficulty_level) unmarshallUByte(th);
+    switch(crawl_state.difficulty)
+    {
+        case DIFFICULTY_STANDARD:
+        case DIFFICULTY_CHALLENGE:
+        case DIFFICULTY_NIGHTMARE:
+            break;
+        default:
+            crawl_state.difficulty = DIFFICULTY_CHALLENGE;
+    }
 
     if (major > 32 || major == 32 && minor > 26)
     {
@@ -2353,11 +2378,13 @@ static void tag_read_you(reader &th)
 
     you.sp                        = unmarshallUByte(th);
     you.sp_max                    = unmarshallUByte(th);
-    you.magic_points              = unmarshallUByte(th);
-    you.max_magic_points          = unmarshallUByte(th);
+    you.mp              = unmarshallUByte(th);
+    you.mp_max          = unmarshallUByte(th);
 
     you.target_hunger_state       = (hunger_state_t) unmarshallUByte(th);
     you.motion                    = (motion_type) unmarshallUByte(th);
+    you.last_tohit = 0;
+    you.last_hit_chance = 0;
 
     for (int i = 0; i < NUM_STATS; ++i)
         you.base_stats[i] = unmarshallByte(th);
@@ -2953,12 +2980,6 @@ static void tag_read_you(reader &th)
             you.mutation[MUT_FORLORN] = 0;
     }
 
-    if (th.getMinorVersion() < TAG_MINOR_MP_WANDS)
-    {
-        if (you.mutation[MUT_MP_WANDS] > 1)
-            you.mutation[MUT_MP_WANDS] = 1;
-    }
-
     if (th.getMinorVersion() < TAG_MINOR_NAGA_METABOLISM)
     {
         if (you.species == SP_NAGA)
@@ -3183,7 +3204,7 @@ static void tag_read_you(reader &th)
     // Verify that timers aren't scheduled for the past.
     for (int j = 0; j < NUM_TIMERS; ++j)
     {
-        if (you.next_timer_effect[j] < you.elapsed_time)
+        if (false && you.next_timer_effect[j] < you.elapsed_time)
         {
 #if TAG_MAJOR_VERSION == 34
             if (th.getMinorVersion() >= TAG_MINOR_EVENT_TIMERS
@@ -3212,7 +3233,20 @@ static void tag_read_you(reader &th)
     if(you.amplification > 100 || you.amplification == 0)
         you.amplification = 1;
     set_exertion((exertion_mode)unmarshallInt(th));
+    you.restore_exertion = (exertion_mode)unmarshallInt(th);
+
+    for (int i = 0; i < NUM_RUNE_TYPES; ++i)
+    {
+        you.rune_charges[i] = unmarshallInt(th);
+    }
+    unmarshallFixedBitVector<NUM_RUNE_TYPES>(th, you.rune_curse_active);
+
+    // todo
+//    you.first_hit_time = unmarshallInt(th);
+    you.peace = unmarshallInt(th);
+
     you.max_exp = unmarshallInt(th);
+    you.stamina_flags = unmarshallInt(th);
     you.current_form_spell = (spell_type) unmarshallInt(th);
     you.current_form_spell_failure = unmarshallInt(th);
     const int summon_count = unmarshallInt(th);
@@ -3788,40 +3822,6 @@ static PlaceInfo unmarshallPlaceInfo(reader &th)
     return place_info;
 }
 
-#if TAG_MAJOR_VERSION == 34
-static branch_type old_entries[] =
-{
-    /* D */      NUM_BRANCHES,
-    /* Temple */ BRANCH_DUNGEON,
-    /* Orc */    BRANCH_DUNGEON,
-    /* Elf */    BRANCH_ORC,
-    /* Dwarf */  BRANCH_ELF,
-    /* Lair */   BRANCH_DUNGEON,
-    /* Swamp */  BRANCH_LAIR,
-    /* Shoals */ BRANCH_LAIR,
-    /* Snake */  BRANCH_LAIR,
-    /* Spider */ BRANCH_LAIR,
-    /* Slime */  BRANCH_LAIR,
-    /* Vaults */ BRANCH_DUNGEON,
-    /* Blade */  BRANCH_VAULTS,
-    /* Crypt */  BRANCH_VAULTS,
-    /* Tomb */   BRANCH_CRYPT, // or Forest
-    /* Hell */   NUM_BRANCHES,
-    /* Dis */    BRANCH_VESTIBULE,
-    /* Geh */    BRANCH_VESTIBULE,
-    /* Coc */    BRANCH_VESTIBULE,
-    /* Tar */    BRANCH_VESTIBULE,
-    /* Zot */    BRANCH_DUNGEON,
-    /* Forest */ BRANCH_VAULTS,
-    /* Abyss */  NUM_BRANCHES,
-    /* Pan */    NUM_BRANCHES,
-    /* various portal branches */ NUM_BRANCHES,
-    NUM_BRANCHES, NUM_BRANCHES, NUM_BRANCHES, NUM_BRANCHES, NUM_BRANCHES,
-    NUM_BRANCHES, NUM_BRANCHES, NUM_BRANCHES, NUM_BRANCHES, NUM_BRANCHES,
-    NUM_BRANCHES,
-};
-#endif
-
 static void tag_read_you_dungeon(reader &th)
 {
     // how many unique creatures?
@@ -3842,29 +3842,9 @@ static void tag_read_you_dungeon(reader &th)
     {
         brdepth[j]    = unmarshallInt(th);
         ASSERT_RANGE(brdepth[j], -1, MAX_BRANCH_DEPTH + 1);
-#if TAG_MAJOR_VERSION == 34
-        if (th.getMinorVersion() < TAG_MINOR_BRANCH_ENTRY)
-        {
-            int depth = unmarshallInt(th);
-            if (j != BRANCH_VESTIBULE)
-                brentry[j] = level_id(old_entries[j], depth);
-        }
-        else
-#endif
         brentry[j]    = unmarshall_level_id(th);
-#if TAG_MAJOR_VERSION == 34
-        if (th.getMinorVersion() < TAG_MINOR_BRIBE_BRANCH)
-            branch_bribe[j] = 0;
-        else
-#endif
         branch_bribe[j] = unmarshallInt(th);
     }
-#if TAG_MAJOR_VERSION == 34
-    // Deepen the Abyss; this is okay since new abyssal stairs will be
-    // generated as the place shifts.
-    if (crawl_state.game_is_normal() && th.getMinorVersion() <= TAG_MINOR_ORIG_MONNUM)
-        brdepth[BRANCH_ABYSS] = 5;
-#endif
 
     ASSERT(you.depth <= brdepth[you.where_are_you]);
 
@@ -4065,7 +4045,8 @@ void marshallItem(writer &th, const item_def &item, bool iinfo)
         if (!item.quantity)
             name = "(quantity: 0) ", dummy.quantity = 1;
         name += dummy.name(DESC_PLAIN, true);
-        die("Invalid item: %s", name.c_str());
+//        die("Invalid item: %s", name.c_str());
+        return;
     }
 #endif
     ASSERT(item.is_valid(iinfo));

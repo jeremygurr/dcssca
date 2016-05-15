@@ -699,22 +699,27 @@ void TilesFramework::_send_player(bool force_full)
 
     _update_int(force_full, c.form, (uint8_t) you.form, "form");
 
-    _update_int(force_full, c.hp, you.hp, "hp");
-    _update_int(force_full, c.hp_max, you.hp_max, "hp_max");
-    _update_int(force_full, c.sp, you.sp, "sp");
-    _update_int(force_full, c.sp_max, you.sp_max, "sp_max");
+    _update_int(force_full, c.hp, get_hp(), "hp");
+    _update_int(force_full, c.hp_max, get_hp_max(), "hp_max");
+    _update_int(force_full, c.sp, get_sp(), "sp");
+    _update_int(force_full, c.sp_max, get_sp_max(), "sp_max");
 
     int max_max_hp = get_real_hp(true, true);
     int max_max_mp = get_real_mp(true, true);
     if (you.species == SP_DJINNI)
+    {
         max_max_hp += get_real_mp(true); // compare _print_stats_hp
+        max_max_hp += get_real_sp(true); // compare _print_stats_hp
+    }
 
     _update_int(force_full, c.real_hp_max, max_max_hp, "real_hp_max");
 
     if (you.species != SP_DJINNI)
     {
-        _update_int(force_full, c.mp, you.magic_points, "mp");
-        _update_int(force_full, c.mp_max, you.max_magic_points, "mp_max");
+        _update_int(force_full, c.mp, get_mp(), "mp");
+        _update_int(force_full, c.mp_max, get_mp_max(), "mp_max");
+        _update_int(force_full, c.sp, get_sp(), "sp");
+        _update_int(force_full, c.sp_max, get_sp_max(), "sp_max");
     }
 
     _update_int(force_full, c.real_mp_max, max_max_mp, "real_mp_max");
@@ -1193,10 +1198,8 @@ void TilesFramework::_send_cell(const coord_def &gc,
         if (next_pc.travel_trail != current_pc.travel_trail)
             json_write_int("travel_trail", next_pc.travel_trail);
 
-#if TAG_MAJOR_VERSION == 34
         if (next_pc.heat_aura != current_pc.heat_aura)
             json_write_int("heat_aura", next_pc.heat_aura);
-#endif
 
         if (_needs_flavour(next_pc) &&
             (next_pc.flv.floor != current_pc.flv.floor

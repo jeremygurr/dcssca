@@ -90,7 +90,7 @@ default-depth: D:12-, Depths, !Depths:$
 
 NAME:   firewood_loft
 TAGS:   extra
-DEPTH:  D, !D:$, Depths, !Depths:$
+DEPTH:  D, !D:$, Depths, !Depths:$, Dwarf
 ORIENT: float
 WEIGHT: 5
 : if you.absdepth() > 8 then
@@ -2693,7 +2693,7 @@ ORIENT: float
 TAGS: no_monster_gen no_item_gen
 DEPTH: Dis, !Dis:$, Depths, !Depths:$
 MONS: patrolling iron giant, flying skull
-ITEM: bolt
+ITEM: bolt ego:exploding q:5
 ITEM: potion of heal wounds
 ITEM: plate armour good_item
 ITEM: arbalest ego:flaming w:9 ident:type / arbalest unrand:damnation w:1
@@ -3519,7 +3519,7 @@ NSUBST: Q = 1:+ / *:x, R = 1:+ / *:x, S = 1:+ / *:x, T = 1:+ / *:x
 NSUBST: U = 1:+ / *:x, V = 1:+ / *:x
 # There are 111 - glyphs, which leads to about 27 monsters
 SUBST:  - = 2:20 d .:50
-ITEM:   any food / any weapon / any missile / w:5 any armour / \
+ITEM:   potion of stamina / any weapon / any missile / w:5 any armour / \
         w:5 any potion / w:5 any scroll, w:1 any misc
 MONS:   plant / w:40 nothing, goblin / hobgoblin / kobold / orc / w:5 gnoll
 MAP
@@ -3559,7 +3559,7 @@ NSUBST: E = 1:+ / *:x, F = 1:+ / *:x, G = 1:+ / *:x, H = 1:+ / *:x
 # 39 - glyphs, leading to about 10 monsters.
 SUBST:  - = 2:20 d .:50
 SUBST:  T = T:50 V G 1 .:20
-ITEM:   any food / any weapon / any missile / w:5 any armour / w:5 any potion
+ITEM:   potion of stamina / any weapon / any missile / w:5 any armour / w:5 any potion
 MONS:   plant / w:40 nothing, goblin / hobgoblin / kobold / orc
 MAP
 ....................
@@ -5938,7 +5938,7 @@ ENDMAP
 
 NAME:   cheibrodos_leafed_vault
 TAGS:   no_item_gen no_monster_gen
-DEPTH:  D:14-16, Depths:1-5
+DEPTH:  D:14-16, Depths:1-5, Dwarf
 ORIENT: float
 NSUBST: - = 4 = 8 / 8 = 9 / 90 = . / * = .:45 0
 SUBST:  " = $:5 * |:3
@@ -6234,7 +6234,7 @@ ENDMAP
 
 NAME:   kennysheep_cluttered_fort
 ORIENT: float
-DEPTH:  D:15-, Depths, !Depths:$
+DEPTH:  D:15-, Depths, !Depths:$, Dwarf
 NSUBST: % : 1:|
 SUBST:  % = *
 SUBST:  9 = 9900.
@@ -6379,7 +6379,7 @@ llllllllll-xxlxxxxll
 ENDMAP
 
 NAME: nicolae_legendary_halls
-DEPTH: Depths, !Depths:$
+DEPTH: Depths, !Depths:$, Dwarf
 TAGS: transparent
 ORIENT: float
 SUBST: + : +..., $ = $$$$%*, % = %%%%$*, * = ****%|, 0 = 0009.., 9 = 998.
@@ -6671,7 +6671,7 @@ xx..0x..T.T..x0..xx
 ENDMAP
 
 NAME: kennysheep_blocky_hall
-DEPTH: D:8-, Depths, Elf, Zot
+DEPTH: D:8-, Depths, Zot, Dwarf
 ORIENT: float
 TAGS: transparent
 MAP
@@ -6846,7 +6846,7 @@ xx...x...x...xx
 ENDMAP
 
 NAME: kennysheep_oblong_rooms
-DEPTH: D:$, Depths, Elf, Zot
+DEPTH: D:$, Depths, Zot, Dwarf
 ORIENT: float
 TAGS: transparent
 SUBST:  G : GTV.

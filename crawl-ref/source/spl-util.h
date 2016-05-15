@@ -54,6 +54,7 @@ spell_type spell_by_name(string name, bool partial_match = false);
 
 spschool_flag_type school_by_name(string name);
 
+int average_schools(const spschools_type &disciplines, const int scale = 1);
 int get_spell_slot_by_letter(char letter);
 int get_spell_letter(spell_type spell);
 spell_type get_spell_by_letter(char letter);
@@ -63,7 +64,7 @@ bool del_spell_from_memory_by_slot(int slot);
 bool del_spell_from_memory(spell_type spell);
 
 int spell_hunger(spell_type which_spell, bool rod = false);
-int spell_mana(spell_type which_spell, bool raw = false);
+
 int spell_difficulty(spell_type which_spell);
 int spell_power_cap(spell_type spell);
 int spell_range(spell_type spell, int pow, bool player_spell = true);
@@ -138,5 +139,5 @@ int spell_highlight_by_utility(spell_type spell,
                                 bool transient = false,
                                 bool rod_spell = false);
 bool spell_no_hostile_in_range(spell_type spell, bool rod = false);
-int spell_freeze_mana(const spell_type spell);
+
 #endif

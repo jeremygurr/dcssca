@@ -2991,8 +2991,8 @@ void do_explore_cmd()
         mpr("You need to eat something NOW!");
     else if (you.berserk())
         mpr("Calm down first, please.");
-    else if (player_in_branch(BRANCH_LABYRINTH))
-        mpr("No exploration algorithm can help you here.");
+//    else if (player_in_branch(BRANCH_LABYRINTH))
+//        mpr("No exploration algorithm can help you here.");
     else                        // Start exploring
         start_explore(Options.explore_greedy);
 }
@@ -3935,9 +3935,9 @@ runrest::runrest()
 void runrest::initialise(int dir, int mode)
 {
     // Note HP and MP for reference.
-    hp = you.hp;
-    sp = you.sp;
-    mp = you.magic_points;
+    hp = get_hp();
+    sp = get_sp();
+    mp = get_mp();
     notified_hp_full = false;
     notified_mp_full = false;
     notified_sp_full = false;

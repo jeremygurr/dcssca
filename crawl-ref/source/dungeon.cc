@@ -1246,36 +1246,37 @@ static int _num_items_wanted(int absdepth0)
     else if (absdepth0 > 5 && x_chance_in_y(absdepth0, 200))
         return 10 + random2avg(90, 2); // rich level!
     else
-        return 3 + roll_dice(3, 11);
+        return 3 + roll_dice(3, 13);
 }
 
 static int _num_mons_wanted()
 {
-    if (player_in_branch(BRANCH_ABYSS))
-        return 0;
-
-    if (player_in_branch(BRANCH_PANDEMONIUM))
-        return random2avg(28, 3);
-
-    // Except for Abyss and Pan, no other portal gets random monsters.
-    if (!player_in_connected_branch())
-        return 0;
-
-    if (!branch_has_monsters(you.where_are_you))
-        return 0;
-
-    if (player_in_branch(BRANCH_CRYPT))
-        return roll_dice(3, 8);
-
     int mon_wanted = roll_dice(3, 10);
 
-    if (player_in_hell())
+    if (player_in_branch(BRANCH_ABYSS))
+        mon_wanted = 0;
+
+    else if (player_in_branch(BRANCH_PANDEMONIUM))
+        mon_wanted = random2avg(28, 3);
+
+    // Except for Abyss and Pan, no other portal gets random monsters.
+    else if (!player_in_connected_branch())
+        mon_wanted = 0;
+
+    else if (!branch_has_monsters(you.where_are_you))
+        mon_wanted = 0;
+
+    else if (player_in_branch(BRANCH_CRYPT))
+        mon_wanted = roll_dice(3, 8);
+
+    else if (player_in_hell())
         mon_wanted += roll_dice(3, 8);
 
-    if (mon_wanted > 60)
+    else if (mon_wanted > 60)
         mon_wanted = 60;
 
-    return mon_wanted;
+    // boost monster creation since we don't generate them any more
+    return mon_wanted * 12 / 10;
 }
 
 static void _fixup_walls()
@@ -2476,7 +2477,15 @@ static bool _pan_level()
     // Unique pan lords become more common as you travel through pandemonium.
     // On average it takes 27 levels to see all four, and you're likely to see
     // your first one after about 10 levels.
-    if (x_chance_in_y(1 + place_info.levels_seen, 65 + place_info.levels_seen * 2)
+    int more_unlikely = 65;
+    if (place_info.levels_seen > 15)
+        more_unlikely = 0;
+    else if (place_info.levels_seen > 10)
+        more_unlikely = 20;
+    else if (place_info.levels_seen > 5)
+        more_unlikely = 40;
+
+    if (x_chance_in_y(1 + place_info.levels_seen, more_unlikely + place_info.levels_seen * 2)
         && !all_demons_generated)
     {
         do
@@ -3328,7 +3337,8 @@ static void _place_branch_entrances(bool use_vaults)
     {
         // Vestibule and hells are placed by other means.
         // Likewise, if we already have an entrance, keep going.
-        if (it->id >= BRANCH_VESTIBULE && it->id <= BRANCH_LAST_HELL
+        if (it->id == BRANCH_VESTIBULE
+            || is_hell_subbranch(it->id)
             || branch_entrance_placed[it->id])
         {
             continue;
@@ -5281,8 +5291,8 @@ void place_spec_shop(const coord_def& where, shop_type force_type)
 
 int greed_for_shop_type(shop_type shop, int level_number)
 {
-    if (shop == SHOP_FOOD)
-        return 10 + random2(5);
+//    if (shop == SHOP_FOOD)
+//        return 10 + random2(5);
     if (_shop_sells_antiques(shop))
         return 15 + random2avg(19, 2) + random2(level_number);
     return 10 + random2(5) + random2(level_number / 2);
@@ -5469,11 +5479,11 @@ static void _stock_shop_item(int j, shop_type shop_type_,
         object_class_type basetype = item_in_shop(shop_type_);
         int subtype = OBJ_RANDOM;
 
-        if (spec.gozag && shop_type_ == SHOP_FOOD && you.species == SP_VAMPIRE)
-        {
-            basetype = OBJ_POTIONS;
-            subtype = POT_BLOOD;
-        }
+//        if (spec.gozag && shop_type_ == SHOP_FOOD && you.species == SP_VAMPIRE)
+//        {
+//            basetype = OBJ_POTIONS;
+//            subtype = POT_BLOOD;
+//        }
 
         if (!spec.items.empty() && !spec.use_all)
         {
@@ -5488,11 +5498,11 @@ static void _stock_shop_item(int j, shop_type shop_type_,
             item_index = dgn_place_item(spec.items.get_item(j), coord_def(),
                                         item_level);
         }
-        else if (spec.gozag && shop_type_ == SHOP_FOOD
-                 && you.species == SP_GHOUL)
-        {
-            item_index = _make_delicious_corpse();
-        }
+//        else if (spec.gozag && shop_type_ == SHOP_FOOD
+//                 && you.species == SP_GHOUL)
+//        {
+//            item_index = _make_delicious_corpse();
+//        }
         else
         {
             // make an item randomly
@@ -5530,11 +5540,11 @@ static void _stock_shop_item(int j, shop_type shop_type_,
     if (shop_type_ == SHOP_BOOK && !is_artefact(item))
         stocked[item.sub_type]++;
 
-    if (spec.gozag && shop_type_ == SHOP_FOOD && you.species == SP_VAMPIRE)
-    {
-        ASSERT(is_blood_potion(item));
-        item.quantity += random2(3); // blood for the vampire friends :)
-    }
+//    if (spec.gozag && shop_type_ == SHOP_FOOD && you.species == SP_VAMPIRE)
+//    {
+//        ASSERT(is_blood_potion(item));
+//        item.quantity += random2(3); // blood for the vampire friends :)
+//    }
 
     // Identify the item, unless we don't do that.
     if (!_shop_sells_antiques(shop_type_))
@@ -5619,9 +5629,9 @@ object_class_type item_in_shop(shop_type shop_type)
     case SHOP_BOOK:
         return OBJ_BOOKS;
 
-    case SHOP_FOOD:
-        return OBJ_FOOD;
-
+//    case SHOP_FOOD:
+//        return OBJ_FOOD;
+//
     case SHOP_DISTILLERY:
         return OBJ_POTIONS;
 

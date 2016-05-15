@@ -452,7 +452,7 @@ KMONS: 2 = queen bee
 KITEM: 2 = royal jelly
 KMONS: 3 = generate_awake Nellie
 KITEM: 3 = demonic rune of zot
-: acq_on_sight(_G, '3', {"food","misc","wand"})
+: acq_on_sight(_G, '3', {"potion","misc","wand"})
 NSUBST: 1 = 1:2 / *:1
 COLOUR: # = yellow
 KFEAT: # = closed_door
@@ -1187,7 +1187,7 @@ KMONS: u = Mennas
 KMONS: y = generate_awake roxanne
 KMONS: z = oklob plant
 KFEAT: ! = gadget shop / armour shop / distillery shop
-KITEM: $ = any food / wand of disintegration w:2 / potion of curing / star_item
+KITEM: $ = any potion / wand of disintegration w:2 / potion of curing / star_item
 KMONS: C = patrolling ice devil
 KMONS: D = patrolling hell beast
 KMONS: E = patrolling sun demon
@@ -1405,7 +1405,7 @@ KMONS: 6 = orange crystal statue
 KMONS: 7 = ghost moth
 KMONS: & = gloorx vloq
 NSUBST: & = 1:& / 1:.
-KITEM: 1 = bone rune of zot
+KITEM: 1 = bony rune of zot
 KMONS: % = patrolling greater mummy
 KITEM: % = superb_item, superb_item, star_item, star_item, any, any
 KMONS: ? = patrolling greater mummy

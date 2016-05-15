@@ -5,6 +5,7 @@
 #include "itemprop-enum.h"
 #include "mon-enum.h"
 #include "ouch.h"
+#include "externs.h"
 
 // Used throughout inheriting classes, define them here for universal access
 const int HIT_WEAK   = 7;
@@ -53,6 +54,7 @@ public:
     attack_type     attk_type;
     attack_flavour  attk_flavour;
     int             attk_damage;
+    int             sp_cost;
 
     item_def        *weapon;
     brand_type      damage_brand;
@@ -105,6 +107,7 @@ public:
     string actor_pronoun(const actor *a, pronoun_type ptyp, bool actor_visible);
     string anon_name(description_level_type desc);
     string anon_pronoun(pronoun_type ptyp);
+    virtual const item_def *get_weapon_used(bool launcher = false);
 
 // Private Properties
     string aux_source;
@@ -184,7 +187,6 @@ protected:
     string defender_name(bool allow_reflexive);
 
     attack_flavour random_chaos_attack_flavour();
-    bool apply_poison_damage_brand();
 
     virtual int  player_stat_modify_damage(int damage);
     virtual int  player_apply_weapon_skill(int damage);

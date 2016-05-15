@@ -687,9 +687,11 @@ monster_type resolve_monster_type(monster_type mon_type,
                    || mon_type == RANDOM_BANDLESS_MONSTER
                       && _is_banded_monster((monster_type)type)
                    || mon_type == MONS_PLAYER_GHOST
+                      /* skip player ghosts for now
                       && place->branch == BRANCH_DUNGEON
                       &&   (crawl_state.difficulty == DIFFICULTY_STANDARD && place->depth < 10
                          || crawl_state.difficulty == DIFFICULTY_CHALLENGE && place->depth < 5)
+                         */
                 );
 
             int base = vault_mon_bases[i];
@@ -1455,7 +1457,7 @@ static monster* _place_monster_aux(const mgen_data &mg, const monster *leader,
                 get_monster_data(draco_or_demonspawn_subspecies(mon));
             bonus_hp = mbase->avg_hp_10x;
         }
-        mon->set_hit_dice(mg.hd);
+        mon->set_hit_dice(rune_curse_hp_adjust(mg.hd));
         // Re-roll HP.
         const int base_avg_hp = m_ent->avg_hp_10x + bonus_hp;
         const int new_avg_hp = div_rand_round(base_avg_hp * mg.hd, m_ent->HD);
@@ -3226,7 +3228,7 @@ bool player_angers_monster(monster* mon)
 
         if (you.can_see(*mon))
         {
-            const string mname = mon->name(DESC_THE).c_str();
+            const string mname = mon->name(DESC_THE);
 
             switch (why)
             {

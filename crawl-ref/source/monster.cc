@@ -46,7 +46,6 @@
 #include "mon-cast.h"
 #include "mon-clone.h"
 #include "mon-death.h"
-#include "mon-pathfind.h"
 #include "mon-place.h"
 #include "mon-poly.h"
 #include "mon-tentacle.h"
@@ -382,7 +381,7 @@ int monster::damage_type(int which_attack)
  * @return              The time taken by an attack with the monster's weapon
  *                      and the given projectile, in aut.
  */
-random_var monster::attack_delay(const item_def *projectile,
+int monster::attack_delay(const item_def *projectile,
                                  bool /*rescale*/) const
 {
     const item_def* weap = weapon();
@@ -392,12 +391,14 @@ random_var monster::attack_delay(const item_def *projectile,
                      : !weap;
 
     if (use_unarmed || !weap)
-        return random_var(10);
+        return 10;
 
-    random_var delay(property(*weap, PWPN_SPEED));
+    int delay = property(*weap, PWPN_SPEED);
+
     if (get_weapon_brand(*weap) == SPWPN_SPEED)
         delay = div_rand_round(delay * 2, 3);
-    return (random_var(10) + delay) / 2;
+
+    return (10 + delay) / 2;
 }
 
 int monster::has_claws(bool allow_tran) const
@@ -4856,19 +4857,6 @@ bool monster::is_cloud_safe(const coord_def &place) const
     return !mons_avoids_cloud(this, place);
 }
 
-static bool _can_path_to_staircase(const monster *mons, coord_def place)
-{
-    monster_pathfind mp;
-    mp.set_monster(mons);
-
-    for (rectangle_iterator ri(0); ri; ++ri)
-        if (feat_is_stair(grd(*ri)))
-            if (mp.init_pathfind(place, *ri, true, false))
-                return true;
-
-    return false;
-}
-
 bool monster::check_set_valid_home(const coord_def &place,
                                     coord_def &chosen,
                                     int &nvalid) const
@@ -4885,14 +4873,12 @@ bool monster::check_set_valid_home(const coord_def &place,
     if (!is_trap_safe(place, true))
         return false;
 
-    if (type == MONS_PLAYER_GHOST && !_can_path_to_staircase(this, place))
-        return false;
-
     if (one_chance_in(++nvalid))
         chosen = place;
 
     return true;
 }
+
 
 bool monster::is_location_safe(const coord_def &place)
 {
@@ -6455,7 +6441,7 @@ void monster::steal_item_from_player()
          name(DESC_THE).c_str(),
          you.inv2[steal_what].name(DESC_YOUR).c_str());
 
-    item_def* tmp = take_item(steal_what, mslot);
+    item_def* tmp = take_item(steal_what, mslot, you.inv2);
     if (!tmp)
         return;
     item_def& new_item = *tmp;
@@ -6484,7 +6470,7 @@ void monster::steal_item_from_player()
  *
  * @returns new_item the new item, now in the monster's inventory.
  */
-item_def* monster::take_item(int steal_what, mon_inv_type mslot)
+item_def * monster::take_item(int steal_what, mon_inv_type mslot, FixedVector< item_def, ENDOFPACK > &player_inv)
 {
     // Create new item.
     int index = get_mitm_slot(10);
@@ -6494,7 +6480,7 @@ item_def* monster::take_item(int steal_what, mon_inv_type mslot)
     item_def &new_item = mitm[index];
 
     // Copy item.
-    new_item = you.inv2[steal_what];
+    new_item = player_inv[steal_what];
 
     // Drop the item already in the slot (including the shield
     // if it's a two-hander).
@@ -6519,7 +6505,7 @@ item_def* monster::take_item(int steal_what, mon_inv_type mslot)
     equip(new_item, true);
 
     // Item is gone from player's inventory.
-    dec_inv_item_quantity(you.inv2, steal_what, new_item.quantity);
+    dec_inv_item_quantity(player_inv, steal_what, new_item.quantity);
 
     return &new_item;
 }

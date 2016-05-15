@@ -699,7 +699,7 @@ void game_options::reset_options()
     set_default_activity_interrupts();
 
 #ifdef DEBUG_DIAGNOSTICS
-    quiet_debug_messages.reset();
+    quiet_debug_messages.init(true);
 #ifdef DEBUG_MONSPEAK
     quiet_debug_messages.set(DIAG_SPEECH);
 #endif
@@ -947,10 +947,10 @@ void game_options::reset_options()
 
     regex_search = false;
 
-    movement_penalty = 11;
+    movement_penalty = 15;
 
     danger_mode_threshold = 30;
-    level_27_cap = true;
+    level_27_cap = false;
     exp_potion_on_each_floor = false;
     uniques_drop_exp_potions = false;
     exp_percent_from_monsters = 100;
@@ -2916,7 +2916,7 @@ void game_options::read_option_line(const string &str, bool runscript)
             experience_mode = EXP_MODE_CLASSIC;
             exp_potion_on_each_floor = false;
             uniques_drop_exp_potions = false;
-            exp_based_on_player_level = true;
+            exp_based_on_player_level = false;
             exp_percent_from_monsters = 100;
             exp_percent_from_potions = 100;
             exp_percent_from_new_branch_floor = 0;

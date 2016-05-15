@@ -32,6 +32,7 @@
 #include "mon-clone.h"
 #include "mon-death.h"
 #include "mon-poly.h"
+#include "ranged_attack.h"
 #include "religion.h"
 #include "spl-miscast.h"
 #include "state.h"
@@ -178,7 +179,7 @@ int attack::calc_to_hit(bool random)
             }
         }
         else if (you.form_uses_xl())
-            mhit += maybe_random_div(you.experience_level * 100, 100, random);
+            mhit += maybe_random_div(effective_xl() * 100, 100, random);
         else
         {
             // Claws give a slight bonus to accuracy when active
@@ -387,6 +388,15 @@ void attack::init_attack(skill_type unarmed_skill, int attack_number)
 
     if (attacker->is_player())
     {
+        const item_def *const weapon_used = get_weapon_used(true);
+        int weight = weapon_used ? max(1, property(*weapon_used, PWPN_WEIGHT)) : 3;
+
+        sp_cost = 100 * weight;
+        sp_cost /= 5 + you.strength(true);
+        sp_cost /= 5 + you.skill(SK_FIGHTING);
+
+        sp_cost = max(1, sp_cost);
+
         you.last_tohit = to_hit;
         you.redraw_tohit = true;
     }
@@ -1237,10 +1247,10 @@ int attack::player_stat_modify_damage(int damage)
 {
     int dammod = 39;
 
-    if (you.strength() > 11)
-        dammod += (random2(you.strength() - 11) * 2);
-    else if (you.strength() < 9)
-        dammod -= (random2(9 - you.strength()) * 3);
+    if (you.strength() > 10)
+        dammod += (random2(you.strength() - 10) * 2);
+    else if (you.strength() < 10)
+        dammod -= (random2(10 - you.strength()) * 3);
 
     damage *= dammod;
     damage /= 39;
@@ -1344,7 +1354,7 @@ int attack::calc_base_unarmed_damage()
         damage += you.has_claws() * 2;
 
     if (you.form_uses_xl())
-        damage += you.experience_level;
+        damage += effective_xl();
     else if (you.form == TRAN_BAT || you.form == TRAN_PORCUPINE)
     {
         // Bats really don't do a lot of damage.
@@ -1444,7 +1454,9 @@ int attack::test_hit(int to_land, int ev, bool randomise_ev)
     else
     {
         int chance = 0;
-        margin = random_diff(to_land, ev, &chance);
+
+        defer_rand r;
+        margin = random_diff(to_land, ev, &chance, r);
 
         if (attacker->is_player())
             player_update_last_hit_chance(chance);
@@ -1588,34 +1600,6 @@ attack_flavour attack::random_chaos_attack_flavour()
     return flavour;
 }
 
-bool attack::apply_poison_damage_brand()
-{
-    if (!one_chance_in(4))
-    {
-        int old_poison;
-
-        if (defender->is_player())
-            old_poison = you.duration[DUR_POISONING];
-        else
-        {
-            old_poison =
-                (defender->as_monster()->get_ench(ENCH_POISON)).degree;
-        }
-
-        defender->poison(attacker, 6 + random2(8) + random2(damage_done * 3 / 2));
-
-        if (defender->is_player()
-               && old_poison < you.duration[DUR_POISONING]
-            || !defender->is_player()
-               && old_poison <
-                  (defender->as_monster()->get_ench(ENCH_POISON)).degree)
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
 bool attack::apply_damage_brand(const char *what)
 {
     bool brand_was_known = false;
@@ -1701,7 +1685,30 @@ bool attack::apply_damage_brand(const char *what)
         break;
 
     case SPWPN_VENOM:
-        obvious_effect = apply_poison_damage_brand();
+        if (!one_chance_in(4))
+        {
+            int old_poison;
+
+            if (defender->is_player())
+                old_poison = you.duration[DUR_POISONING];
+            else
+            {
+                old_poison =
+                    (defender->as_monster()->get_ench(ENCH_POISON)).degree;
+            }
+
+            defender->poison(attacker, 6 + random2(8) + random2(damage_done * 3 / 2));
+
+            if (defender->is_player()
+                   && old_poison < you.duration[DUR_POISONING]
+                || !defender->is_player()
+                   && old_poison <
+                      (defender->as_monster()->get_ench(ENCH_POISON)).degree)
+            {
+                obvious_effect = true;
+            }
+
+        }
         break;
 
     case SPWPN_DRAINING:
@@ -1745,7 +1752,6 @@ bool attack::apply_damage_brand(const char *what)
         // worries on that score.
         if (attacker->is_player())
         {
-            dec_sp(1, true);
             canned_msg(MSG_GAIN_HEALTH, hp_boost);
         }
         else if (attacker_visible)
@@ -1868,11 +1874,6 @@ bool attack::apply_damage_brand(const char *what)
         if (miscast_level == 0)
             miscast_level = -1;
     }
-
-    // Preserve Nessos's brand stacking in a hacky way -- but to be fair, it
-    // was always a bit of a hack.
-    if (attacker->type == MONS_NESSOS && weapon && is_range_weapon(*weapon))
-        apply_poison_damage_brand();
 
     if (special_damage > 0)
         inflict_damage(special_damage, special_damage_flavour);
@@ -2030,3 +2031,7 @@ void attack::player_stab_check()
     if (stab_attempt)
         count_action(CACT_STAB, st);
 }
+
+const item_def * attack::get_weapon_used(bool launcher)
+{ return nullptr; }
+

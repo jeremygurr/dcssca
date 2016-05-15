@@ -158,11 +158,13 @@ bool ranged_attack::attack()
     return attack_occurred;
 }
 
-// XXX: Are there any cases where this might fail?
 bool ranged_attack::handle_phase_attempted()
 {
     attacker->attacking(defender, true);
     attack_occurred = true;
+
+    if (sp_cost && attacker->is_player())
+        dec_sp(sp_cost, true);
 
     return true;
 }
@@ -415,8 +417,9 @@ bool ranged_attack::apply_damage_brand(const char *what)
 
     const brand_type brand = get_weapon_brand(*weapon);
 
-    // No stacking elemental brands.
-    if (projectile->base_type == OBJ_MISSILES
+    // No stacking elemental brands, unless you're Nessos.
+    if (attacker->type != MONS_NESSOS
+        && projectile->base_type == OBJ_MISSILES
         && get_ammo_brand(*projectile) != SPMSL_NORMAL
         && get_ammo_brand(*projectile) != SPMSL_PENETRATION
         && (brand == SPWPN_FLAMING
@@ -832,3 +835,12 @@ void ranged_attack::announce_hit()
          debug_damage_number().c_str(),
          attack_strength_punctuation(damage_done).c_str());
 }
+
+const item_def* ranged_attack::get_weapon_used(bool launcher)
+{
+    if (launcher)
+        return weapon;
+    else
+        return projectile;
+}
+

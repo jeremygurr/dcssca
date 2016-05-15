@@ -291,6 +291,7 @@ bool player_tracer(zap_type ztype, int power, bolt &pbolt, int range)
     pbolt.foe_ratio        = 100;
     pbolt.beam_cancelled   = false;
     pbolt.dont_stop_player = false;
+    pbolt.dont_stop_trees  = false;
 
     // Clear misc
     pbolt.seen          = false;
@@ -927,7 +928,7 @@ void bolt::burn_wall_effect()
 
 static bool _destroy_wall_msg(dungeon_feature_type feat, const coord_def& p)
 {
-    const char *msg = nullptr;
+    string msg = "";
     msg_channel_type chan = MSGCH_PLAIN;
     bool hear = player_can_hear(p);
     bool see = you.see_cell(p);
@@ -943,7 +944,7 @@ static bool _destroy_wall_msg(dungeon_feature_type feat, const coord_def& p)
         if (see)
         {
             msg = (feature_description_at(p, false, DESC_THE, false)
-                   + " explodes into countless fragments.").c_str();
+                   + " explodes into countless fragments.");
         }
         else if (hear)
         {
@@ -992,9 +993,9 @@ static bool _destroy_wall_msg(dungeon_feature_type feat, const coord_def& p)
         break;
     }
 
-    if (msg)
+    if (!msg.empty())
     {
-        mprf(chan, "%s", msg);
+        mprf(chan, "%s", msg.c_str());
         return true;
     }
     else
@@ -1073,6 +1074,34 @@ void bolt::affect_wall()
     {
         if (!can_affect_wall(grd(pos())))
             finish_beam();
+
+        // potentially warn about offending your god by burning/disinting trees
+        const bool burns_trees = can_burn_trees();
+        const bool god_relevant = you.religion == GOD_DITHMENOS && burns_trees
+                                  || you.religion == GOD_FEDHAS;
+        const string veto_key = burns_trees ? "veto_fire" : "veto_disintegrate";
+        const bool vetoed = env.markers.property_at(pos(), MAT_ANY, veto_key)
+                            == "veto";
+        // XXX: should check env knowledge for feat_is_tree()
+        if (god_relevant && feat_is_tree(grd(pos())) && !vetoed
+            && !is_targeting && YOU_KILL(thrower) && !dont_stop_trees)
+        {
+            const string prompt =
+                make_stringf("Are you sure you want to %s %s?",
+                             burns_trees ? "burn" : "destroy",
+                             feature_description_at(pos(), false, DESC_THE,
+                                                    false).c_str());
+
+            if (yesno(prompt.c_str(), false, 'n'))
+                dont_stop_trees = true;
+            else
+            {
+                canned_msg(MSG_OK);
+                beam_cancelled = true;
+                finish_beam();
+            }
+        }
+
         // The only thing that doesn't stop at walls.
         if (flavour != BEAM_DIGGING)
             finish_beam();
@@ -2330,6 +2359,7 @@ void bolt_parent_init(const bolt &parent, bolt &child)
     child.friend_info.dont_stop = parent.friend_info.dont_stop;
     child.foe_info.dont_stop    = parent.foe_info.dont_stop;
     child.dont_stop_player      = parent.dont_stop_player;
+    child.dont_stop_trees       = parent.dont_stop_trees;
 
 #ifdef DEBUG_DIAGNOSTICS
     child.quiet_debug    = parent.quiet_debug;
@@ -3055,7 +3085,7 @@ static bool _test_beam_hit(int attack, int defense, bool pierce,
     dprf(DIAG_BEAM, "Beam attack: %d, defense: %d", attack, defense);
 
     int chance = 0;
-    const int result = random_diff(attack, defense, &chance);
+    const int result = random_diff(attack, defense, &chance, r);
     player_update_last_hit_chance(chance);
     player_update_tohit(attack);
 
@@ -3161,7 +3191,7 @@ bool bolt::harmless_to_player() const
         // Normally we'd just ignore it, but we shouldn't let a player
         // kill themselves without a warning.
         return player_res_poison(false) > 0 || you.is_unbreathing()
-            || you.clarity(false) && you.hp > 2;
+            || you.clarity(false) && get_hp() > 2;
 
     case BEAM_ELECTRICITY:
         return player_res_electricity(false);
@@ -3175,6 +3205,7 @@ bool bolt::harmless_to_player() const
     case BEAM_FIRE:
     case BEAM_HOLY_FLAME:
     case BEAM_STICKY_FLAME:
+    case BEAM_LAVA:
         return you.species == SP_DJINNI;
 
     case BEAM_VIRULENCE:
@@ -3258,7 +3289,7 @@ void bolt::tracer_affect_player()
             if (yesno(prompt.c_str(), false, 'n'))
             {
                 friend_info.count++;
-                friend_info.power += you.experience_level;
+                friend_info.power += effective_xl();
                 dont_stop_player = true;
             }
             else
@@ -3274,12 +3305,12 @@ void bolt::tracer_affect_player()
         if (mons_att_wont_attack(attitude))
         {
             friend_info.count++;
-            friend_info.power += you.experience_level;
+            friend_info.power += effective_xl();
         }
         else
         {
             foe_info.count++;
-            foe_info.power += you.experience_level;
+            foe_info.power += effective_xl();
         }
     }
 
@@ -3460,7 +3491,7 @@ void bolt::affect_player_enchantment(bool resistible)
         {
             const int mp_gain = 2 + ench_power / 10;
             mprf(MSGCH_INTRINSIC_GAIN, "You absorb the magic. (%d)", mp_gain);
-            inc_mp(mp_gain);
+            inc_mp(mp_gain * 3);
             return;
         }
     }
@@ -3643,7 +3674,7 @@ void bolt::affect_player_enchantment(bool resistible)
                 break;
             }
 
-            const int hurt = you.hp / 2 - 1;
+            const int hurt = get_hp() / 2 - 1;
             mprf("Your body is wracked with pain! (%d)", hurt);
 
             // On the player, Agony acts like single-target torment.
@@ -3795,10 +3826,10 @@ void bolt::affect_player_enchantment(bool resistible)
 
         case BEAM_DRAIN_MAGIC:
         {
-            int amount = min(you.magic_points, random2avg(ench_power / 8, 3));
+            int amount = min(get_mp(), random2avg(ench_power / 8, 3));
 
             if (you.species == SP_DJINNI)
-                amount = min(you.hp / 2, random2avg(ench_power / 8, 3));
+                amount = min(get_hp() / 2, random2avg(ench_power / 8, 3));
 
             if (!amount)
                 break;
@@ -3961,7 +3992,7 @@ void bolt::affect_player()
     practise(EX_BEAM_WILL_HIT);
 
     bool was_affected = false;
-    int  old_hp       = you.hp;
+    int  old_hp       = get_hp();
 
 //    hurted = max(0, hurted);
 
@@ -3971,7 +4002,7 @@ void bolt::affect_player()
         && (flavour == BEAM_MISSILE || flavour == BEAM_MMISSILE))
     {
         // assumes DVORP_PIERCING, factor: 0.5
-        int blood = min(you.hp, hurted / 2);
+        int blood = min(get_hp(), hurted / 2);
         bleed_onto_floor(you.pos(), MONS_PLAYER, blood, true);
     }
 
@@ -4037,7 +4068,7 @@ void bolt::affect_player()
         }
 
         if (you.mutation[MUT_JELLY_MISSILE]
-            && you.hp < you.hp_max
+            && get_hp() < get_hp_max()
             && !you.duration[DUR_DEATHS_DOOR]
             && item_is_jelly_edible(*item)
             && coinflip())
@@ -4092,7 +4123,7 @@ void bolt::affect_player()
     if (origin_spell == SPELL_QUICKSILVER_BOLT)
         debuff_player();
 
-    if (hurted > 0 || old_hp < you.hp || was_affected)
+    if (hurted > 0 || old_hp < get_hp() || was_affected)
     {
         if (mons_att_wont_attack(attitude))
         {
@@ -4143,7 +4174,7 @@ void bolt::affect_player()
     else if (origin_spell == SPELL_DAZZLING_SPRAY
              && !(you.holiness() & (MH_UNDEAD | MH_NONLIVING | MH_PLANT)))
     {
-        if (x_chance_in_y(85 - you.experience_level * 3 , 100))
+        if (x_chance_in_y(85 - effective_xl() * 3 , 100))
             you.confuse(agent(), 5 + random2(3));
     }
 }
@@ -5262,7 +5293,8 @@ bool ench_flavour_affects_monster(beam_type flavour, const monster* mon,
                  && !mon->is_summoned()
                  && !mons_enslaved_body_and_soul(mon)
                  && mon->attitude != ATT_FRIENDLY
-                 && mons_intel(mon) >= I_HUMAN;
+                 && mons_intel(mon) >= I_HUMAN
+                 && mon->type != MONS_PANDEMONIUM_LORD;
             break;
 
         case BEAM_DISPEL_UNDEAD:

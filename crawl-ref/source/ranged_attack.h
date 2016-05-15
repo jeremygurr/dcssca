@@ -19,6 +19,7 @@ public:
 
     // Applies attack damage and other effects.
     bool attack();
+    const item_def* get_weapon_used(bool launcher = false) override;
 
 private:
     /* Attack Phases */

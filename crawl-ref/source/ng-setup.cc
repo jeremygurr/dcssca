@@ -226,13 +226,13 @@ static void _give_ammo(weapon_type weapon, int plus)
         newgame_make_item(OBJ_MISSILES, MI_THROWING_NET, 4);
         break;
     case WPN_SHORTBOW:
-        newgame_make_item(OBJ_MISSILES, MI_ARROW, 100);
+        newgame_make_item(OBJ_MISSILES, MI_ARROW, 20, 0, SPMSL_FLAME);
         break;
     case WPN_HAND_CROSSBOW:
-        newgame_make_item(OBJ_MISSILES, MI_BOLT, 100);
+        newgame_make_item(OBJ_MISSILES, MI_BOLT, 20, 0, SPMSL_PENETRATION);
         break;
     case WPN_HUNTING_SLING:
-        newgame_make_item(OBJ_MISSILES, MI_SLING_BULLET, 100);
+        newgame_make_item(OBJ_MISSILES, MI_SLING_BULLET, 20, SPMSL_EXPLODING);
         break;
     default:
         break;
@@ -344,11 +344,6 @@ static void _give_starting_food()
     if (player_mutation_level(MUT_FAST_METABOLISM))
         quantity = 2;
 
-    // Since they require food to regen, give them a fighting chance at the beginning
-//    if (you.species == SP_DJINNI) {
-//    	quantity = 3;
-//    }
-
     newgame_make_item(base_type, sub_type, quantity);
 }
 
@@ -362,7 +357,7 @@ static void _setup_tutorial_miscs()
     you.gold = 0;
 
     // Give them some mana to play around with.
-    you.mp_max_adj += 2;
+    you.mp_max_adj += 20;
 
     newgame_make_item(OBJ_ARMOUR, ARM_ROBE, 1, 0, 0, true);
 
@@ -590,9 +585,9 @@ static void _setup_generic(const newgame_def& ng)
     calc_mp();
 
     // Make sure the starting player is fully charged up.
-    set_hp(you.hp_max);
-    set_sp(you.sp_max);
-    set_mp(you.max_magic_points);
+    set_hp(get_hp_max());
+    set_sp(get_sp_max());
+    set_mp(get_mp_max());
 
     initialise_branch_depths();
     initialise_temples();

@@ -380,7 +380,8 @@ bool dec_inv_item_quantity(FixedVector< item_def, ENDOFPACK > &inv, int obj, int
     if (you.equip[EQ_WEAPON] == obj)
         you.wield_change = true;
 
-    you.m_quiver.on_inv_quantity_changed(obj, amount);
+    if (!consumable)
+        you.m_quiver.on_inv_quantity_changed(obj, amount);
 
     if (inv[obj].quantity <= amount)
     {
@@ -3849,11 +3850,17 @@ colour_t item_def::rune_colour() const
         case RUNE_ELF:                      // elven
             return ETC_ELVEN;
 
+        case RUNE_DWARF:                    // dwarven
+            return ETC_DWARVEN;
+
         case RUNE_VAULTS:                   // silver
             return ETC_SILVER;
 
         case RUNE_TOMB:                     // golden
             return ETC_GOLD;
+
+        case RUNE_CRYPT:                    // dwarven
+            return ETC_DECAY;
 
         case RUNE_SWAMP:                    // decaying
             return ETC_DECAY;

@@ -14,7 +14,7 @@ FixedVector<int, NUM_BRANCHES> branch_bribe;
 branch_type root_branch;
 
 branch_iterator::branch_iterator() :
-    i(BRANCH_DUNGEON)
+    i(BRANCH_FIRST)
 {
 }
 
@@ -26,43 +26,40 @@ branch_iterator::operator bool() const
 const Branch* branch_iterator::operator*() const
 {
     static const branch_type branch_order[] = {
+        BRANCH_ABYSS,
+        BRANCH_BAILEY,
+        BRANCH_BAZAAR,
+        BRANCH_COCYTUS,
+        BRANCH_CRYPT,
+        BRANCH_DEPTHS,
+        BRANCH_DIS,
         BRANCH_DUNGEON,
-        BRANCH_TEMPLE,
+        BRANCH_DWARF,
+        BRANCH_ELF,
+        BRANCH_FOREST,
+        BRANCH_GEHENNA,
+        BRANCH_ICE_CAVE,
+        BRANCH_LABYRINTH,
         BRANCH_LAIR,
-        BRANCH_SWAMP,
+        BRANCH_ORC,
+        BRANCH_OSSUARY,
+        BRANCH_PANDEMONIUM,
+        BRANCH_SEWER,
         BRANCH_SHOALS,
+        BRANCH_SLIME,
         BRANCH_SNAKE,
         BRANCH_SPIDER,
-        BRANCH_SLIME,
-        BRANCH_ORC,
-        BRANCH_ELF,
-        BRANCH_DWARF,
-        BRANCH_VAULTS,
-#if TAG_MAJOR_VERSION == 34
-        BRANCH_BLADE,
-#endif
-        BRANCH_FOREST,
-        BRANCH_CRYPT,
-        BRANCH_TOMB,
-        BRANCH_DEPTHS,
-        BRANCH_VESTIBULE,
-        BRANCH_DIS,
-        BRANCH_GEHENNA,
-        BRANCH_COCYTUS,
+        BRANCH_SWAMP,
         BRANCH_TARTARUS,
-        BRANCH_ZOT,
-        BRANCH_ABYSS,
-        BRANCH_PANDEMONIUM,
-        BRANCH_ZIGGURAT,
-        BRANCH_LABYRINTH,
-        BRANCH_BAZAAR,
+        BRANCH_TEMPLE,
+        BRANCH_TOMB,
         BRANCH_TROVE,
-        BRANCH_SEWER,
-        BRANCH_OSSUARY,
-        BRANCH_BAILEY,
-        BRANCH_ICE_CAVE,
+        BRANCH_VAULTS,
+        BRANCH_VESTIBULE,
         BRANCH_VOLCANO,
-        BRANCH_WIZLAB
+        BRANCH_WIZLAB,
+        BRANCH_ZIGGURAT,
+        BRANCH_ZOT,
     };
     COMPILE_CHECK(ARRAYSZ(branch_order) == NUM_BRANCHES);
 
@@ -107,6 +104,11 @@ bool at_branch_bottom()
     return brdepth[you.where_are_you] == you.depth;
 }
 
+bool in_lower_half_of_branch()
+{
+    return you.depth > brdepth[you.where_are_you] / 2;
+}
+
 level_id current_level_parent()
 {
     // Never called from X[], we don't have to support levels you're not on.
@@ -118,9 +120,10 @@ level_id current_level_parent()
 
 bool is_hell_subbranch(branch_type branch)
 {
-    return branch >= BRANCH_FIRST_HELL
-           && branch <= BRANCH_LAST_HELL
-           && branch != BRANCH_VESTIBULE;
+    return branch == BRANCH_COCYTUS
+           || branch == BRANCH_TARTARUS
+           || branch == BRANCH_DIS
+           || branch == BRANCH_GEHENNA;
 }
 
 bool is_random_subbranch(branch_type branch)
@@ -143,6 +146,11 @@ bool is_connected_branch(branch_type branch)
 bool is_connected_branch(level_id place)
 {
     return is_connected_branch(place.branch);
+}
+
+bool is_double_deep_branch(branch_type branch)
+{
+    return branch == BRANCH_ORC;
 }
 
 branch_type branch_by_abbrevname(const string &branch, branch_type err)
@@ -175,13 +183,6 @@ branch_type get_branch_at(const coord_def& pos)
 
 bool branch_is_unfinished(branch_type branch)
 {
-#if TAG_MAJOR_VERSION == 34
-    if (
-        branch == BRANCH_BLADE)
-    {
-        return true;
-    }
-#endif
     return false;
 }
 

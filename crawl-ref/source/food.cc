@@ -977,7 +977,7 @@ static void _eat_chunk(item_def& food)
         if (you.species == SP_GHOUL)
         {
             suppress_msg = true;
-            const int hp_amt = 1 + random2avg(5 + you.experience_level, 3);
+            const int hp_amt = 1 + random2avg(5 + effective_xl(), 3);
             _heal_from_food(hp_amt);
         }
 
@@ -1007,7 +1007,7 @@ static void _eating(item_def& food)
     {
         case FOOD_FRUIT:
         {
-            int amount = qpow(50, 3, 2, player_mutation_level(MUT_HERBIVOROUS) - player_mutation_level(MUT_CARNIVOROUS));
+            int amount = qpow(25, 3, 2, player_mutation_level(MUT_HERBIVOROUS) - player_mutation_level(MUT_CARNIVOROUS));
             amount = div_rand_round(amount, 3);
             inc_sp(amount);
             mprf("That was refreshing! (sp+%d)", amount);

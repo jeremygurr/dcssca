@@ -87,6 +87,7 @@ static const map<species_type, species_def> species_data =
     { STAT_STR, STAT_DEX }, 4,
     {
       { MUT_CLEAN_DNA, 2, 1 },
+      { MUT_RESILIENT_DNA, 2, 1 },
       { MUT_TOUGH_SKIN, 3, 1 },
       { MUT_HIGH_STAMINA, 1, 1 },
       { MUT_FAST, 1, 1 },
@@ -131,7 +132,7 @@ static const map<species_type, species_def> species_data =
     "DE",
     "Deep Elf", "Elven", "Elf",
     SPF_ELVEN,
-    -1, -2, 4,
+    -1, -2, 3,
     15, 4,
     MONS_ELF,
     HT_LAND, US_ALIVE, SIZE_MEDIUM,
@@ -395,10 +396,10 @@ static const map<species_type, species_def> species_data =
       "Fire heals you."
     },
     { },
-    { JOB_FIGHTER, JOB_HUNTER, JOB_ABYSSAL_KNIGHT, JOB_DEATH_KNIGHT, JOB_WARPER,
-      JOB_ARCANE_MARKSMAN, JOB_SKALD, JOB_TRANSMUTER, JOB_WIZARD, JOB_CONJURER, JOB_SUMMONER,
-      JOB_FIRE_ELEMENTALIST, JOB_AIR_ELEMENTALIST, JOB_ARTIFICER},
-    { SK_SHORT_BLADES, SK_LONG_BLADES, SK_POLEARMS, SK_STAVES, SK_BOWS },
+    { JOB_GLADIATOR, JOB_HUNTER, JOB_ABYSSAL_KNIGHT, JOB_MONK,
+      JOB_ARCANE_MARKSMAN, JOB_WARPER, JOB_WIZARD,
+      JOB_FIRE_ELEMENTALIST, JOB_AIR_ELEMENTALIST},
+    { SK_LONG_BLADES, SK_POLEARMS, SK_STAVES, SK_UNARMED_COMBAT, SK_BOWS, SK_CROSSBOWS },
 } },
 
 { SP_FELID, {
@@ -474,6 +475,8 @@ static const map<species_type, species_def> species_data =
       { MUT_CLAWS, 1, 1 },
       { MUT_UNBREATHING, 1, 1 },
       { MUT_HEALTH_FROM_CORPSES, 1, 1 },
+      { MUT_HEALTH_FROM_CORPSES, 1, 6 },
+      { MUT_HEALTH_FROM_CORPSES, 1, 12 },
     },
     { "Your body is rotting away.",
       "You thrive on raw meat." },
@@ -711,6 +714,7 @@ static const map<species_type, species_def> species_data =
     14, 14,  14, // 42
     { STAT_STR, STAT_INT, STAT_DEX }, 5,
     { { MUT_NEGATIVE_ENERGY_RESISTANCE, 3, 1 },
+      { MUT_HUNGERLESS, 1, 1 },
       { MUT_COLD_RESISTANCE, 1, 1 },
       { MUT_TORMENT_RESISTANCE, 1, 1 },
       { MUT_UNBREATHING, 1, 1 },
@@ -809,7 +813,7 @@ static const map<species_type, species_def> species_data =
 { SP_SLUDGE_ELF, {
     "SE",
     "Sludge Elf", "Elven", "Elf",
-    SPF_ELVEN,
+    SPF_ELVEN | SPF_ORCISH,
     0, 0, -4,
     15, 3,
     MONS_ELF,
@@ -840,7 +844,6 @@ static const map<species_type, species_def> species_data =
     { { MUT_FAST, 2, 1 },
       { MUT_HERBIVOROUS, 3, 1 },
       { MUT_ACUTE_VISION, 1, 1 },
-      { MUT_SLOW_METABOLISM, 2, 1 },
     },
     {},
     {},
