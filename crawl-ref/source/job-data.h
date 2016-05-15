@@ -258,7 +258,7 @@ static const map<job_type, job_def> job_data =
     0, 0, 0, // Randomised
     { SP_HILL_ORC, SP_SPRIGGAN, SP_CENTAUR, SP_MERFOLK, SP_BASE_DRACONIAN, SP_MOON_TROLL,
       SP_HUMAN, SP_DEMONSPAWN, },
-    { "book of faffing about" }, // Randomised
+    { "book of Faffing About" }, // Randomised
     WCHOICE_NONE,
     { }, // Randomised
 } },
