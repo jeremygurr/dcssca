@@ -185,6 +185,14 @@ A book of advanced Poison magic, glowing with a sickly green light. Mages with
 a tendency to lick their fingers before turning a page will generally quit the
 habit soon after they begin reading this, one way or another.
 %%%%
+book of faffing about
+
+A TEST book containing TEST spells in the TEST of TEST, yes.
+%%%%
+book of fixed level
+
+A book of magic spells.
+%%%%
 book of fire
 
 A book containing advanced spells in the elemental school of Fire, stolen from
