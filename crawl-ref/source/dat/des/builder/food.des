@@ -24,7 +24,7 @@ NAME:   first_bread
 DEPTH:  D:2-5
 CHANCE: 2500, 3333 (D:3), 5000 (D:4), 10000 (D:5)
 TAGS:   uniq_first_food extra transparent
-ITEM:   bread ration
+ITEM:   potion of stamina
 MAP
 d
 ENDMAP
@@ -39,13 +39,13 @@ ENDMAP
 # normal/herbi/carni
 
 ##############################################################################
-# A number of fruity vaults, by blue_anna
+# A number of potion of staminay vaults, by blue_anna
 # [Condensed into one vault by HangedMan.]
 # [Ruined by wheals.]
 #
 # The "fruiting_plant" tag uses this as a subvault for food vaults.
 #
-# TODO: Using KMONS and KITEM, we could have fruits on the same
+# TODO: Using KMONS and KITEM, we could have potion of staminas on the same
 #       square as a plant, though it'd change nutrition averages.
 #
 # The average of the old averages, for herbivore 3, seemed to have
@@ -54,7 +54,7 @@ ENDMAP
 NAME:   blue_anna_fruit_fields
 TAGS:   fruiting_plant allow_dup unrand
 KMONS:  P = plant
-ITEM:   fruit q:4
+ITEM:   potion of stamina q:4
 NSUBST: . = 1:d / *:., " = 2:d / *:.
 FTILE:  .dP = floor_grey_dirt / floor_grass w:20 / floor_dirt w:15
 COLOUR: .dP = lightgrey / green w:20 / brown w:15
@@ -75,7 +75,7 @@ DEPTH:  D:7-14
 : food_weight(_G, 7)
 WEIGHT: 25
 TAGS:   uniq_second_food extra chance_second_food
-ITEM:   bread ration q:2
+ITEM:   potion of stamina q:2
 : if crawl.one_chance_in(8) then
 :   dgn.delayed_decay(_G, 'e', 'spriggan name:baked n_adj n_spe n_des corpse')
 : else
@@ -98,7 +98,7 @@ DEPTH:  D:8-14
 WEIGHT: 15
 TAGS:   uniq_second_food extra chance_second_food
 MONS:   queen bee, killer bee
-ITEM:   royal jelly
+ITEM:   potion of stamina
 COLOUR: a = yellow
 TILE:   a = wall_wax
 SUBST:  a = x
@@ -151,7 +151,7 @@ TAGS:   uniq_second_food extra chance_second_food no_monster_gen no_pool_fixup \
         patrolling
 KMONS:  A = merfolk ; spear
 KFEAT:  g = shallow_water
-ITEM:   meat ration q:2, bread ration q:3, throwing net
+ITEM:   potion of stamina q:2, potion of stamina q:3, throwing net
 :       dgn.delayed_decay(_G, 'g', 'electric eel corpse')
 MAP
 xxxxxx
@@ -169,8 +169,8 @@ WEIGHT: 15
 TAGS:   uniq_second_food extra chance_second_food no_monster_gen patrolling
 MONS:   wasp / worm w:5 / worker ant
 MONS:   wasp w:7 / soldier ant w:13
-ITEM:   beef jerky q:3 / fruit q:3
-ITEM:   royal jelly q:3, royal jelly q:6
+ITEM:   potion of stamina q:3 / potion of stamina q:3
+ITEM:   potion of stamina q:3, potion of stamina q:6
 MAP
 .xxxxxxx
 @xx.x.xcccc
@@ -191,7 +191,7 @@ KMONS:  B = ooze
 : if you.absdepth() > 10 then
 KMONS:  C = slime creature
 : end
-KITEM:  C = royal jelly q:10
+KITEM:  C = potion of stamina q:10
 KFEAT:  C = altar_jiyva w:1 / . w:20
 KMASK:  W = no_monster_gen
 MARKER: + = lua:props_marker({ door_restrict="veto" })
@@ -218,10 +218,10 @@ KMONS:    C = yak
 KMONS:    D = big kobold
 KMONS:    E = big kobold ; nothing
 KMONS:    F = plant
-KITEM:    C = slice of pizza q:3
+KITEM:    C = potion of stamina q:3
 KITEM:    E = falchion ego:flaming ident:type / \
               hand axe ego:flaming ident:type
-KITEM:    H = meat ration q:2
+KITEM:    H = potion of stamina q:2
 KITEM:    I = halberd
 KFEAT:    EF = shallow_water
 MAP
@@ -245,7 +245,7 @@ WEIGHT: 10
 TAGS:   uniq_second_food extra chance_second_food no_monster_gen
 NSUBST: T = 1:. / 1:t
 KMONS:  1 = oklob sapling
-KITEM:  1A_ = fruit q:3
+KITEM:  1A_ = potion of stamina q:3
 KFEAT:  _ = altar_fedhas
 MAP
  tttttttttt
@@ -269,9 +269,9 @@ TAGS:   no_monster_gen no_item_gen patrolling
 MONS:   spriggan skeleton / centaur skeleton
 MONS:   troll skeleton / hungry ghost
 KMONS:  A = unseen horror w:16 / nothing w:4
-ITEM:   fruit q:1
-ITEM:   royal jelly q:2
-ITEM:   bread ration q:3
+ITEM:   potion of stamina q:1
+ITEM:   potion of stamina q:2
+ITEM:   potion of stamina q:3
 SUBST:  D : DDDDE
 NSUBST: D = 1:A / 2:d / 2:e / 1:1, E = 2:d / 2:e / 2:1
 MAP
@@ -302,8 +302,8 @@ KMONS:   G = necrophage
 KMONS:   H = crimson imp
 KITEM:   1 = stone q:1 w:50 no_pickup / large rock q:1 w:24 / \
              mundane hand axe w:1 no_pickup
-KITEM:   Ya = bread ration / meat ration
-KITEM:   b = royal jelly / fruit q:1
+KITEM:   Ya = potion of stamina / potion of stamina
+KITEM:   b = potion of stamina / potion of stamina q:1
 KFEAT:   1Yab = shallow_water
 KMASK:   1Yac = no_monster_gen
 MARKER:  Y = lua:fog_machine { cloud_type = "steam", pow_min = 1, \
@@ -333,7 +333,7 @@ WEIGHT: 15
 TAGS:   uniq_second_food extra chance_second_food no_monster_gen patrolling
 MONS:   tengu warrior / tengu conjurer, plant
 NSUBST: 2 : 3:2 / *:.
-ITEM:   bread ration / fruit q:7
+ITEM:   potion of stamina / potion of stamina q:7
 MAP
  xx+xx
 xx2.2xx
@@ -365,7 +365,7 @@ TAGS:   uniq_second_food extra chance_second_food no_monster_gen no_trap_gen \
   dgn.delayed_decay(_G, 'g', 'orc skeleton / human skeleton / elf skeleton'
                              .. ' / dwarf skeleton')
 }}
-ITEM:   bread ration q:3, beef jerky q:3, throwing net
+ITEM:   potion of stamina q:3, potion of stamina q:3, throwing net
 MARKER: O = lua:fog_machine { cloud_type = "flame", pow_min = 10, \
                               pow_max = 10, delay = 10, size = 1, \
                               walk_dist = 0, excl_rad = 0 }
@@ -395,7 +395,7 @@ TAGS:   uniq_second_food extra chance_second_food no_monster_gen no_trap_gen \
 MONS:   human ; short sword | rapier / \
         orc warrior ; dagger / \
         spriggan ; dagger
-ITEM:   slice of pizza q:8, bread ration q:2
+ITEM:   potion of stamina q:8, potion of stamina q:2
 MARKER: O = lua:fog_machine { cloud_type = "flame", pow_min = 10, \
                               pow_max = 10, delay = 10, size = 1, \
                               walk_dist = 0, excl_rad = 0 }
@@ -427,8 +427,8 @@ MONS:   human ; animal skin . hand axe
     mons("sheep w:" .. sheep_weight .. " / hog w:1 / yak w:1")
   end
 }}
-ITEM:   slice of pizza q:7, bread ration q:2
-ITEM:   beef jerky q:2
+ITEM:   potion of stamina q:7, potion of stamina q:2
+ITEM:   potion of stamina q:2
 KFEAT:  K = iron_grate
 KFEAT:  - = open_door
 MAP
