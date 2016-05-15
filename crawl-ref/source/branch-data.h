@@ -135,7 +135,7 @@ const Branch branches[NUM_BRANCHES] =
         GREEN, BROWN,
         'L', {}, 4 },
 
-    { BRANCH_ORC, BRANCH_DUNGEON, 6, 10, 4, 8,
+    { BRANCH_ORC, BRANCH_DUNGEON, 6, 10, 8, 8,
         BFLAG_SPOTTY,
         DNGN_ENTER_ORC, DNGN_EXIT_ORC,
         "Orcish Mines", "the Orcish Mines", "Orc",
@@ -225,7 +225,7 @@ const Branch branches[NUM_BRANCHES] =
         LIGHTGREY, BROWN,
         'T', {}, 0 },
 
-    { BRANCH_TOMB, BRANCH_DEPTHS, 3, 5, 3, 21,
+    { BRANCH_TOMB, BRANCH_DEPTHS, 3, 5, 4, 21,
         BFLAG_ISLANDED | BFLAG_DANGEROUS_END | BFLAG_NO_SHAFTS,
         DNGN_ENTER_TOMB, DNGN_EXIT_TOMB,
         "Tomb", "the Tomb of the Ancients", "Tomb",

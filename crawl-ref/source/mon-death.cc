@@ -525,8 +525,6 @@ item_def* place_monster_corpse(const monster& mons, bool silent, bool force)
         else if(gain_stamina)
             mprf("That corpse tasted great! (sp+%d)", sp_gain);
 
-        o = NON_ITEM;
-
         corpse_remains = false;
     }
 
@@ -2208,19 +2206,19 @@ item_def* monster_die(monster* mons, killer_type killer,
 
                 if (you.species == SP_DJINNI)
                     hp_heal = max(hp_heal, mp_heal * 2), mp_heal = 0;
-                if (hp_heal && you.hp < you.hp_max
+                if (hp_heal && get_hp() < get_hp_max()
                     && !you.duration[DUR_DEATHS_DOOR])
                 {
                     canned_msg(MSG_GAIN_HEALTH, hp_heal);
                     inc_hp(hp_heal);
                 }
 
-                if (mp_heal && you.magic_points < you.max_magic_points)
+                if (mp_heal && get_mp() < get_mp_max())
                 {
-                    int tmp = min(you.max_magic_points - you.magic_points,
+                    int tmp = min(get_mp_max() - get_mp(),
                                   mp_heal);
                     canned_msg(MSG_GAIN_MAGIC);
-                    inc_mp(mp_heal);
+                    inc_mp(mp_heal * 3);
                     mp_heal -= tmp;
                 }
 
