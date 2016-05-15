@@ -126,6 +126,7 @@ int book_rarity(book_type which_book)
 
     case BOOK_CHANGES:
     case BOOK_MALEDICT:
+    case BOOK_BLINKBOLT:
         return 2;
 
     case BOOK_CONJURATIONS:
