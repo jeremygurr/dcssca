@@ -143,6 +143,17 @@ static const struct spell_desc spelldata[] =
 },
 
 {
+    SPELL_BLINKBOLT_PLAYER, "Lightning Dash",
+    SPTYP_AIR | SPTYP_TRANSLOCATION,
+    SPFLAG_DIR_OR_TARGET | SPFLAG_NOISY | SPFLAG_NEEDS_TRACER,
+    6,
+    200,
+    5, 5,
+    5, 20,
+    TILEG_BLINKBOLT,
+},
+
+{
     SPELL_BLINKBOLT, "Blinkbolt",
     SPTYP_AIR | SPTYP_TRANSLOCATION,
     SPFLAG_DIR_OR_TARGET | SPFLAG_MONSTER | SPFLAG_NOISY | SPFLAG_NEEDS_TRACER,
