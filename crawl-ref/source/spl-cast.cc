@@ -10,6 +10,7 @@
 #include <iomanip>
 #include <sstream>
 #include <cmath>
+#include <algorithm>
 
 #include "areas.h"
 #include "art-enum.h"
@@ -193,11 +194,13 @@ static string _spell_wide_description(spell_type spell, bool viewing)
     desc << "</" << colour_to_str(highlight) << ">";
     desc << chop_string(make_stringf("%d", spell_difficulty(spell)), 6);
 
-    int mp_cost = spell_mana(spell);
+    int mp_cost = spell_mp_cost(spell);
     if (mp_cost == 0)
-        mp_cost = spell_freeze_mana(spell);
+    {
+        mp_cost = spell_mp_freeze(spell);
+    }
 
-    desc << chop_string(make_stringf("%d", mp_cost), 3);
+    desc << chop_string(make_stringf("%d", mp_cost), 4);
 
     // spell schools
     desc << spell_schools_string(spell);
@@ -358,7 +361,7 @@ int list_spells_wide(bool viewing, bool allow_preselect,
         // [enne] - Hack. Make title an item so that it's aligned.
         MenuEntry* me =
             new MenuEntry(
-                " " + titlestring + "        Power Range      Fail Level MP Type",
+                " " + titlestring + "        Power Range      Fail Level MP  Type",
                 MEL_ITEM);
         me->colour = BLUE;
         spell_menu.add_entry(me);
@@ -366,7 +369,7 @@ int list_spells_wide(bool viewing, bool allow_preselect,
 #else
     spell_menu.set_title(
         new MenuEntry(
-                " " + titlestring + "        Power Range      Fail Level MP Type",
+                " " + titlestring + "        Power Range      Fail Level MP  Type",
             MEL_TITLE));
 #endif
     spell_menu.set_highlighter(nullptr);
@@ -478,29 +481,43 @@ static int _apply_spellcasting_success_boosts(spell_type spell, int chance)
     return chance * fail_reduce / 100;
 }
 
+/**
+ * Calculate the player's failure rate with the given spell, including all
+ * modifiers. (Armour, mutations, statuses effects, etc.)
+ *
+ * @param spell     The spell in question.
+ * @return          A failure rate. This is *not* a percentage - for a human-
+ *                  readable version, call _get_true_fail_rate().
+ */
 int raw_spell_fail(spell_type spell)
 {
     const int spell_level = spell_difficulty(spell);
-    int resist = pow(2, spell_level) * 100;
+    float resist = 1 << spell_level;
     const int armour_shield_penalty = player_armour_shield_spell_penalty();
     dprf("Armour+Shield spell failure penalty: %d", armour_shield_penalty);
-    resist *= (20 + armour_shield_penalty) / 20;
-    resist *= (20 + get_form()->spellcasting_penalty) / 20;
-    resist *= 10 * (player_mutation_level(MUT_ANTI_WIZARDRY) + 1) / 10;
-    resist *= (you.duration[DUR_VERTIGO] ? 15 : 10) / 10;
+    resist = resist * (20 + armour_shield_penalty) / 20;
+    resist = resist * (20 + get_form()->spellcasting_penalty) / 20;
+    resist = resist * (player_mutation_level(MUT_ANTI_WIZARDRY) + 1);
+    resist = resist * (you.duration[DUR_VERTIGO] ? 1.5 : 1.0);
 
     const int wild = player_mutation_level(MUT_WILD_MAGIC);
     resist = qpow(resist, 3, 2, wild);
 
-    int force = (you.dex(true) + 1);
-    force *= you.intel(true);
-    force *= you.skill(SK_SPELLCASTING);
+    // with all factors being 10, player should have a 50% chance of casting a level 5 spell
+    float force = 5;
+
+    force *= (1.0 + you.dex(true)) / 3;
+    /* intelligence is no longer a factor
+    force *= (1.0 + you.intel(true)) / 3;
+     */
+    force *= (1.0 + you.skill(SK_SPELLCASTING)) / 3;
 
     const spschools_type disciplines = get_spell_disciplines(spell);
-    force *= average_schools(disciplines);
+    const int skill_factor = average_schools(disciplines);
+    force *= (1.0 + skill_factor) / 3;
 
     const int subdued = player_mutation_level(MUT_SUBDUED_MAGIC);
-    force = qpow(force, 3, 2, subdued);
+    force = fpow(force, 3, 2, subdued);
 
     if (player_equip_unrand(UNRAND_HIGH_COUNCIL))
         force *= 2;
@@ -509,26 +526,33 @@ int raw_spell_fail(spell_type spell)
 //    if (you.props.exists(SAP_MAGIC_KEY))
 //        force *= you.props[SAP_MAGIC_KEY].get_int() * 12;
 
-    int chance = 100 * resist / (force + resist);
+    force = fmax(1, force);
+    resist = fmax(1, resist);
+
+    int fail_chance;
+
+    if (force >= resist)
+        fail_chance = 50 / (force / resist);
+    else
+        fail_chance = 100 - 50 / (resist / force);
 
     // Apply the effects of Vehumet and items of wizardry.
-    chance = _apply_spellcasting_success_boosts(spell, chance);
+    fail_chance = _apply_spellcasting_success_boosts(spell, fail_chance);
 
-    if (you.exertion == EXERT_FOCUS)
-        chance = max(chance - 15, chance / 2);
+    fail_chance = player_spellfailure_modifier(fail_chance);
 
-    if (chance > 100)
-        chance = 100;
+    if (fail_chance > 99)
+        fail_chance = 99;
 
-    if (chance <= 0)
-        chance = 1;
+    if (fail_chance < 1)
+        fail_chance = 1;
 
-    return chance;
+    return fail_chance;
 }
 
 int stepdown_spellpower(int power)
 {
-    return stepdown(power / 100, 50, ROUND_DOWN, SPELL_POWER_CAP, 2);
+    return stepdown(power / 100, 100, ROUND_DOWN, SPELL_POWER_CAP, 2);
 }
 
 int calc_spell_power(spell_type spell, bool apply_intel, bool fail_rate_check,
@@ -550,15 +574,17 @@ int calc_spell_power(spell_type spell, bool apply_intel, bool fail_rate_check,
             power /= skillcount;
         }
 
+        /* spellcasting does not add to spellpower
         power += you.skill(SK_SPELLCASTING, 200 / 3);
+         */
 
         // Brilliance boosts spell power a bit (equivalent to three
         // spell school levels).
         if (!fail_rate_check && you.duration[DUR_BRILLIANCE])
-            power = max(600, power * 3 / 2);
+            power = max(750, power * 3 / 2);
 
         if (apply_intel)
-            power = (power * you.intel()) / 10;
+            power = power * (you.intel() + 15) / 20;
 
         if (!fail_rate_check)
         {
@@ -901,12 +927,18 @@ bool cast_a_spell(bool check_range, spell_type spell)
         return false;
     }
 
-    const int cost = spell_mana(spell);
-    const int freeze_cost = spell_freeze_mana(spell);
+    const int cost = spell_mp_cost(spell);
+    const int freeze_cost = spell_mp_freeze(spell);
     if (!enough_mp(cost + freeze_cost, true))
     {
         mpr("You don't have enough magic to cast that spell.");
         crawl_state.zero_turns_taken();
+        return false;
+    }
+
+    if (is_summon_spell(spell) && player_summon_count() >= 5)
+    {
+        mpr("You can't maintain any more summons.");
         return false;
     }
 
@@ -998,7 +1030,7 @@ bool cast_a_spell(bool check_range, spell_type spell)
     // Nasty special cases.
     if (you.species == SP_DJINNI && cast_result == SPRET_SUCCESS
         && (spell == SPELL_BORGNJORS_REVIVIFICATION
-            || spell == SPELL_SUBLIMATION_OF_BLOOD && you.hp == you.hp_max))
+            || spell == SPELL_SUBLIMATION_OF_BLOOD && get_hp() == get_hp_max()))
     {
         // These spells have replenished essence to full.
         inc_mp(cost, true);
@@ -1152,7 +1184,7 @@ static void _try_monster_cast(spell_type spell, int powc,
     mon->attitude   = ATT_FRIENDLY;
     mon->flags      = (MF_NO_REWARD | MF_JUST_SUMMONED | MF_SEEN
                        | MF_WAS_IN_VIEW | MF_HARD_RESET);
-    mon->hit_points = you.hp;
+    mon->hit_points = get_hp();
     mon->set_hit_dice(you.experience_level);
     mon->set_position(you.pos());
     mon->target     = spd.target;
@@ -1208,10 +1240,10 @@ static bool _spellcasting_aborted(spell_type spell,
         // isn't evoked but still doesn't use the spell's MP. your_spells,
         // this function, and spell_uselessness_reason should take a flag
         // indicating whether MP should be checked (or should never check).
-        const int rest_mp = (evoked || fake_spell) ? 0 : spell_mana(spell);
+        const int rest_mp = (evoked || fake_spell) ? 0 : spell_mp_cost(spell);
 
         // Temporarily restore MP so that we're not uncastable for lack of MP.
-        unwind_var<int> fake_mp(you.magic_points, you.magic_points + rest_mp);
+        unwind_var<int> fake_mp(you.mp, you.mp + rest_mp);
         msg = spell_uselessness_reason(spell, true, true, evoked, fake_spell);
     }
 
@@ -1320,7 +1352,7 @@ static double _chance_miscast_prot()
 static void _spellcasting_corruption(spell_type spell)
 {
     // never kill the player (directly)
-    int hp_cost = min(you.spell_hp_cost() * spell_mana(spell), you.hp - 1);
+    int hp_cost = min(you.spell_hp_cost() * spell_mp_cost(spell), get_hp() - 1);
     const char * source = nullptr;
     if (player_equip_unrand(UNRAND_MAJIN))
         source = "the Majin-Bo"; // for debugging
@@ -1453,7 +1485,11 @@ spret_type your_spells(spell_type spell, int powc,
         if (dir == DIR_DIR)
             mprf(MSGCH_PROMPT, "%s", prompt ? prompt : "Which direction?");
 
-        const bool needs_path = !testbits(flags, SPFLAG_TARGET);
+        const bool needs_path = !testbits(flags, SPFLAG_TARGET)
+                                // Apportation must be SPFLAG_TARGET, since a
+                                // shift-direction makes no sense for it, but
+                                // it nevertheless requires line-of-fire.
+                                || spell == SPELL_APPORTATION;
 
         const int range = calc_spell_range(spell, powc);
 
@@ -1543,7 +1579,7 @@ spret_type your_spells(spell_type spell, int powc,
     bool antimagic = false; // lost time but no other penalty
 
     if (allow_fail && you.duration[DUR_ANTIMAGIC]
-        && x_chance_in_y(you.duration[DUR_ANTIMAGIC] / 3, you.hp_max))
+        && x_chance_in_y(you.duration[DUR_ANTIMAGIC] / 3, get_hp_max()))
     {
         mpr("You fail to access your magic.");
         fail = antimagic = true;
@@ -1726,20 +1762,6 @@ spret_type _handle_summoning_spells(spell_type spell, int powc,
         // Summoning spells, and other spells that create new monsters.
         // If a god is making you cast one of these spells, any monsters
         // produced will count as god gifts.
-        case SPELL_WEAVE_SHADOWS:
-        {
-            level_id place(BRANCH_DUNGEON, 1);
-            const int level = 5 + div_rand_round(powc, 3);
-            const int depthsabs = branches[BRANCH_DEPTHS].absdepth;
-            if (level >= depthsabs && x_chance_in_y(level + 1 - depthsabs, 5))
-            {
-                place.branch = BRANCH_DEPTHS;
-                place.depth = level  + 1 - depthsabs;
-            }
-            else
-                place.depth = level;
-            return cast_shadow_creatures(spell, god, place, fail);
-        }
 
         case SPELL_SUMMON_BUTTERFLIES:
             return cast_summon_butterflies(powc, god, fail);
@@ -1832,6 +1854,20 @@ static spret_type _do_cast(spell_type spell, int powc,
 
     switch (spell)
     {
+    case SPELL_WEAVE_SHADOWS:
+    {
+        level_id place(BRANCH_DUNGEON, 1);
+        const int level = 5 + div_rand_round(powc, 3);
+        const int depthsabs = branches[BRANCH_DEPTHS].absdepth;
+        if (level >= depthsabs && x_chance_in_y(level + 1 - depthsabs, 5))
+        {
+            place.branch = BRANCH_DEPTHS;
+            place.depth = level  + 1 - depthsabs;
+        }
+        else
+            place.depth = level;
+        return cast_shadow_creatures(spell, god, place, fail);
+    }
     case SPELL_FREEZE:
         return cast_freeze(powc, monster_at(target), fail);
 

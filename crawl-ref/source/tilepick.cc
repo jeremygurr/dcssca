@@ -137,8 +137,8 @@ static tileidx_t _tileidx_shop(coord_def where)
             return TILE_SHOP_JEWELLERY;
         case SHOP_EVOKABLES:
             return TILE_SHOP_GADGETS;
-        case SHOP_FOOD:
-            return TILE_SHOP_FOOD;
+//        case SHOP_FOOD:
+//            return TILE_SHOP_FOOD;
         case SHOP_BOOK:
             return TILE_SHOP_BOOKS;
         case SHOP_SCROLL:
@@ -3000,7 +3000,7 @@ tileidx_t tileidx_skill(skill_type skill, int train)
     case SK_SHIELDS:        ch = TILEG_SHIELDS_ON; break;
     case SK_UNARMED_COMBAT:
         {
-            const string hand = you.hand_name(false).c_str();
+            const string hand = you.hand_name(false);
             if (hand == "hand")
                 ch = TILEG_UNARMED_COMBAT_ON;
             else if (hand == "paw")

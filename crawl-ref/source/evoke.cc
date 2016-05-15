@@ -279,13 +279,6 @@ static bool _evoke_horn_of_geryon(item_def &item)
 
 static bool _check_crystal_ball()
 {
-    if (you.species == SP_DJINNI)
-    {
-        mpr("These balls have not yet been approved for use by djinn. "
-            "(OOC: they're supposed to work, but need a redesign.)");
-        return false;
-    }
-
     if (you.confused())
     {
         mpr("You are unable to concentrate on the shapes in the crystal ball.");
@@ -299,7 +292,7 @@ static bool _check_crystal_ball()
         return false;
     }
 
-    if (you.magic_points == you.max_magic_points)
+    if (get_mp() == get_mp_max())
     {
         mpr("Your reserves of magic are already full.");
         return false;
@@ -402,9 +395,9 @@ bool disc_of_storms()
  */
 void black_drac_breath()
 {
-    const int num_shots = roll_dice(2, 1 + you.experience_level / 7);
-    const int range = you.experience_level / 3 + 5; // 5--14
-    const int power = 25 + you.experience_level; // 25-52
+    const int num_shots = roll_dice(2, 1 + effective_xl() / 7);
+    const int range = effective_xl() / 3 + 5; // 5--14
+    const int power = 25 + effective_xl(); // 25-52
     for (int i = 0; i < num_shots; ++i)
         _spray_lightning(range, power);
 }
@@ -664,16 +657,6 @@ void zap_wand(int slot)
 
     // Reset range.
     beam.range = _wand_range(type_zapped);
-
-#ifdef WIZARD
-    if (you.wizard)
-    {
-        string str = wand.inscription;
-        int wiz_range = strip_number_tag(str, "range:");
-        if (wiz_range != TAG_UNFOUND)
-            beam.range = wiz_range;
-    }
-#endif
 
     dec_mp(mp_cost, false);
     if (!you_worship(GOD_PAKELLAS) && you.penance[GOD_PAKELLAS])
@@ -1244,13 +1227,13 @@ static bool _ball_of_energy()
     else if (use < 5 && enough_mp(1, true))
     {
         mpr("You feel your power drain away!");
-        dec_mp(you.magic_points);
+        dec_mp(get_mp());
     }
     else if (use < 10)
         confuse_player(10 + random2(10));
     else
     {
-        int proportional = (you.magic_points * 100) / you.max_magic_points;
+        int proportional = (get_mp() * 100) / get_mp_max();
 
         if (random2avg(
                 77 - player_adjust_evoc_power(you.skill(SK_EVOCATIONS, 2)), 4)
@@ -1258,14 +1241,14 @@ static bool _ball_of_energy()
             || one_chance_in(25))
         {
             mpr("You feel your power drain away!");
-            dec_mp(you.magic_points);
+            dec_mp(get_mp());
         }
         else
         {
             mpr("You are suffused with power!");
             inc_mp(
                 player_adjust_evoc_power(
-                    5 + random2avg(you.skill(SK_EVOCATIONS), 2)));
+                    5 + random2avg(you.skill(SK_EVOCATIONS), 2)) * 3);
 
             ret = true;
         }
@@ -2148,7 +2131,8 @@ static bool _rod_spell(item_def& irod, bool check_range)
     ASSERT(irod.base_type == OBJ_RODS);
 
     const spell_type spell = spell_in_rod(static_cast<rod_type>(irod.sub_type));
-    int mana = spell_mana(spell) * ROD_CHARGE_MULT;
+    int mana = spell_difficulty(spell) * ROD_CHARGE_MULT;
+
     int power = calc_spell_power(spell, false, false, true, true);
 
     int food = spell_hunger(spell, true);
@@ -2362,8 +2346,8 @@ bool evoke_item(int slot, bool check_range)
             canned_msg(MSG_TOO_HUNGRY);
             return false;
         }
-        else if (you.magic_points >= you.max_magic_points
-                 && (you.species != SP_DJINNI || you.hp == you.hp_max)
+        else if (get_mp() >= get_mp_max()
+                 && (you.species != SP_DJINNI || get_hp() == get_hp_max())
                 )
         {
             mpr("Your reserves of magic are already full.");
@@ -2375,7 +2359,8 @@ bool evoke_item(int slot, bool check_range)
                                4000))
         {
             mpr("You channel some magical energy.");
-            inc_mp(1 + random2(3));
+            const int gain = 1 + random2(3);
+            inc_mp(gain * 3);
             make_hungry(50, false, true);
             pract = 1;
             did_work = true;

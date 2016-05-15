@@ -162,7 +162,8 @@ int player::get_max_xl() const
 {
     const int inexperienced = player_mutation_level(MUT_INEXPERIENCED);
     int max_xl = 27 - inexperienced * RU_SAC_XP_LEVELS;
-    if (!inexperienced && !Options.level_27_cap)
+    bool cap = Options.level_27_cap;
+    if (!cap)
         max_xl = get_max_exp_level();
     return max_xl;
 }
@@ -773,9 +774,9 @@ bool player::go_berserk(bool intentional, bool potion)
     you.increase_duration(DUR_BERSERK, berserk_duration, 0, nullptr, potion ? SRC_POTION : SRC_UNDEFINED);
 
     calc_hp();
-    set_hp(you.hp * 3 / 2);
+    set_hp(get_hp() * 3 / 2);
 
-    deflate_hp(you.hp_max, false);
+    deflate_hp(get_hp_max(), false);
 
     if (!you.duration[DUR_MIGHT])
         notify_stat_change(STAT_STR, 5, true);

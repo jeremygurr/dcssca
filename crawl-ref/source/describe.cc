@@ -766,7 +766,7 @@ static string _describe_mutant_beast_tier(int tier)
 {
     static const string tier_descs[] = {
         "It is of an unusually buggy age.",
-        "It is larval, freshly emerged from its mother's pouch and weak.",
+        "It is larval and weak, freshly emerged from its mother's pouch.",
         "It is a juvenile, out of the larval stage but below its mature "
         "strength.",
         "It is mature, stronger than a juvenile but weaker than its elders.",
@@ -2622,7 +2622,7 @@ static string _player_spell_desc(spell_type spell, const item_def* item)
 
     // Report summon cap
     const int limit = summons_limit(spell);
-    if (limit)
+    if (false && limit)
     {
         description += "You can sustain at most " + number_in_words(limit)
                         + " creature" + (limit > 1 ? "s" : "")

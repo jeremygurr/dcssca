@@ -454,7 +454,7 @@ item_def* place_monster_corpse(const monster& mons, bool silent, bool force)
     bool corpse_remains = true;
 
     // 50/50 chance of getting a corpse, usually.
-    if (!no_coinflip && coinflip())
+    if (!no_coinflip && one_chance_in(3))
         return nullptr;
 
     // The game can attempt to place a corpse for an out-of-bounds monster
@@ -502,8 +502,8 @@ item_def* place_monster_corpse(const monster& mons, bool silent, bool force)
     {
         const int amount = max_corpse_chunks(corpse.mon_type);
 
-        const int sp_gain = div_rand_round(amount * qpow(10, 3, 2, gain_stamina - 1), 10);
-        int hp_gain = div_rand_round(amount * qpow(10, 3, 2, gain_health - 1), 10);
+        const int sp_gain = div_rand_round(amount * qpow(10, 3, 2, gain_stamina), 10);
+        int hp_gain = div_rand_round(amount * qpow(10, 3, 2, gain_health), 10);
 
         if (gain_stamina)
             inc_sp(sp_gain, true);
@@ -524,8 +524,6 @@ item_def* place_monster_corpse(const monster& mons, bool silent, bool force)
             mprf("That corpse tasted great! (hp+%d)", hp_gain);
         else if(gain_stamina)
             mprf("That corpse tasted great! (sp+%d)", sp_gain);
-
-        o = NON_ITEM;
 
         corpse_remains = false;
     }
@@ -773,10 +771,10 @@ static bool _beogh_forcibly_convert_orc(monster &mons, killer_type killer)
          "your xl: %d",
          mons.name(DESC_PLAIN).c_str(),
          mons.get_hit_dice(),
-         you.experience_level);
+         effective_xl());
 #endif
     if (random2(you.piety) >= piety_breakpoint(0)
-        && random2(you.experience_level) >= random2(mons.get_hit_dice())
+        && random2(effective_xl()) >= random2(mons.get_hit_dice())
         // Bias beaten-up-conversion towards the stronger orcs.
         && random2(mons.get_experience_level()) > 2)
     {
@@ -2208,19 +2206,19 @@ item_def* monster_die(monster* mons, killer_type killer,
 
                 if (you.species == SP_DJINNI)
                     hp_heal = max(hp_heal, mp_heal * 2), mp_heal = 0;
-                if (hp_heal && you.hp < you.hp_max
+                if (hp_heal && get_hp() < get_hp_max()
                     && !you.duration[DUR_DEATHS_DOOR])
                 {
                     canned_msg(MSG_GAIN_HEALTH, hp_heal);
                     inc_hp(hp_heal);
                 }
 
-                if (mp_heal && you.magic_points < you.max_magic_points)
+                if (mp_heal && get_mp() < get_mp_max())
                 {
-                    int tmp = min(you.max_magic_points - you.magic_points,
+                    int tmp = min(get_mp_max() - get_mp(),
                                   mp_heal);
                     canned_msg(MSG_GAIN_MAGIC);
-                    inc_mp(mp_heal);
+                    inc_mp(mp_heal * 3);
                     mp_heal -= tmp;
                 }
 

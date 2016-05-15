@@ -45,7 +45,7 @@ static void _mark_unseen_monsters();
 static void _calc_hp_artefact()
 {
     recalc_and_scale_hp();
-    if (you.hp_max <= 0) // Borgnjor's abusers...
+    if (get_hp_max() <= 0) // Borgnjor's abusers...
         ouch(0, KILLED_BY_DRAINING);
 }
 
@@ -490,30 +490,37 @@ static void _equip_weapon_effect(item_def& item, bool showMsgs, bool unmeld)
             // message first
             if (showMsgs)
             {
+                const string item_name = item.name(DESC_YOUR);
                 switch (special)
                 {
                 case SPWPN_FLAMING:
-                    mpr("It bursts into flame!");
+                    mprf("%s bursts into flame!", item_name.c_str());
                     break;
 
                 case SPWPN_FREEZING:
-                    mpr(is_range_weapon(item) ? "It is covered in frost."
-                                              : "It glows with a cold blue light!");
+                   mprf("%s %s.", item_name.c_str(),
+                        is_range_weapon(item) ?
+                            "is covered in frost" :
+                            "glows with a cold blue light!");
                     break;
 
                 case SPWPN_HOLY_WRATH:
-                    mpr("It softly glows with a divine radiance!");
+                    mprf("%s softly glows with a divine radiance!",
+                         item_name.c_str());
                     break;
 
                 case SPWPN_ELECTROCUTION:
                     if (!silenced(you.pos()))
-                        mprf(MSGCH_SOUND, "You hear the crackle of electricity.");
+                    {
+                        mprf(MSGCH_SOUND,
+                             "You hear the crackle of electricity.");
+                    }
                     else
                         mpr("You see sparks fly.");
                     break;
 
                 case SPWPN_VENOM:
-                    mpr("It begins to drip with poison!");
+                    mprf("%s begins to drip with poison!", item_name.c_str());
                     break;
 
                 case SPWPN_PROTECTION:
@@ -547,15 +554,21 @@ static void _equip_weapon_effect(item_def& item, bool showMsgs, bool unmeld)
                     if (you.skill(SK_NECROMANCY) == 0)
                         mpr("You have a feeling of ineptitude.");
                     else if (you.skill(SK_NECROMANCY) <= 6)
-                        mprf("Pain shudders through your %s!", your_arm.c_str());
+                    {
+                        mprf("Pain shudders through your %s!",
+                             your_arm.c_str());
+                    }
                     else
-                        mprf("A searing pain shoots up your %s!", your_arm.c_str());
+                    {
+                        mprf("A searing pain shoots up your %s!",
+                             your_arm.c_str());
+                    }
                     break;
                 }
 
                 case SPWPN_CHAOS:
-                    mpr("It is briefly surrounded by a scintillating aura "
-                        "of random colours.");
+                    mprf("%s is briefly surrounded by a scintillating aura of "
+                         "random colours.", item_name.c_str());
                     break;
 
                 case SPWPN_PENETRATION:
@@ -572,7 +585,8 @@ static void _equip_weapon_effect(item_def& item, bool showMsgs, bool unmeld)
                 }
 
                 case SPWPN_REAPING:
-                    mpr("It is briefly surrounded by shifting shadows.");
+                    mprf("%s is briefly surrounded by shifting shadows.",
+                         item_name.c_str());
                     break;
 
                 case SPWPN_ANTIMAGIC:
@@ -777,7 +791,7 @@ static void _spirit_shield_message(bool unmeld)
 {
     if (!unmeld && you.spirit_shield() < 2)
     {
-        dec_mp(you.magic_points);
+        dec_mp(get_mp());
         mpr("You feel your power drawn to a protective spirit.");
         if (you.species == SP_DEEP_DWARF)
             mpr("Now linked to your health, your magic stops regenerating.");
@@ -1125,7 +1139,7 @@ static void _equip_amulet_of_regeneration()
 {
     if (player_mutation_level(MUT_SLOW_REGENERATION) == 3)
         mpr("The amulet feels cold and inert.");
-    else if (you.hp == you.hp_max)
+    else if (get_hp() == get_hp_max())
     {
         you.props[REGEN_AMULET_ACTIVE] = 1;
         mpr("The amulet throbs as it attunes itself to your uninjured body.");
@@ -1142,7 +1156,7 @@ static void _equip_amulet_of_mana_regeneration()
 {
     if (!player_regenerates_mp())
         mpr("The amulet feels cold and inert.");
-    else if (you.magic_points == you.max_magic_points)
+    else if (get_mp() == get_mp_max())
     {
         you.props[MANA_REGEN_AMULET_ACTIVE] = 1;
         mpr("The amulet hums as it attunes itself to your energized body.");

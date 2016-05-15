@@ -1074,9 +1074,9 @@ static command_type _get_running_command()
             tiles.redraw();
 #endif
 
-        if (!is_resting() && you.running.hp == you.hp
-            && you.running.sp == you.sp
-            && you.running.mp == you.magic_points)
+        if (!is_resting() && you.running.hp == get_hp()
+            && you.running.sp == get_sp()
+            && you.running.mp == get_mp())
         {
             mpr("Done waiting.");
         }
@@ -1529,7 +1529,7 @@ static inline bool _monster_warning(activity_interrupt_type ai,
             {
                 if (coinflip()
                     && mon->get_experience_level() >=
-                       random2(you.experience_level))
+                       random2(effective_xl()))
                 {
                     mprf(MSGCH_GOD, GOD_GOZAG, "Gozag incites %s against you.",
                          mon->name(DESC_THE).c_str());

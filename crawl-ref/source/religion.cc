@@ -534,6 +534,15 @@ void dec_penance(god_type god, int val)
                 add_daction(DACT_SLIME_NEW_ATTEMPT);
             else if (god == GOD_PAKELLAS)
                 pakellas_id_device_charges();
+
+            if (have_passive(passive_t::friendly_plants)
+                && env.forest_awoken_until)
+            {
+                // XXX: add a dact here & on-join to handle offlevel
+                // awakened forests?
+                for (monster_iterator mi; mi; ++mi)
+                     mi->del_ench(ENCH_AWAKEN_FOREST);
+            }
         }
         else if (god == GOD_PAKELLAS)
         {
@@ -1026,7 +1035,7 @@ static bool _give_pakellas_gift()
 
     bool success = false;
     object_class_type basetype = OBJ_UNASSIGNED;
-    int subtype;
+    int subtype = -1;
 
     if (you.piety >= piety_breakpoint(0))
     {
@@ -1077,6 +1086,7 @@ static bool _give_pakellas_gift()
         success = acquirement(basetype, you.religion);
     else
     {
+        ASSERT(subtype >= 0);
         int thing_created = items(true, basetype, subtype, 1, 0,
                                   you.religion);
 
@@ -1261,7 +1271,7 @@ static set<spell_type> _vehumet_eligible_gift_spells(set<spell_type> excluded_sp
     int min_level = min_lev[gifts];
     int max_level = max_lev[gifts];
 
-    if (min_level > you.experience_level)
+    if (min_level > effective_xl())
         return eligible_spells;
 
     set<spell_type> backup_spells;
@@ -1531,7 +1541,7 @@ bool do_god_gift(bool forced)
                 you.num_total_gifts[you.religion]++;
                 // Timeouts are meaningless for Kiku.
                 if (!you_worship(GOD_KIKUBAAQUDGHA))
-                    _inc_gift_timeout(40 + random2avg(19, 2));
+                    _inc_gift_timeout(80 + random2avg(40, 2));
                 take_note(Note(NOTE_GOD_GIFT, you.religion));
             }
             break;
@@ -2601,6 +2611,9 @@ bool poor_god_choice_for_player(god_type which_god)
 {
 	if (you.spells[0] != SPELL_NO_SPELL && which_god == GOD_TROG)
 		return true;
+
+    if (which_god == GOD_JIYVA && you.get_experience_level() < 15)
+        return true;
 
 	return false;
 }
@@ -3950,8 +3963,8 @@ int get_tension(god_type god)
 
     // Tension goes up inversely proportional to the percentage of max
     // hp you have.
-    tension *= (scale + 1) * you.hp_max;
-    tension /= max(you.hp_max + scale * you.hp, 1);
+    tension *= (scale + 1) * get_hp_max();
+    tension /= max(get_hp_max() + scale * get_hp(), 1);
 
     // Divides by 1 at level 1, 200 at level 27.
     const int exp_lev  = you.get_experience_level();

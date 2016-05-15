@@ -1316,7 +1316,11 @@ static void tag_construct_char(writer &th)
     marshallByte(th, you.religion);
     marshallString2(th, you.jiyva_second_name);
 
+#if defined(FULLDEBUG)
+    marshallByte(th, 0);
+#else
     marshallByte(th, you.wizard);
+#endif
 
     marshallByte(th, crawl_state.type);
     marshallByte(th, crawl_state.difficulty);
@@ -1375,9 +1379,9 @@ static void tag_construct_you(writer &th)
     marshallUByte(th, you.sp);
     marshallUByte(th, you.sp_max);
 
-    ASSERT_RANGE(you.magic_points, 0, you.max_magic_points + 1);
-    marshallUByte(th, you.magic_points);
-    marshallUByte(th, you.max_magic_points);
+    ASSERT_RANGE(you.mp, 0, you.mp_max + 1);
+    marshallUByte(th, you.mp);
+    marshallUByte(th, you.mp_max);
 
     marshallUByte(th, you.target_hunger_state);
     marshallUByte(th, you.motion);
@@ -1564,7 +1568,9 @@ static void tag_construct_you(writer &th)
         marshallInt(th, you.rune_charges[i]);
     }
     marshallFixedBitVector<NUM_RUNE_TYPES>(th, you.rune_curse_active);
-    marshallInt(th, you.first_hit_time);
+    // todo
+//    marshallInt(th, you.first_hit_time);
+    marshallInt(th, you.peace);
 
     marshallInt(th, you.max_exp);
     marshallInt(th, you.stamina_flags);
@@ -2372,8 +2378,8 @@ static void tag_read_you(reader &th)
 
     you.sp                        = unmarshallUByte(th);
     you.sp_max                    = unmarshallUByte(th);
-    you.magic_points              = unmarshallUByte(th);
-    you.max_magic_points          = unmarshallUByte(th);
+    you.mp              = unmarshallUByte(th);
+    you.mp_max          = unmarshallUByte(th);
 
     you.target_hunger_state       = (hunger_state_t) unmarshallUByte(th);
     you.motion                    = (motion_type) unmarshallUByte(th);
@@ -3198,7 +3204,7 @@ static void tag_read_you(reader &th)
     // Verify that timers aren't scheduled for the past.
     for (int j = 0; j < NUM_TIMERS; ++j)
     {
-        if (you.next_timer_effect[j] < you.elapsed_time)
+        if (false && you.next_timer_effect[j] < you.elapsed_time)
         {
 #if TAG_MAJOR_VERSION == 34
             if (th.getMinorVersion() >= TAG_MINOR_EVENT_TIMERS
@@ -3234,7 +3240,10 @@ static void tag_read_you(reader &th)
         you.rune_charges[i] = unmarshallInt(th);
     }
     unmarshallFixedBitVector<NUM_RUNE_TYPES>(th, you.rune_curse_active);
-    you.first_hit_time = unmarshallInt(th);
+
+    // todo
+//    you.first_hit_time = unmarshallInt(th);
+    you.peace = unmarshallInt(th);
 
     you.max_exp = unmarshallInt(th);
     you.stamina_flags = unmarshallInt(th);
@@ -4036,7 +4045,8 @@ void marshallItem(writer &th, const item_def &item, bool iinfo)
         if (!item.quantity)
             name = "(quantity: 0) ", dummy.quantity = 1;
         name += dummy.name(DESC_PLAIN, true);
-        die("Invalid item: %s", name.c_str());
+//        die("Invalid item: %s", name.c_str());
+        return;
     }
 #endif
     ASSERT(item.is_valid(iinfo));

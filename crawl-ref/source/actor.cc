@@ -671,13 +671,14 @@ void actor::handle_constriction()
         damage += div_rand_round(damage * stepdown((float)duration, 50.0),
                                  BASELINE_DELAY * 5);
         if (is_player())
-            damage = div_rand_round(damage * (27 + 2 * you.experience_level), 81);
+            damage = div_rand_round(damage * (27 + 2 * effective_xl()), 81);
         DIAG_ONLY(const int durdam = damage);
         damage -= random2(1 + (defender->armour_class() / 2));
         DIAG_ONLY(const int acdam = damage);
         damage = timescale_damage(this, damage);
         DIAG_ONLY(const int timescale_dam = damage);
 
+        damage = max(0, damage);
         damage = defender->hurt(this, damage, BEAM_MISSILE,
                                 KILLED_BY_MONSTER, "", "", false);
         DIAG_ONLY(const int infdam = damage);
@@ -851,8 +852,12 @@ void actor::collide(coord_def newpos, const actor *agent, int pow)
     ASSERT(this != other);
     ASSERT(alive());
 
-    if (is_insubstantial())
+    if (is_insubstantial()
+        || mons_is_projectile(type)
+        || other && mons_is_projectile(other->type))
+    {
         return;
+    }
 
     if (is_monster())
         behaviour_event(as_monster(), ME_WHACK, agent);

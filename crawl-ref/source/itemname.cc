@@ -675,6 +675,7 @@ const char* potion_type_name(int potiontype)
 #endif
     case POT_EXPERIENCE:        return "experience";
     case POT_MAGIC:             return "magic";
+    case POT_STAMINA:           return "stamina";
 #if TAG_MAJOR_VERSION == 34
     case POT_RESTORE_ABILITIES: return "restore abilities";
 #endif
@@ -3005,7 +3006,7 @@ string make_name(uint32_t seed, makename_type name_type)
 
                 ASSERT(consonant_set.size() > 1);
                 len += consonant_set.size() - 2; // triples increase len
-                name += consonant_set.c_str();
+                name += consonant_set;
             }
             else // Place a single letter instead.
             {
@@ -3274,6 +3275,7 @@ bool is_emergency_item(const item_def &item)
         case POT_CURING:
         case POT_RESISTANCE:
         case POT_MAGIC:
+        case POT_STAMINA:
             return true;
         default:
             return false;
@@ -3636,7 +3638,7 @@ bool is_useless_item(const item_def &item, bool temp)
             return true;
         }
 
-        if (you.magic_points < wand_mp_cost() && temp)
+        if (get_mp() < wand_mp_cost() && temp)
             return true;
 
         return is_known_empty_wand(item);

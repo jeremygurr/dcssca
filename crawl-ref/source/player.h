@@ -53,11 +53,11 @@ static const int STEALTH_PIP = 50;
 static const int BONE_ARMOUR_HIT_RATIO = 50;
 
 /// The minimum aut cost for a player move (before haste)
-static const int FASTEST_PLAYER_MOVE_SPEED = 4;
+static const int FASTEST_PLAYER_MOVE_SPEED = 3;
 // relevant for swiftness, etc
 
 // Min delay for thrown projectiles.
-static const int FASTEST_PLAYER_THROWING_SPEED = 7;
+static const int FASTEST_PLAYER_THROWING_SPEED = 5;
 
 class targetter;
 
@@ -110,8 +110,8 @@ public:
     int sp;
     int sp_max;
 
-    int magic_points;
-    int max_magic_points;
+    int mp;
+    int mp_max;
     int mp_max_adj;             // max MP loss (ability costs, tutorial bonus)
     int mp_frozen_summons;
 
@@ -434,6 +434,7 @@ public:
     int first_hit_time;
 
     int stamina_flags;
+    int peace;
 
     // the deepest the player has been
     int max_exp;
@@ -1076,6 +1077,7 @@ void dec_max_hp(int hp_loss);
 void deflate_hp(int new_level, bool floor);
 void set_hp(int new_amount);
 
+int effective_xl();
 int get_real_hp(bool trans, bool rotted = false, bool adjust_for_difficulty = true);
 int get_real_sp(bool include_items = true);
 int get_real_mp(bool include_items = true, bool rotted = false);
@@ -1085,6 +1087,8 @@ string describe_contamination(int level);
 
 void set_sp(int new_amount);
 void set_mp(int new_amount);
+
+int get_unfrozen_mp();
 
 bool player_regenerates_hp();
 bool player_regenerates_sp();
@@ -1142,10 +1146,19 @@ bool need_expiration_warning(coord_def p = you.pos());
 
 bool player_is_tired(bool silent = false);
 bool player_is_very_tired(bool silent = false);
+bool player_mp_is_exhausted(bool silent);
+bool player_sp_is_exhausted(bool silent = false);
 bool in_quick_mode();
 void set_quick_mode(const bool new_quick_mode);
 void set_exertion(const exertion_mode new_exertion, bool manual = true);
 void exert_toggle(exertion_mode new_exertion);
+
+int get_hp();
+int get_hp_max();
+int get_sp();
+int get_sp_max();
+int get_mp();
+int get_mp_max();
 
 bool player_has_orb();
 bool player_on_orb_run();
@@ -1203,12 +1216,14 @@ void player_evoked_something();
 void player_moved();
 void player_before_long_safe_action();
 void player_after_long_safe_action(int turns);
-int player_spell_hunger_modifier(int old_hunger);
-int player_spell_cost_modifier(spell_type which_spell, bool raw, int old_cost);
-int player_spell_mp_freeze_modifier(spell_type which_spell, bool raw, int old_cost);
+void player_after_each_turn();
+
+int spell_mp_cost(spell_type which_spell);
+int spell_mp_freeze(spell_type which_spell);
 int player_tohit_modifier(int old_tohit);
 int player_damage_modifier(int old_damage, bool silent = false);
 int player_spellpower_modifier(int old_spellpower);
+int player_spellfailure_modifier(int spellfaifailureure);
 int player_attack_delay_modifier(int attk_delay);
 int player_stealth_modifier(int old_stealth);
 int player_evasion_modifier(int old_evasion);
@@ -1216,5 +1231,6 @@ void player_update_last_hit_chance(int chance);
 void player_update_tohit(int new_tohit = -1);
 void summoned_monster_died(monster* mons, bool natural_death);
 bool player_summoned_monster(spell_type spell, monster* mons, bool first);
+int player_ouch_modifier(int damage);
 
 #endif

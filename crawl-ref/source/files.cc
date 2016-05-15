@@ -895,7 +895,7 @@ static void _grab_followers()
 
     monster* dowan = nullptr;
     monster* duvessa = nullptr;
-/*
+
     // Handle nearby ghosts.
     for (adjacent_iterator ai(you.pos()); ai; ++ai)
     {
@@ -985,7 +985,6 @@ static void _grab_followers()
             place_set = !place_set;
         }
     }
-*/
 
     for (const mid_t &mid : you.summoned)
     {
@@ -1132,7 +1131,8 @@ static void _make_level(dungeon_feature_type stair_taken,
     _clear_env_map();
     builder(true, stair_type);
 
-    if (!crawl_state.game_is_tutorial()
+    // deactivate ghosts for now
+    if (false && !crawl_state.game_is_tutorial()
         && !Options.seed
         && !player_in_branch(BRANCH_ABYSS)
         && (!player_in_branch(BRANCH_DUNGEON) || you.depth > 2)

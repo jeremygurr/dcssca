@@ -644,12 +644,14 @@ bool can_wear_armour(const item_def &item, bool verbose, bool ignore_temporary)
 
     size_type player_size = you.body_size(PSIZE_TORSO, ignore_temporary);
     int bad_size = fit_armour_size(item, player_size);
+#if TAG_MAJOR_VERSION == 34
     if (is_unrandom_artefact(item, UNRAND_TALOS))
     {
         // adjust bad_size for the oversized plate armour
         // negative means levels too small, positive means levels too large
         bad_size = SIZE_LARGE - player_size;
     }
+#endif
 
     if (bad_size)
     {
@@ -2465,8 +2467,6 @@ string cannot_read_item_reason(const item_def &item)
         
      if (you.species == SP_DJINNI)
         return "You'd burn any scroll you tried to read!";
-    
- 
 
     // don't waste the player's time reading known scrolls in situations where
     // they'd be useless
@@ -2953,7 +2953,7 @@ void read_scroll(int item_slot)
     set_ident_type(scroll, true);
     set_ident_flags(scroll, ISFLAG_KNOW_TYPE); // for notes
 
-    string scroll_name = scroll.name(DESC_QUALNAME).c_str();
+    string scroll_name = scroll.name(DESC_QUALNAME);
 
     if (!cancel_scroll)
     {
