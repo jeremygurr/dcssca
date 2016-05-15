@@ -369,6 +369,14 @@ static const vector<spell_type> spellbook_templates[] =
     SPELL_NECROMUTATION,
 },
 
+{   // Book of Faffing About
+    SPELL_BLINK,
+    SPELL_SWIFTNESS,
+    SPELL_DISCHARGE,
+    SPELL_BLINKBOLT_PLAYER,
+    SPELL_CONJURE_BALL_LIGHTNING,
+},
+
 };
 
 COMPILE_CHECK(ARRAYSZ(spellbook_templates) == 1 + MAX_FIXED_BOOK);
