@@ -5,9 +5,7 @@
 * You can only have a maximum of 5 summons total between all spells.
 
 * Spirit shield
-    * Since players have much more magic now, to keep spirit shield from being too powerful, it behaves as if you
-      have half as much max mp. So if you have 50 max hp, and 100 max mp, half of your damage would come from hp,
-      and half would come from mp (since it acts as if you had 50 mp).
+    * Since players have much more magic now, to keep spirit shield from being too powerful, it behaves as if you have half as much max mp. So if you have 50 max hp, and 100 max mp, half of your damage would come from hp, and half would come from mp (since it acts as if you had 50 mp).
 
 * Unlimited ammo
     * If you fire a ranged weapon without ammo, the unbranded ammo fires.
@@ -17,25 +15,18 @@
 
 * One shot kill protection
     * Player isn't allowed to receive more than some percentage of damage between times when the player can act.
-        * This means, even if paralyzed, there is a limit to how much damage can be done before the player gets
-          a chance to do something about it.
-    * Nightmare mode: 80% damage per turn max. This means that they are guaranteed to have 1 turn to respond to any
-      threat if they are at full health.
+        * This means, even if paralyzed, there is a limit to how much damage can be done before the player gets a chance to do something about it.
+    * Nightmare mode: 80% damage per turn max. This means that they are guaranteed to have 1 turn to respond to any threat if they are at full health.
     * Challenge mode: 40% damage per turn max. Guarantees 2 turns.
     * Standard mode:  20% damage per turn max. Guarantees 3 turns.
-    * Example: in nightmare mode, a player has full health and comes across a pack of death yaks and a basilisk. The
-      player has 50 health. The player tries to attack the basilisk, but fails to kill it. The basilisk paralyzes the
-      player. The death yaks get a few free rounds of damage to the player while they are paralyzed, causing 100 damage.
-      Normally the player would be dead at this point, but since 100 damage is more than 80% of 50, only the 80% damage
-      is allowed (40 points of damage) that round. Then the player gets a chance to read a blink scroll and maybe escape.
-    * This isn't going to make up for chronically bad habits, but it will reduces the chances of players who are playing
-      well from dying because of a freak RNG roll.
+    * Example: in nightmare mode, a player has full health and comes across a pack of death yaks and a basilisk. The player has 50 health. The player tries to attack the basilisk, but fails to kill it. The basilisk paralyzes the player. The death yaks get a few free rounds of damage to the player while they are paralyzed, causing 100 damage.
+      Normally the player would be dead at this point, but since 100 damage is more than 80% of 50, only the 80% damage is allowed (40 points of damage) that round. Then the player gets a chance to read a blink scroll and maybe escape.
+    * This isn't going to make up for chronically bad habits, but it will reduces the chances of players who are playing well from dying because of a freak RNG roll.
 
 * Labyrinth allows auto-explore
     * It's not super reliable, but I find that is removes some tedium without making it totally trivial.
 
-* Increased Fighting and/or Spellcasting skills for all starting jobs that use them by 1, to make it a little
-  easier for characters to get off the ground with the recent changes.
+* Increased Fighting and/or Spellcasting skills for all starting jobs that use them by 1, to make it a little easier for characters to get off the ground with the recent changes.
 
 * Orc branch has been doubled in size, to 8 floors
     * The "boss" level is still on floor 4.
@@ -62,10 +53,7 @@
 ## v1.5
 
 * Stamina overhaul
-    * Extremely brief summary: you won't be able to swing around a broad axe as a spriggan with 5 str just as well as
-      an ogre with 25 str any more. Trying to swing that broad axe as a spriggan will exhaust the player almost immediately,
-      whereas and ogre with some minimal fighting skill (say 3) can use it quite a few times before getting tired. But
-      even for an ogre, throwing a large rock is going to be expensive stamina-wise.
+    * Extremely brief summary: you won't be able to swing around a broad axe as a spriggan with 5 str just as well as an ogre with 25 str any more. Trying to swing that broad axe as a spriggan will exhaust the player almost immediately, whereas and ogre with some minimal fighting skill (say 3) can use it quite a few times before getting tired. But even for an ogre, throwing a large rock is going to be expensive stamina-wise.
     * Normal mode fighting actions cost stamina points (SP).
     * SP cost of attack is based on fighting skill, strength, weapon weight.
         * Heavier weapons will cost more stamina to swing than lighter ones.
@@ -79,14 +67,12 @@
     * Focus mode adds an MP cost to affected actions.
     * Escape mode was removed and in it's place a separate quick / normal mode
         * This can operate independently of exertion mode, i.e. you can have Quick mode + Focus or Quick + Power mode.
-        * Quick mode has the benefits of the old escape mode, which are faster movement speed. But
-          there is also an additional stamina cost. Stealth is also dramatically reduced.
+        * Quick mode has the benefits of the old escape mode, which are faster movement speed. But there is also an additional stamina cost. Stealth is also dramatically reduced.
         * Normal mode doesn't have those benefits, but it doesn't have the additional stamina cost.
         * Quick mode no longer gives an evasion boost, only a speed boost.
         * Quick mode no longer has a stealth penalty.
         * Quick mode no longer has a movement penalty when changing directions.
-    * If you run out of stamina in power mode, and it switches you back to normal mode, once you've recovered 50% of your
-      SP, the game will automatically switch you back to power mode. Same applies to Focus mode.
+    * If you run out of stamina in power mode, and it switches you back to normal mode, once you've recovered 50% of your SP, the game will automatically switch you back to power mode. Same applies to Focus mode.
     * Switching exertion modes (normal, power, focus), costs 1 turn.
     * Switching speed mode from normal to quick, costs 0 turns.
     * Switching speed mode from quick to normal, costs 1 turn.
@@ -97,8 +83,7 @@
             * Weapon skill does not affect SP cost.
         * Spell casting costs MP based on spell level, player intelligence, and spellcasting skill.
             * Spell school skills do not affect MP cost.
-        * Damage, accuracy, stealth, spellpower, spell success, and attack speed are reduced from vanilla
-          crawl levels, based on difficulty mode being played.
+        * Damage, accuracy, stealth, spellpower, spell success, and attack speed are reduced from vanilla crawl levels, based on difficulty mode being played.
     * Power mode (same as normal mode except for the following)
         * +33% damage
         * +33% spellpower increase
@@ -163,4 +148,3 @@
                 * Tartarus (7)
             * Pandemonium (~25)
             * Zot (4)
-
