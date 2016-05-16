@@ -622,27 +622,6 @@ ENDMAP
 
 ## guardhouses
 ################################################
-NAME: minmay_ruined_shrine
-DEPTH: Dwarf
-SUBST: c = ccc.
-SUBST: c : c b:2 v:2
-SUBST: 0 = 0....
-SHUFFLE: '"
-SUBST: " : 0:75 ':75 xcvbnTG t:5
-SUBST: ' : 0:75 xcvbnTG t:5
-MAP
-    .......
-   ..ccccc..
-  ..ccccccc..
- ..ccc909ccc..
-..ccc00"00ccc..
-.ccc00'0'00ccc.
-.cc*0000000*cc.
-.cccccc0cccccc.
-.cccccc0cccccc.
-......000......
-ENDMAP
-
 NAME:   oh_my_dwarfness
 TAGS:   dhfh_guard_house
 ORIENT: float
