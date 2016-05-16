@@ -352,6 +352,24 @@ static const zap_info zap_data[] =
 },
 
 {
+    ZAP_BLINKBOLT_PLAYER,
+    "living lighning",
+    200,
+    new calcdice_calculator<1, 11, 3, 10>,
+    new tohit_calculator<7, 1, 40>,
+    new dicedef_calculator<3, 5, 1, 9>,
+    new tohit_calculator<16, 1, 40>,
+    LIGHTCYAN,
+    false,
+    BEAM_ELECTRICITY,
+    DCHAR_FIRED_ZAP,
+    true,
+    true,
+    false,
+    5 
+},
+
+{
     ZAP_POLYMORPH,
     "",
     100,

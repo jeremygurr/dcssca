@@ -4692,6 +4692,7 @@ enum spell_type
     SPELL_ICEBLAST,
     SPELL_SLUG_DART,
     SPELL_SPRINT,
+    SPELL_BLINKBOLT_PLAYER,
     NUM_SPELLS
 };
 
@@ -4863,6 +4864,7 @@ enum zap_type
     ZAP_UNRAVELLING,
     ZAP_ICEBLAST,
     ZAP_SLUG_DART,
+    ZAP_BLINKBOLT_PLAYER,
     NUM_ZAPS
 };
 
