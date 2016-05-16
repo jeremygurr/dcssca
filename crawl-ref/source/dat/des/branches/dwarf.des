@@ -740,7 +740,7 @@ cccc@.cccc
 ENDMAP
 
 NAME: minmay_ruined_shrine
-DEPTH: D:3-
+DEPTH: Dwarf
 SUBST: c = ccc.
 SUBST: c : c b:2 v:2
 SUBST: 0 = 0....
