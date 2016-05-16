@@ -435,11 +435,13 @@ int get_ammo_to_shoot(int item, dist &target, bool teleport)
         return -1;
     }
 
+    /*
     if (Options.auto_switch && you.m_quiver.get_fire_item() == -1
        && _autoswitch_to_ranged())
     {
         return -1;
     }
+     */
 
     if (!_fire_choose_item_and_target(item, target, teleport))
         return -1;
@@ -470,7 +472,7 @@ void fire_thing(int item)
     if (!target.isValid)
         return;
 
-    item_def *ammo;
+    item_def *ammo = nullptr;
     if (item == -1)
     {
         item_def *const weapon = you.weapon();    
@@ -523,6 +525,9 @@ void fire_thing(int item)
         throw_it(beam, *ammo, &target);
     }
     you.prev_direction.reset();
+
+    if (ammo && ammo->isValid())
+        destroy_item(*ammo);
 }
 
 // Basically does what throwing used to do: throw an item without changing

@@ -1,4 +1,12 @@
-# v1.5.1
+## v1.5.1
+
+* The player can fire missiles through friendlies now without hurting them.
+
+* Elyvilon improvements
+    * Healing targeting shows pacification chance when a monster is selected.
+    * Lesser and Greater healing may be applied to player or monster.
+        * When applied to monster, the ability will cost hp from the player.
+        * When applied to player, the ability costs piety.
 
 * Each spell costs a minimum of 5 mp, and it's easier to reduce the mp cost than before.
 
@@ -19,11 +27,17 @@
     * Player isn't allowed to receive more than some percentage of damage between times when the player can act.
         * This means, even if paralyzed, there is a limit to how much damage can be done before the player gets
           a chance to do something about it.
-    * Nightmare mode: 75% damage per turn max
-    * Challenge mode: 50% damage per turn max
-    * Standard mode:  25% damage per turn max
-    * What this means, for example, is that in standard mode, a player can't die in 3 turns (assuming they began
-      at full health).
+    * Nightmare mode: 80% damage per turn max. This means that they are guaranteed to have 1 turn to respond to any
+      threat if they are at full health.
+    * Challenge mode: 40% damage per turn max. Guarantees 2 turns.
+    * Standard mode:  20% damage per turn max. Guarantees 3 turns.
+    * Example: in nightmare mode, a player has full health and comes across a pack of death yaks and a basilisk. The
+      player has 50 health. The player tries to attack the basilisk, but fails to kill it. The basilisk paralyzes the
+      player. The death yaks get a few free rounds of damage to the player while they are paralyzed, causing 100 damage.
+      Normally the player would be dead at this point, but since 100 damage is more than 80% of 50, only the 80% damage
+      is allowed (40 points of damage) that round. Then the player gets a chance to read a blink scroll and maybe escape.
+    * This isn't going to make up for chronically bad habits, but it will reduces the chances of players who are playing
+      well from dying because of a freak RNG roll.
 
 * Labyrinth allows auto-explore
     * It's not super reliable, but I find that is removes some tedium without making it totally trivial.
