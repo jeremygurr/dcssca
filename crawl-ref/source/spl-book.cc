@@ -64,8 +64,8 @@ static const map<rod_type, spell_type> _rod_spells =
     { ROD_SHADOWS,     SPELL_WEAVE_SHADOWS },
     { ROD_IRON,        SPELL_SCATTERSHOT },
 #if TAG_MAJOR_VERSION == 34
-    { ROD_WARDING,     SPELL_NO_SPELL },
-    { ROD_VENOM,       SPELL_NO_SPELL },
+    { ROD_WARDING,     SPELL_CAUSE_FEAR|SPELL_ABJURATION },
+    { ROD_VENOM,       SPELL_TOXIC_RADIANCE },
 #endif
 };
 
