@@ -396,6 +396,230 @@ MAP
 ............
 ENDMAP
 
+################################################################################
+# octagon series
+NAME: dhfh_shoctagon
+ORIENT: float
+DEPTH:  Dwarf:1-2
+SUBST: A : xcvb m:5 .:5
+SUBST: B : .:50 cvbmG
+SUBST: C : .xcvbmGTde
+SUBST: D : .xcvbmGTd1
+SUBST: E : .:60 cvbmGT
+NSUBST: d = 1:2 / *:d
+SUBST: 1 = 1..
+ITEM: book of air / book of the sky / manual of air magic / \
+      lightning rod ident:type / staff of air ident:type / \
+      disc of storms / fan of gales / storm dragon armour w:5
+: if you.unrands("arc blade") then
+# dagger of elec is too lousy to be a good replacement for arc blade
+# but a plain qblade of elec is probably too good, so make it a randart to weaken it
+#
+# note: ident:type is the best available means to identify the elec brand but
+# not the rest of the item. It reveals the randarts name, but nothing else
+# about it except for the brand. Since the name is meaningless this is a purely
+# aesthetic issue, barring something like a strange user autopickup function.
+KITEM: 2 = quick blade ego:electrocution randart ident:type
+: else
+KITEM: 2 = dagger unrand:arc_blade
+: end
+MONS: raiju
+KMONS: 2 = shock serpent / sixfirhy / storm dragon
+MAP
+    xxx@xxx
+   xxB...Bxx
+  xxB..E..Bxx
+ xxB.......Bxx
+xxB...AAA...Bxx
+xB...11111...Bx
+x...A1DdD1A...x
+@.E.A1dCd1A.E.@ 
+x...A1DdD1A...x
+xB...11111...Bx
+xxB...AAA...Bxx
+ xxB.......Bxx
+  xxB..E..Bxx
+   xxB...Bxx
+    xxx@xxx
+ENDMAP
+
+NAME: dhfh_roctagon
+ORIENT: float
+DEPTH: Dwarf:1-2
+SUBST: A : xcvb m:5 .:5
+SUBST: B : .:50 cvbmG
+SUBST: C : .xcvbmGTde
+SUBST: D : .xcvbmGTd1
+SUBST: E : .:60 cvbmGT
+NSUBST: d = 1:2 / *:d
+SUBST: 1 = 1..
+ITEM: book of geomancy / book of the earth / manual of earth magic / \
+      iron rod ident:type / staff of earth ident:type / \
+      ring of protection ident:type / stone of tremors / crystal plate armour w:5
+: if you.unrands("devastator") then
+KITEM: 2 = eveningstar randart
+: else
+KITEM: 2 = mace unrand:devastator
+: end
+MONS: hill giant / troll
+KMONS: 2 = stone giant / iron dragon
+MAP
+    xxx@xxx
+   xxB...Bxx
+  xxB..E..Bxx
+ xxB.......Bxx
+xxB.A.A.A.A.Bxx
+xB...11111...Bx
+x...A1DdD1A...x
+@.E..1dCd1..E.@ 
+x...A1DdD1A...x
+xB...11111...Bx
+xxB.A.A.A.A.Bxx
+ xxB.......Bxx
+  xxB..E..Bxx
+   xxB...Bxx
+    xxx@xxx
+ENDMAP
+
+NAME: dhfh_coctagon
+ORIENT: float
+DEPTH: Dwarf:3-4
+SUBST: A : xcvb m:5 .:5
+SUBST: B : .:50 cvbmG
+SUBST: C : .xcvbmGTde
+SUBST: D : .xcvbmGTd1
+SUBST: E : .:60 cvbmGT
+NSUBST: d = 1:2 / *:d
+SUBST: 1 = 1..
+ITEM: book of frost / book of ice / manual of ice magic / \
+      wand of iceblast ident:type / staff of cold ident:type / \
+      ring of ice ident:type / phial of floods / ice dragon armour w:5
+: if you.unrands("frostbite") then
+KITEM: 2 = executioner's axe ego:freezing randart ident:type / \
+       battleaxe ego:freezing randart ident:type / \
+       broad axe ego:freezing randart ident:type
+: else
+KITEM: 2 = executioner's axe unrand:frostbite / \
+       battleaxe ego:freezing randart ident:type / \
+       broad axe ego:freezing randart ident:type
+: end
+MONS: polar bear / rime drake / ice beast
+KMONS: 2 = frost giant / ice dragon
+MAP
+    xxx@xxx
+   xxB...Bxx
+  xxB..E..Bxx
+ xxB.......Bxx
+xxB..AA.AA..Bxx
+xB..A11111A..Bx
+x...A1DdD1A...x
+@.E..1dCd1..E.@ 
+x...A1DdD1A...x
+xB..A11111A..Bx
+xxB..AA.AA..Bxx
+ xxB.......Bxx
+  xxB..E..Bxx
+   xxB...Bxx
+    xxx@xxx
+ENDMAP
+
+NAME: dhfh_firetagon
+ORIENT: float
+DEPTH: Dwarf:3-4
+SUBST: A : xcvb m:5 .:5
+SUBST: B : .:50 cvbmG
+SUBST: C : .xcvbmGTde
+SUBST: D : .xcvbmGTd1
+SUBST: E : .:60 cvbmGT
+NSUBST: d = 1:2 / *:d
+SUBST: 1 = 1..
+ITEM: book of flames / book of fire / manual of fire magic / \
+      rod of ignition ident:type / staff of fire ident:type / \
+      ring of fire ident:type / lamp of fire / fire dragon armour w:5
+: if you.unrands("firestarter") then
+KITEM: 2 = great mace ego:flaming randart ident:type
+: else
+KITEM: 2 = great mace unrand:firestarter
+: end
+MONS: fire bat
+KMONS: 2 = fire giant / fire dragon
+MAP
+    xxx@xxx
+   xxB...Bxx
+  xxB..E..Bxx
+ xxB.......Bxx
+xxB.AA...AA.Bxx
+xB..A11111A..Bx
+x....1DdD1....x
+@.E..1dCd1..E.@ 
+x....1DdD1....x
+xB..A11111A..Bx
+xxB.AA...AA.Bxx
+ xxB.......Bxx
+  xxB..E..Bxx
+   xxB...Bxx
+    xxx@xxx
+ENDMAP
+
+NAME: dhfh_bloctagon
+TAGS:   allow_dup
+ORIENT: float
+DEPTH: Dwarf
+SUBST: x : x:60 cvb
+SHUFFLE: ABCE, 0%
+SUBST: 0 = 0009
+SUBST: % = %%%*
+SUBST: A : . # guarantee the center is reachable
+SUBST: B : .:50 C:50 xcvbm G:2 t:2
+SUBST: C : .:50 E:50 xcvbm G:2 t:2
+SUBST: E : .:100 xcvbm G:2 t:2
+SUBST: D : .:100 xcvbm G:2 t:2
+SUBST: F : .xcvbm G:2 t:2 T:2
+MAP
+    xxxxxxxxxx
+    xxxxxxxxxx
+  xxxx00DD%%xxxx
+  xxxx00DD%%xxxx
+xxxx..CCAABB..xxxx
+xxxx..CCAABB..xxxx
+xx..BBEE%%EECC..xx
+xx..BBEE%%EECC..xx
+..DDAA00FF00AADD.@
+@.DDAA00FF00AADD..
+xx..CCEE%%EEBB..xx
+xx..CCEE%%EEBB..xx
+xxxx..BBAACC..xxxx
+xxxx..BBAACC..xxxx
+  xxxx%%DD00xxxx
+  xxxx%%DD00xxxx
+    xxxxxxxxxx
+    xxxxxxxxxx
+ENDMAP
+
+NAME: dhfh_bloctagon_deflated
+TAGS:   allow_dup
+ORIENT: float
+DEPTH: Dwarf
+SUBST: x : x:60 cvb
+SHUFFLE: ABCE, 9*
+SUBST: A = . # guarantee the center is reachable
+SUBST: B : .:50 C:50 xcvbm G:2 t:2
+SUBST: C : .:50 E:50 xcvbm G:2 t:2
+SUBST: E : .:100 xcvbm G:2 t:2
+SUBST: D : .:100 xcvbm G:2 t:2
+SUBST: F : .xcvbm G:2 t:2 T:2
+MAP
+  xxxxx
+ xx9D*xx
+xx.CAB.xx
+x.BE*EC.x
+@DA9F9AD@
+x.CE*EB.x
+xx.BAC.xx
+ xx*D9xx
+  xxxxx
+ENDMAP
+
 ## guardhouses
 ################################################
 NAME:   oh_my_dwarfness
@@ -493,6 +717,27 @@ ccc1..1ccc
 c.+cCCc+.c
 c*.c..c.*c
 cccc@.cccc
+ENDMAP
+
+NAME: minmay_ruined_shrine
+DEPTH: Dwarf
+SUBST: c = ccc.
+SUBST: c : c b:2 v:2
+SUBST: 0 = 0....
+SHUFFLE: '"
+SUBST: " : 0:75 ':75 xcvbnTG t:5
+SUBST: ' : 0:75 xcvbnTG t:5
+MAP
+    .......
+   ..ccccc..
+  ..ccccccc..
+ ..ccc909ccc..
+..ccc00"00ccc..
+.ccc00'0'00ccc.
+.cc*0000000*cc.
+.cccccc0cccccc.
+.cccccc0cccccc.
+......000......
 ENDMAP
 
 ## the main hall
