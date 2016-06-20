@@ -560,7 +560,12 @@ void attack::pain_affects_defender()
     if (defender->res_negative_energy())
         return;
 
-    if (!one_chance_in(attacker->skill_rdiv(SK_NECROMANCY) + 1))
+    if (!one_chance_in(attacker->max(skill_rdiv(SK_NECROMANCY) + 1,
+    	if (is_evil_god(your_god))
+    	{
+    		2 * you.piety_rank() + 1
+    	}
+    	)))
     {
         if (defender_visible)
         {
