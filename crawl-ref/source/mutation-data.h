@@ -234,17 +234,29 @@ static const mutation_def mut_data[] =
 { MUT_SLOW_HEALTH_REGENERATION, 50, 3, mutflag::BAD, false,
   "slow health regeneration",
 
-  {"You regenerate health slowly when monsters are visible.",
-   "You do not regenerate health naturally when monsters are visible.",
-   "You do not regenerate health naturally."},
-
+  {"You regenerate health slowly.",
+   "You regenerate health very slowly.",
+   "You regenerate health extremely slowly."},
   {"Your health regeneration is weakened.",
    "Your health regeneration is weakened.",
-   "You stop regenerating health."},
-
+   "Your health regeneration is weakened."},
   {"Your health regeneration is strengthened.",
    "Your health regeneration is strengthened.",
    "Your health regeneration is strengthened."},
+},
+
+{ MUT_NO_HEALTH_REGENERATION, 1, 1, mutflag::BAD, false,
+  "no health regeneration",
+
+  {"You don't regenerate health.",
+   "",
+   ""},
+  {"You stop regenerating health.",
+   "",
+   ""},
+  {"You start regenerating health.",
+   "",
+   ""},
 },
 
 { MUT_FAST_MAGIC_REGENERATION, 50, 3, mutflag::GOOD, false,
@@ -275,6 +287,20 @@ static const mutation_def mut_data[] =
    "Your magic regeneration is strengthened."},
 },
 
+{ MUT_NO_MAGIC_REGENERATION, 1, 1, mutflag::BAD, false,
+  "no magic regeneration",
+
+  {"You don't regenerate magic.",
+   "",
+   ""},
+  {"You stop regenerating magic.",
+   "",
+   ""},
+  {"You start regenerating magic.",
+   "",
+   ""},
+},
+
 { MUT_FAST_STAMINA_REGENERATION, 50, 3, mutflag::GOOD, false,
   "fast stamina regeneration",
 
@@ -301,6 +327,20 @@ static const mutation_def mut_data[] =
   {"Your stamina regeneration is strengthened.",
    "Your stamina regeneration is strengthened.",
    "Your stamina regeneration is strengthened."},
+},
+
+{ MUT_NO_STAMINA_REGENERATION, 1, 1, mutflag::BAD, false,
+  "no stamina regeneration",
+
+  {"You don't regenerate stamina.",
+   "",
+   ""},
+  {"You stop regenerating stamina.",
+   "",
+   ""},
+  {"You start regenerating stamina.",
+   "",
+   ""},
 },
 
 { MUT_FAST_METABOLISM, 20, 3, mutflag::BAD, false,
@@ -1003,9 +1043,9 @@ static const mutation_def mut_data[] =
 { MUT_HIGH_MAGIC, 50, 3, mutflag::GOOD, false,
   "high mp",
 
-  {"You have an increased reservoir of magic (+20 MP).",
-   "You have a considerably increased reservoir of magic (+40 MP).",
-   "You have a greatly increased reservoir of magic (+60 MP)."},
+  {"You have an increased reservoir of magic (+25 MP).",
+   "You have a considerably increased reservoir of magic (+50 MP).",
+   "You have a greatly increased reservoir of magic (+75 MP)."},
 
   {"You feel more energetic.",
    "You feel more energetic.",
@@ -1019,9 +1059,9 @@ static const mutation_def mut_data[] =
 { MUT_LOW_MAGIC, 20, 3, mutflag::BAD, false,
   "low mp",
 
-  {"Your magical capacity is low (-20 MP).",
-   "Your magical capacity is very low (-40 MP).",
-   "Your magical capacity is extremely low (-60 MP)."},
+  {"Your magical capacity is low (-25 MP).",
+   "Your magical capacity is very low (-50 MP).",
+   "Your magical capacity is extremely low (-75 MP)."},
 
   {"You feel less energetic.",
    "You feel less energetic.",
@@ -1035,9 +1075,9 @@ static const mutation_def mut_data[] =
 { MUT_HIGH_STAMINA, 50, 3, mutflag::GOOD, false,
   "high sp",
 
-  {"You have an increased reservoir of stamina (+20 SP).",
-   "You have a considerably increased reservoir of stamina (+40 SP).",
-   "You have a greatly increased reservoir of stamina (+60 SP)."},
+  {"You have an increased reservoir of stamina (+25 SP).",
+   "You have a considerably increased reservoir of stamina (+50 SP).",
+   "You have a greatly increased reservoir of stamina (+75 SP)."},
 
   {"You have greater endurance.",
    "You have greater endurance.",
@@ -1051,9 +1091,9 @@ static const mutation_def mut_data[] =
 { MUT_LOW_STAMINA, 20, 3, mutflag::BAD, false,
   "low sp",
 
-  {"Your stamina capacity is low (-20 SP).",
-   "Your stamina capacity is very low (-40 SP).",
-   "Your stamina capacity is extremely low (-60 SP)."},
+  {"Your stamina capacity is low (-25 SP).",
+   "Your stamina capacity is very low (-50 SP).",
+   "Your stamina capacity is extremely low (-75 SP)."},
 
   {"You have less endurance.",
    "You have less endurance.",
@@ -1253,8 +1293,8 @@ static const mutation_def mut_data[] =
 
   {
       "Your stamina protects you from some damage (25% of damage comes from SP)",
-      "Your stamina protects you from some damage (50% of damage comes from SP)",
-      "Your stamina protects you from some damage (75% of damage comes from SP)",
+      "Your stamina protects you from a lot of damage (50% of damage comes from SP)",
+      "Your stamina protects you from most damage (75% of damage comes from SP)",
   },
   {
       "You feel your stamina essence form a protective shroud around your flesh.",
@@ -1269,8 +1309,8 @@ static const mutation_def mut_data[] =
 
   {
   "Your magic protects you from some damage (25% of damage comes from MP)",
-  "Your magic protects you from some damage (50% of damage comes from MP)",
-  "Your magic protects you from some damage (75% of damage comes from MP)",
+  "Your magic protects you from a lot of damage (50% of damage comes from MP)",
+  "Your magic protects you from most damage (75% of damage comes from MP)",
   },
   {
   "You feel your magical essence form a protective shroud around your flesh.",

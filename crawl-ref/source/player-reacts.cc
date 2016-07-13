@@ -934,14 +934,14 @@ static void _handle_emergency_flight()
 // BASELINE_DELAY, and your regeneration rate. MP regeneration happens
 // similarly, but the countup depends on delay, BASELINE_DELAY, and
 // get_mp_max()
-static void _regenerate_hp_and_mp(int delay)
+static void _regenerate(int delay)
 {
 	if (crawl_state.disables[DIS_PLAYER_REGEN])
         return;
 
     if (!you.duration[DUR_DEATHS_DOOR])
     {
-        const int base_val = player_regen();
+        const int base_val = player_hp_regen();
         you.hit_points_regeneration += div_rand_round(base_val * delay, BASELINE_DELAY);
     }
 
@@ -976,16 +976,7 @@ static void _regenerate_hp_and_mp(int delay)
 
     if (get_sp() < get_sp_max() && (!in_quick_mode() || you.peace > 100))
     {
-        const int base_val = 7 + get_sp_max() / 3;
-        int sp_regen_countup = div_rand_round(base_val * delay, BASELINE_DELAY);
-
-        if (int level = player_mutation_level(MUT_FAST_STAMINA_REGENERATION))
-            sp_regen_countup <<= level;
-        if (int level = player_mutation_level(MUT_SLOW_STAMINA_REGENERATION))
-            sp_regen_countup = div_rand_round(sp_regen_countup, 1 << level);
-        if (you.wearing(EQ_AMULET, AMU_STAMINA_REGENERATION))
-            sp_regen_countup <<= 2;
-
+        const int sp_regen_countup = div_rand_round(player_sp_regen() * delay, BASELINE_DELAY);
         you.stamina_points_regeneration += sp_regen_countup;
     }
 
@@ -1000,16 +991,7 @@ static void _regenerate_hp_and_mp(int delay)
 
     if (get_mp() < get_mp_max())
     {
-        const int base_val = 7 + get_mp_max() / 3;
-        int mp_regen_countup = div_rand_round(base_val * delay, BASELINE_DELAY);
-
-        if (int level = player_mutation_level(MUT_FAST_MAGIC_REGENERATION))
-            mp_regen_countup <<= level;
-        if (int level = player_mutation_level(MUT_SLOW_MAGIC_REGENERATION))
-            mp_regen_countup = div_rand_round(mp_regen_countup, 1 << level);
-        if (you.wearing(EQ_AMULET, AMU_MAGIC_REGENERATION))
-            mp_regen_countup <<= 2;
-
+        const int mp_regen_countup = div_rand_round(player_mp_regen() * delay, BASELINE_DELAY);
         you.magic_points_regeneration += mp_regen_countup;
     }
 
@@ -1118,7 +1100,7 @@ void player_reacts()
     if (food_use > 0 && you.hunger > 0)
         make_hungry(food_use, true);
 
-    _regenerate_hp_and_mp(you.time_taken);
+    _regenerate(you.time_taken);
 
     dec_disease_player(you.time_taken);
     if (you.duration[DUR_POISONING])
