@@ -1179,6 +1179,9 @@ int player_hp_regen()
 {
     int regen = 7 + get_hp_max() / 3;
 
+    if (you.species == SP_DJINNI)
+        regen = 7 + get_hp_max() / 3 / 3;
+
     // Add in miscellaneous bonuses
     regen += _player_bonus_regen();
 
@@ -1224,6 +1227,9 @@ int player_sp_regen()
 {
     int regen = 7 + get_sp_max() / 3;
 
+    if (you.species == SP_DJINNI)
+        regen = 7 + get_hp_max() / 3 / 3;
+
     if (int level = player_mutation_level(MUT_FAST_STAMINA_REGENERATION))
         regen <<= level;
     if (int level = player_mutation_level(MUT_SLOW_STAMINA_REGENERATION))
@@ -1240,6 +1246,9 @@ int player_sp_regen()
 int player_mp_regen()
 {
     int regen = 7 + get_mp_max(true) / 3;
+
+    if (you.species == SP_DJINNI)
+        regen = 7 + get_hp_max() / 3 / 3;
 
     if (int level = player_mutation_level(MUT_FAST_MAGIC_REGENERATION))
         regen <<= level;
@@ -1261,7 +1270,7 @@ void update_regen_amulet_attunement()
     if (you.wearing(EQ_AMULET, AMU_HEALTH_REGENERATION)
         && player_mutation_level(MUT_SLOW_HEALTH_REGENERATION) < 3)
     {
-        if (you.hp == you.hp_max
+        if (get_hp() == get_hp_max()
             && you.props[REGEN_AMULET_ACTIVE].get_int() == 0)
         {
             you.props[REGEN_AMULET_ACTIVE] = 1;
@@ -1305,7 +1314,7 @@ int player_hunger_rate(bool temp)
     if (temp
         && (you.duration[DUR_REGENERATION]
             || you.duration[DUR_TROGS_HAND])
-        && you.hp < you.hp_max)
+        && get_hp() < get_hp_max())
     {
         hunger += 4;
     }
@@ -1476,7 +1485,7 @@ int player_res_fire(bool calc_unid, bool temp, bool items)
         if (you.duration[DUR_FIRE_SHIELD])
             rf += 2;
 
-        if (you.duration[DUR_QAZLAL_FIRE_RES])
+        if (you.duration[DUR_QAZLAL_FIRE_RES] && you.species != SP_DJINNI)
             rf++;
 
         rf += get_form()->res_fire();
@@ -4299,7 +4308,11 @@ bool dec_mp(int mp_loss, bool silent, bool allow_overdrive)
         return true;
 
     if (you.species == SP_DJINNI)
-        dec_hp(mp_loss, false);
+    if (you.species == SP_DJINNI)
+    {
+        if (get_hp() * 3 > get_hp_max())
+            dec_hp(mp_loss, false);
+    }
     else
         you.mp -= mp_loss;
 
@@ -4623,7 +4636,10 @@ bool dec_sp(int sp_loss, bool silent, bool allow_overdrive)
     }
 
     if (you.species == SP_DJINNI)
+    {
+        if (get_hp() * 3 > get_hp_max())
         dec_hp(sp_loss, false);
+    }
     else
         you.sp -= sp_loss;
 
@@ -10390,7 +10406,11 @@ int player_ouch_modifier(int damage, bool skip_details)
                 break;
         }
 
-    const int max_damage_allowed_per_turn = get_hp_max() * percentage_allowed / 100;
+    int max_damage_allowed_per_turn = get_hp_max() * percentage_allowed / 100;
+
+    if (you.species == SP_DJINNI)
+        max_damage_allowed_per_turn /= 3;
+
     const int damage_left = max_damage_allowed_per_turn - you.turn_damage;
 
     int new_damage = min(damage, damage_left);

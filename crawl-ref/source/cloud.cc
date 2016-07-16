@@ -807,18 +807,31 @@ bool actor_cloud_immune(const actor *act, const cloud_struct &cloud)
     }
 
     // Qazlalites get immunity to their own clouds.
-    if (player && YOU_KILL(cloud.killer) && have_passive(passive_t::resist_own_clouds))
+    if (player && YOU_KILL(cloud.killer) && have_passive(passive_t::resist_own_clouds)
+        && !(you.species == SP_DJINNI && (
+               cloud.type == CLOUD_FIRE
+            || cloud.type == CLOUD_HOLY_FLAMES
+            || cloud.type == CLOUD_FOREST_FIRE
+            || cloud.type == CLOUD_STEAM
+            )
+        ))
         return true;
 
     switch (cloud.type)
     {
     case CLOUD_FIRE:
     case CLOUD_FOREST_FIRE:
+    {
+
         if (!player)
             return act->res_fire() >= 3;
-        return you.duration[DUR_FIRE_SHIELD]
-               || you.mutation[MUT_FLAME_CLOUD_IMMUNITY]
-               || player_equip_unrand(UNRAND_FIRESTARTER);
+        const int fire_shield = you.duration[DUR_FIRE_SHIELD];
+        const int cloud_immunity = you.mutation[MUT_FLAME_CLOUD_IMMUNITY];
+        const bool has_firestarter = player_equip_unrand(UNRAND_FIRESTARTER);
+        return fire_shield
+               || cloud_immunity
+               || has_firestarter;
+    }
     case CLOUD_HOLY_FLAMES:
         return act->res_holy_energy(cloud.agent()) > 0;
     case CLOUD_COLD:
@@ -1257,10 +1270,12 @@ int actor_apply_cloud(actor *act)
 static bool _cloud_is_harmful(actor *act, cloud_struct &cloud,
                               int maximum_negligible_damage)
 {
-    return !actor_cloud_immune(act, cloud)
-           && (_cloud_has_negative_side_effects(cloud.type)
-               || (_actor_cloud_damage(act, cloud, true) >
-                   maximum_negligible_damage));
+    const bool cloud_immune = actor_cloud_immune(act, cloud);
+    const bool negative_side_effects = _cloud_has_negative_side_effects(cloud.type);
+    const int cloud_damage = _actor_cloud_damage(act, cloud, true);
+    return !cloud_immune
+           && (negative_side_effects
+               || (cloud_damage > maximum_negligible_damage));
 }
 
 /**
