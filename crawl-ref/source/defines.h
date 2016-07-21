@@ -79,7 +79,7 @@ COMPILE_CHECK(ITEM_IN_SHOP > NON_ITEM + MAX_MONSTERS);
 
 const int INFINITE_DISTANCE = 30000;
 // max distance on a map
-#define GDM 105
+#define GDM 150
 
 // this is the size of the border around the playing area (see in_bounds())
 #define BOUNDARY_BORDER         1
