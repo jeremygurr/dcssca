@@ -1451,6 +1451,12 @@ bool mutate(mutation_type which_mutation, const string &reason, bool failMsg,
             continue;
         }
 
+        // make it less likely to stack bad mutations
+        if (x_chance_in_y(you.mutation[mutat], 4) && MUT_BAD(mdef))
+        {
+            continue;
+        }
+
         // God gifts and forced mutations clear away conflicting mutations.
         int rc = _handle_conflicting_mutations(mutat, god_gift || force_mutation,
                                                reason,
