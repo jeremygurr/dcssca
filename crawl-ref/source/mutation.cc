@@ -1366,10 +1366,10 @@ bool mutate(mutation_type which_mutation, const string &reason, bool failMsg,
                         continue;
 
                     if (MUT_BAD(mdef) && x_chance_in_y(3 - player_mutation_level(MUT_BAD_DNA), 4))
-                        continue;
+                        break;
 
                     if (MUT_DEPENDS(mdef) && x_chance_in_y(3 - player_mutation_level(MUT_BAD_DNA), 6))
-                        continue;
+                        break;
 
                     found = true;
                     break;
