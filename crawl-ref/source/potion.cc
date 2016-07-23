@@ -879,9 +879,9 @@ public:
         bool mutated = false;
 
         mpr("It has a very clean taste.");
-        for (int i = 0; i < 7; i++)
+        for (int i = 0; i < 8; i++)
         {
-            if (random2(9) >= i)
+            if (random2(9) + 1 >= i)
             {
                 const int resilient_dna = player_mutation_level(MUT_RESILIENT_DNA) - player_mutation_level(MUT_WEAK_DNA);
                 mutation_type mutation = x_chance_in_y(resilient_dna + 1, 4) ? RANDOM_BAD_MUTATION : RANDOM_MUTATION;
