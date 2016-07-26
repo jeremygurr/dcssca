@@ -3724,7 +3724,7 @@ static void _builder_items()
     {
         specif_type = OBJ_POTIONS;
         specif_sub_type = POT_STAMINA;
-        items_wanted = 10;
+        items_wanted = 5;
     }
 
     for (i = 0; i < items_wanted; i++)

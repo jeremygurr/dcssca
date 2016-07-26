@@ -308,7 +308,7 @@ static int _abyss_create_items(const map_bitmask &abyss_genlevel_mask,
 {
     // During game start, number and level of items mustn't be higher than
     // that on level 1.
-    int num_items = 150, items_level = 52;
+    int num_items = 50, items_level = 52;
     int items_placed = 0;
 
     if (player_in_starting_abyss())

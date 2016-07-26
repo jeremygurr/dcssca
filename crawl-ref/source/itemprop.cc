@@ -592,7 +592,7 @@ static const weapon_def Weapon_prop[] =
             { SPWPN_HOLY_WRATH,  2 },
             { SPWPN_ANTIMAGIC,   2 },
         }},
-    { WPN_LAJATANG,          "lajatang",            16,-3, 14, 10,
+    { WPN_LAJATANG,          "lajatang",            16,-3, 14, 15,
         SK_STAVES,       SIZE_MEDIUM,  NUM_SIZE_LEVELS,  MI_NONE,
         DAMV_SLICING, 2, 2, {
             { SPWPN_NORMAL,         34 },

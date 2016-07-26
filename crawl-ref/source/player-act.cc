@@ -294,10 +294,7 @@ int player::attack_delay(const item_def *projectile, bool rescale, const item_de
         if (you.form == TRAN_BAT && !projectile)
             attk_delay = attk_delay * 3 / 5;
     }
-    else if (weapon
-             && (projectile ? projectile->launched_by(*weapon)
-                         : is_melee_weapon(*weapon))
-        )
+    else if (weapon)
     {
         /*
         const skill_type wpn_skill = item_attack_skill(*weapon);

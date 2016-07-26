@@ -1372,7 +1372,7 @@ int attack::calc_damage()
         }
 
         potential_damage = div_rand_round(potential_damage * (300 + boost), 300);
-        damage = random2(potential_damage + 1);
+        damage = max(potential_damage / 4, random2(potential_damage + 1));
 
         damage = player_apply_misc_modifiers(damage);
         damage = player_apply_slaying_bonuses(damage, false);
@@ -1667,7 +1667,7 @@ bool attack::apply_damage_brand(const char *what)
         break;
 
     case SPWPN_VORPAL:
-        special_damage = 1 + random2(damage_done) / 3;
+        special_damage = 1 + random2(damage_done * 2) / 3;
         // Note: Leaving special_damage_message empty because there isn't one.
         break;
 
