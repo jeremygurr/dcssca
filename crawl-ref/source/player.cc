@@ -10254,7 +10254,12 @@ int player_monster_gen_modifier(int amount)
     if (you.rune_curse_active[RUNE_ABYSSAL])
         percent += 50;
 
-    return amount * percent / 100;
+    // we need more monsters, since we made the maps larger
+    amount *= 2;
+
+    amount = amount * percent / 100;
+
+    return amount;
 }
 
 int player_potion_recharge_percent()
@@ -10291,7 +10296,7 @@ int player_pre_ouch_modifier(int damage)
     damage *= 100;
 
     // global monster damage reduction
-    damage = div_rand_round(damage * 3, 4);
+//    damage = div_rand_round(damage * 3, 4);
 
     // adjust for difficulty
     damage /= _difficulty_mode_multiplier();
