@@ -774,8 +774,8 @@ static const map<species_type, species_def> species_data =
     9, 4,
     MONS_OGRE,
     HT_LAND, US_ALIVE, SIZE_LARGE,
-    12, 7, 5, // 24
-    { STAT_STR }, 3,
+    18, 7, 5, // 30
+    { STAT_STR }, 4,
     {
             { MUT_TOUGH_SKIN, 1, 1 },
             { MUT_DEFORMED, 1, 10 },
