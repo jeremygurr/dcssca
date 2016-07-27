@@ -10063,7 +10063,7 @@ int player_attack_delay_modifier(int attack_delay)
     if (player_is_very_tired(true))
         attack_delay = attack_delay * 7 / 6;
     else if (you.exertion == EXERT_POWER)
-        attack_delay = attack_delay * 5 / 6 - 50;
+        attack_delay = attack_delay * 5 / 6 - 150;
 
     return attack_delay / _difficulty_mode_multiplier();
 }
