@@ -4220,7 +4220,6 @@ bool dec_mp(int mp_loss, bool silent, bool allow_overdrive)
         return true;
 
     if (you.species == SP_DJINNI)
-    if (you.species == SP_DJINNI)
     {
         if (get_hp() * 3 > get_hp_max())
             dec_hp(mp_loss, false);
