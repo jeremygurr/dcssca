@@ -1003,13 +1003,17 @@ void do_uncurse_item(item_def &item, int power,
         return;
     }
 
+    int previousCurseWeight = item.curse_weight;
     item.curse_weight = max(0, item.curse_weight - power);
 
-    if (item.curse_weight > 0)
-        mprf("The curse weakens.");
-    else
+    if (previousCurseWeight != item.curse_weight)
     {
-        mprf("The curse is lifted.");
+        if (item.curse_weight > 0)
+            mprf("The curse weakens.");
+        else
+        {
+            mprf("The curse is lifted.");
+        }
     }
 
     if (in_inv)
