@@ -389,7 +389,7 @@ static const weapon_def Weapon_prop[] =
         SK_MACES_FLAILS, SIZE_LITTLE,  SIZE_LITTLE, MI_NONE,
         DAMV_CRUSHING, 8, 10, M_AND_F_BRANDS },
     { WPN_MORNINGSTAR,       "morningstar",        14, -2, 15, 20,
-        SK_MACES_FLAILS, SIZE_LITTLE,  SIZE_SMALL,  MI_NONE,
+        SK_MACES_FLAILS, SIZE_LITTLE,  SIZE_MEDIUM,  MI_NONE,
         DAMV_CRUSHING | DAM_PIERCE, 7, 10, {
             { SPWPN_PROTECTION,     30 },
             { SPWPN_NORMAL,         15 },
@@ -415,7 +415,7 @@ static const weapon_def Weapon_prop[] =
         SK_MACES_FLAILS, SIZE_MEDIUM,  SIZE_BIG,    MI_NONE,
         DAMV_CRUSHING | DAM_PIERCE, 2, 10, M_AND_F_BRANDS },
     { WPN_EVENINGSTAR,       "eveningstar",        16, -1, 15, 25,
-        SK_MACES_FLAILS, SIZE_LITTLE,  SIZE_SMALL,  MI_NONE,
+        SK_MACES_FLAILS, SIZE_LITTLE,  SIZE_MEDIUM,  MI_NONE,
         DAMV_CRUSHING | DAM_PIERCE, 0, 2, {
             { SPWPN_PROTECTION,     30 },
             { SPWPN_DRAINING,       19 },
