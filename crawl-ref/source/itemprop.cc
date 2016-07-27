@@ -530,10 +530,10 @@ static const weapon_def Weapon_prop[] =
         SK_AXES,       SIZE_LITTLE,  SIZE_MEDIUM, MI_NONE,
         DAMV_CHOPPING, 4, 10, AXE_BRANDS },
     { WPN_BATTLEAXE,         "battleaxe",          15, -4, 17, 20,
-        SK_AXES,       SIZE_MEDIUM, NUM_SIZE_LEVELS, MI_NONE,
+        SK_AXES,       SIZE_MEDIUM,  SIZE_BIG, MI_NONE,
         DAMV_CHOPPING, 6, 10, AXE_BRANDS },
     { WPN_EXECUTIONERS_AXE,  "executioner's axe",  18, -6, 20, 25,
-        SK_AXES,       SIZE_MEDIUM, NUM_SIZE_LEVELS, MI_NONE,
+        SK_AXES,       SIZE_MEDIUM,  NUM_SIZE_LEVELS, MI_NONE,
         DAMV_CHOPPING, 0, 2, AXE_BRANDS },
 
     // Polearms
