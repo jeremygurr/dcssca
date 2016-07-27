@@ -414,7 +414,7 @@ static const weapon_def Weapon_prop[] =
     { WPN_DIRE_FLAIL,        "dire flail",         15, -3, 13, 20,
         SK_MACES_FLAILS, SIZE_MEDIUM,  SIZE_BIG,    MI_NONE,
         DAMV_CRUSHING | DAM_PIERCE, 2, 10, M_AND_F_BRANDS },
-    { WPN_EVENINGSTAR,       "eveningstar",        17, -1, 15, 25,
+    { WPN_EVENINGSTAR,       "eveningstar",        16, -1, 15, 25,
         SK_MACES_FLAILS, SIZE_LITTLE,  SIZE_SMALL,  MI_NONE,
         DAMV_CRUSHING | DAM_PIERCE, 0, 2, {
             { SPWPN_PROTECTION,     30 },

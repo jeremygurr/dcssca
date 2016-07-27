@@ -55,7 +55,7 @@ static const map<species_type, species_def> species_data =
         -1, 3, 0, -1,
         9, 3,
         MONS_TROLL,
-        HT_LAND, US_ALIVE, SIZE_LARGE,
+        HT_LAND, US_ALIVE, SIZE_BIG,
         15, 4, 5, // 24
         { STAT_STR }, 3,
         { { MUT_TOUGH_SKIN, 2, 1 },
@@ -773,7 +773,7 @@ static const map<species_type, species_def> species_data =
     -1, 5, 0, 0,
     9, 4,
     MONS_OGRE,
-    HT_LAND, US_ALIVE, SIZE_LARGE,
+    HT_LAND, US_ALIVE, SIZE_BIG,
     18, 7, 5, // 30
     { STAT_STR }, 4,
     {
