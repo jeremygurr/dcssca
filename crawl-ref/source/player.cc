@@ -10028,6 +10028,9 @@ int player_damage_modifier(int damage, bool silent, const int range)
         damage = damage * (30 - range + 1) / 30;
         */
 
+    // to compensate for faster attack speeds globally
+    damage = damage * 4 / 5;
+
     if (player_is_very_tired(true))
         damage = damage * 4 / 5;
     else if (you.exertion == EXERT_POWER)
