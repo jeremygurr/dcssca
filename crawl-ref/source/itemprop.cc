@@ -354,7 +354,7 @@ static int Weapon_index[NUM_WEAPONS];
 static const weapon_def Weapon_prop[] =
 {
     // Maces & Flails                             dam hit speed weight
-    { WPN_CLUB,              "club",                7,  3, 13, 10,
+    { WPN_CLUB,              "club",                7,  3, 12, 10,
         SK_MACES_FLAILS, SIZE_LITTLE,  SIZE_LITTLE, MI_NONE,
         DAMV_CRUSHING, 10, 0, {} },
 #if TAG_MAJOR_VERSION == 34
@@ -362,7 +362,7 @@ static const weapon_def Weapon_prop[] =
         SK_MACES_FLAILS, SIZE_LITTLE,  SIZE_LITTLE, MI_NONE,
         DAMV_CRUSHING, 0, 0, {} },
 #endif
-    { WPN_WHIP,              "whip",                6,  2, 11, 5,
+    { WPN_WHIP,              "whip",                6,  2, 10, 5,
         SK_MACES_FLAILS, SIZE_LITTLE,  SIZE_LITTLE, MI_NONE,
         DAMV_SLASHING, 4, 0, {
             { SPWPN_NORMAL,        34 },
@@ -382,13 +382,13 @@ static const weapon_def Weapon_prop[] =
         SK_MACES_FLAILS, SIZE_LITTLE,  SIZE_LITTLE, MI_NONE,
         DAMV_CRUSHING, 0, 0, M_AND_F_BRANDS },
 #endif
-    { WPN_MACE,              "mace",                9,  3, 14, 14,
+    { WPN_MACE,              "mace",                9,  3, 10, 14,
         SK_MACES_FLAILS, SIZE_LITTLE,  SIZE_LITTLE, MI_NONE,
         DAMV_CRUSHING, 9, 10, M_AND_F_BRANDS },
-    { WPN_FLAIL,             "flail",              11,  0, 14, 17,
+    { WPN_FLAIL,             "flail",              11,  0, 11, 17,
         SK_MACES_FLAILS, SIZE_LITTLE,  SIZE_LITTLE, MI_NONE,
         DAMV_CRUSHING, 8, 10, M_AND_F_BRANDS },
-    { WPN_MORNINGSTAR,       "morningstar",        14, -2, 15, 20,
+    { WPN_MORNINGSTAR,       "morningstar",        14, -2, 12, 20,
         SK_MACES_FLAILS, SIZE_LITTLE,  SIZE_MEDIUM,  MI_NONE,
         DAMV_CRUSHING | DAM_PIERCE, 7, 10, {
             { SPWPN_PROTECTION,     30 },
@@ -405,16 +405,16 @@ static const weapon_def Weapon_prop[] =
             { SPWPN_PAIN,            2 },
             { SPWPN_VAMPIRISM,       2 },
         }},
-    { WPN_DEMON_WHIP,        "demon whip",         11, -4, 10, 5,
+    { WPN_DEMON_WHIP,        "demon whip",         11, -4, 8, 5,
         SK_MACES_FLAILS, SIZE_LITTLE,  SIZE_LITTLE, MI_NONE,
         DAMV_SLASHING, 0, 2, DEMON_BRANDS },
-    { WPN_SACRED_SCOURGE,    "sacred scourge",     12, -4, 10, 5,
+    { WPN_SACRED_SCOURGE,    "sacred scourge",     12, -4, 8, 5,
         SK_MACES_FLAILS, SIZE_LITTLE,  SIZE_LITTLE, MI_NONE,
         DAMV_SLASHING, 0, 0, HOLY_BRANDS },
-    { WPN_DIRE_FLAIL,        "dire flail",         15, -3, 13, 20,
+    { WPN_DIRE_FLAIL,        "dire flail",         15, -3, 12, 20,
         SK_MACES_FLAILS, SIZE_MEDIUM,  SIZE_BIG,    MI_NONE,
         DAMV_CRUSHING | DAM_PIERCE, 2, 10, M_AND_F_BRANDS },
-    { WPN_EVENINGSTAR,       "eveningstar",        16, -1, 15, 25,
+    { WPN_EVENINGSTAR,       "eveningstar",        16, -1, 12, 25,
         SK_MACES_FLAILS, SIZE_LITTLE,  SIZE_MEDIUM,  MI_NONE,
         DAMV_CRUSHING | DAM_PIERCE, 0, 2, {
             { SPWPN_PROTECTION,     30 },
@@ -431,18 +431,18 @@ static const weapon_def Weapon_prop[] =
             { SPWPN_PAIN,            2 },
             { SPWPN_VAMPIRISM,       2 },
         }},
-    { WPN_GREAT_MACE,        "great mace",         19, -4, 17, 30,
+    { WPN_GREAT_MACE,        "great mace",         19, -4, 13, 30,
         SK_MACES_FLAILS, SIZE_MEDIUM,  SIZE_BIG,    MI_NONE,
         DAMV_CRUSHING, 3, 10, M_AND_F_BRANDS },
-    { WPN_GIANT_CLUB,        "giant club",         22, -6, 18, 40,
+    { WPN_GIANT_CLUB,        "giant club",         22, -6, 15, 40,
         SK_MACES_FLAILS, SIZE_LARGE, NUM_SIZE_LEVELS, MI_NONE,
         DAMV_CRUSHING, 1, 10, {} },
-    { WPN_GIANT_SPIKED_CLUB, "giant spiked club",  25, -8, 19, 50,
+    { WPN_GIANT_SPIKED_CLUB, "giant spiked club",  25, -8, 15, 50,
         SK_MACES_FLAILS, SIZE_LARGE, NUM_SIZE_LEVELS, MI_NONE,
         DAMV_CRUSHING | DAM_PIERCE, 1, 10, {} },
 
     // Short Blades
-    { WPN_DAGGER,            "dagger",              4,  6, 10, 2,
+    { WPN_DAGGER,            "dagger",              4,  6, 8, 2,
         SK_SHORT_BLADES, SIZE_LITTLE,  SIZE_LITTLE, MI_NONE,
         DAMV_PIERCING, 10, 10, {
             { SPWPN_VENOM,          28 },
@@ -459,13 +459,13 @@ static const weapon_def Weapon_prop[] =
             { SPWPN_DISTORTION,      1 },
             { SPWPN_ANTIMAGIC,       1 },
         }},
-    { WPN_QUICK_BLADE,       "quick blade",         5,  6,  7, 3,
+    { WPN_QUICK_BLADE,       "quick blade",         5,  6,  6, 3,
         SK_SHORT_BLADES, SIZE_LITTLE,  SIZE_LITTLE, MI_NONE,
         DAMV_PIERCING, 0, 2, {} },
-    { WPN_SHORT_SWORD,       "short sword",         6,  4, 11, 3,
+    { WPN_SHORT_SWORD,       "short sword",         6,  4,  9, 3,
         SK_SHORT_BLADES, SIZE_LITTLE,  SIZE_LITTLE,  MI_NONE,
         DAMV_PIERCING, 8, 10, SBL_BRANDS },
-    { WPN_RAPIER,           "rapier",               8,  4, 12, 5,
+    { WPN_RAPIER,           "rapier",               8,  4, 11, 5,
         SK_SHORT_BLADES, SIZE_LITTLE,  SIZE_LITTLE,  MI_NONE,
         DAMV_PIERCING, 8, 10, SBL_BRANDS },
     { WPN_CUTLASS,          "cutlass",              8,  4, 12, 5,
@@ -474,28 +474,28 @@ static const weapon_def Weapon_prop[] =
 
 
     // Long Blades
-    { WPN_FALCHION,              "falchion",               7,  2, 13, 5,
+    { WPN_FALCHION,              "falchion",               7,  2, 10, 5,
         SK_LONG_BLADES,  SIZE_LITTLE,  SIZE_LITTLE, MI_NONE,
         DAMV_SLICING, 7, 10, LBL_BRANDS }, // DAMV_CHOPPING...?
-    { WPN_LONG_SWORD,            "long sword",            9,  1, 14, 10,
+    { WPN_LONG_SWORD,            "long sword",            9,  1, 11, 10,
         SK_LONG_BLADES,  SIZE_LITTLE,  SIZE_SMALL,  MI_NONE,
         DAMV_SLICING, 7, 10, LBL_BRANDS },
-    { WPN_SCIMITAR,              "scimitar",              11, -2, 14, 10,
+    { WPN_SCIMITAR,              "scimitar",              11, -2, 12, 10,
         SK_LONG_BLADES,  SIZE_LITTLE,  SIZE_SMALL,  MI_NONE,
         DAMV_SLICING, 6, 10, LBL_BRANDS },
-    { WPN_DEMON_BLADE,           "demon blade",           12, -1, 13, 10,
+    { WPN_DEMON_BLADE,           "demon blade",           12, -1, 10, 10,
         SK_LONG_BLADES,  SIZE_LITTLE,  SIZE_SMALL,  MI_NONE,
         DAMV_SLICING, 0, 2, DEMON_BRANDS },
-    { WPN_EUDEMON_BLADE,         "eudemon blade",         13, -2, 12, 10,
+    { WPN_EUDEMON_BLADE,         "eudemon blade",         13, -2, 10, 10,
         SK_LONG_BLADES,  SIZE_LITTLE,  SIZE_SMALL,  MI_NONE,
         DAMV_SLICING, 0, 0, HOLY_BRANDS },
-    { WPN_DOUBLE_SWORD,          "double sword",          14, -1, 15, 15,
+    { WPN_DOUBLE_SWORD,          "double sword",          14, -1, 12, 15,
         SK_LONG_BLADES,  SIZE_LITTLE,  SIZE_MEDIUM, MI_NONE,
         DAMV_SLICING, 0, 2, LBL_BRANDS },
-    { WPN_GREAT_SWORD,           "great sword",           16, -3, 16, 15,
+    { WPN_GREAT_SWORD,           "great sword",           16, -3, 13, 15,
         SK_LONG_BLADES,  SIZE_MEDIUM,  NUM_SIZE_LEVELS,  MI_NONE,
         DAMV_SLICING, 6, 10, LBL_BRANDS },
-    { WPN_TRIPLE_SWORD,          "triple sword",          18, -4, 19, 20,
+    { WPN_TRIPLE_SWORD,          "triple sword",          18, -4, 14, 20,
         SK_LONG_BLADES,  SIZE_MEDIUM,  NUM_SIZE_LEVELS,  MI_NONE,
         DAMV_SLICING, 0, 2, LBL_BRANDS },
 #if TAG_MAJOR_VERSION == 34
@@ -575,10 +575,10 @@ static const weapon_def Weapon_prop[] =
 
     // Staves
     // WPN_STAFF is for weapon stats for magical staves only.
-    { WPN_STAFF,             "staff",               5,  5, 12, 10,
+    { WPN_STAFF,             "staff",               5,  5, 10, 10,
         SK_STAVES,       SIZE_LITTLE,  SIZE_MEDIUM, MI_NONE,
         DAMV_CRUSHING, 0, 0, {} },
-    { WPN_QUARTERSTAFF,      "quarterstaff",        10, 3, 13, 10,
+    { WPN_QUARTERSTAFF,      "quarterstaff",        10, 3, 10, 10,
         SK_STAVES,       SIZE_MEDIUM,  NUM_SIZE_LEVELS,  MI_NONE,
         DAMV_CRUSHING, 8, 10, {
             { SPWPN_NORMAL,     50 },
@@ -592,7 +592,7 @@ static const weapon_def Weapon_prop[] =
             { SPWPN_HOLY_WRATH,  2 },
             { SPWPN_ANTIMAGIC,   2 },
         }},
-    { WPN_LAJATANG,          "lajatang",            16,-3, 14, 15,
+    { WPN_LAJATANG,          "lajatang",            16,-3, 12, 15,
         SK_STAVES,       SIZE_MEDIUM,  NUM_SIZE_LEVELS,  MI_NONE,
         DAMV_SLICING, 2, 2, {
             { SPWPN_NORMAL,         34 },
@@ -608,31 +608,34 @@ static const weapon_def Weapon_prop[] =
         }},
 
     // Range weapons
-    { WPN_BLOWGUN,           "blowgun",             0,  4, 15, 2,
+    { WPN_BLOWGUN,           "blowgun",             0,  4, 10, 2,
         SK_THROWING,     SIZE_LITTLE,  SIZE_LITTLE, MI_NEEDLE,
         DAMV_NON_MELEE, 5, 0, {}, },
 
-    { WPN_HUNTING_SLING,     "hunting sling",       5,  0, 12, 3,
+    // the strength of slings is in their low stamina costs, and high damage, but they are relatively slow and hard to master
+    { WPN_HUNTING_SLING,     "hunting sling",       9,  -5, 17, 3,
         SK_SLINGS,       SIZE_LITTLE,  SIZE_LITTLE, MI_STONE,
         DAMV_NON_MELEE, 8, 10, RANGED_BRANDS },
-    { WPN_GREATSLING,        "greatsling",          8, -3, 14, 8,
+    { WPN_GREATSLING,        "greatsling",         13, -10, 20, 6,
         SK_SLINGS,       SIZE_LITTLE,  SIZE_SMALL, MI_STONE,
         DAMV_NON_MELEE, 2, 2, RANGED_BRANDS },
 
-    { WPN_HAND_CROSSBOW,     "hand crossbow",      10,  2, 15, 7,
+    // low dexterity requirements make these better for high str characters
+    { WPN_HAND_CROSSBOW,     "hand crossbow",       5,  5, 13, 10,
         SK_CROSSBOWS,    SIZE_LITTLE, SIZE_LITTLE, MI_BOLT,
         DAMV_NON_MELEE, 7, 10, RANGED_BRANDS },
-    { WPN_ARBALEST,          "arbalest",           15, -2, 19, 13,
+    { WPN_ARBALEST,          "arbalest",           10,  4, 16, 15,
         SK_CROSSBOWS,    SIZE_LITTLE, NUM_SIZE_LEVELS, MI_BOLT,
         DAMV_NON_MELEE, 5, 10, RANGED_BRANDS },
-    { WPN_TRIPLE_CROSSBOW,   "triple crossbow",    20, -5, 23, 20,
+    { WPN_TRIPLE_CROSSBOW,   "triple crossbow",    15,  3, 20, 20,
         SK_CROSSBOWS,    SIZE_SMALL,  NUM_SIZE_LEVELS, MI_BOLT,
         DAMV_NON_MELEE, 0, 2, RANGED_BRANDS },
 
-    { WPN_SHORTBOW,          "shortbow",            7,  5, 13, 4,
+    // low strength requirements and high damage make these better for high dex characters
+    { WPN_SHORTBOW,          "shortbow",            7, -5, 12, 7,
         SK_BOWS,         SIZE_LITTLE,  NUM_SIZE_LEVELS, MI_ARROW,
         DAMV_NON_MELEE, 8, 10, RANGED_BRANDS },
-    { WPN_LONGBOW,           "longbow",            13,  3, 17, 10,
+    { WPN_LONGBOW,           "longbow",            12, -10, 15, 10,
         SK_BOWS,         SIZE_MEDIUM,  NUM_SIZE_LEVELS, MI_ARROW,
         DAMV_NON_MELEE, 2, 10, RANGED_BRANDS },
 };
