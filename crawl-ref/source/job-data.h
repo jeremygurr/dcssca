@@ -173,8 +173,7 @@ static const map<job_type, job_def> job_data =
       SP_CENTAUR, },
     { "short sword", "leather armour" },
     WCHOICE_RANGED,
-    { { SK_FIGHTING, 3 }, { SK_DODGING, 2 }, { SK_STEALTH, 1 },
-      { SK_ARMOUR, 1 }, { SK_WEAPON, 4 }, },
+    { { SK_FIGHTING, 2 }, { SK_DODGING, 2 }, { SK_STEALTH, 1 }, { SK_WEAPON, 6 }, },
 } },
 
 { JOB_ICE_ELEMENTALIST, {

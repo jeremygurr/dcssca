@@ -632,10 +632,10 @@ static const weapon_def Weapon_prop[] =
         DAMV_NON_MELEE, 0, 2, RANGED_BRANDS },
 
     // low strength requirements and high damage make these better for high dex characters
-    { WPN_SHORTBOW,          "shortbow",            7, -5, 12, 7,
+    { WPN_SHORTBOW,          "shortbow",            7, -3, 10, 5,
         SK_BOWS,         SIZE_LITTLE,  NUM_SIZE_LEVELS, MI_ARROW,
         DAMV_NON_MELEE, 8, 10, RANGED_BRANDS },
-    { WPN_LONGBOW,           "longbow",            12, -10, 15, 10,
+    { WPN_LONGBOW,           "longbow",            10, -7, 12, 10,
         SK_BOWS,         SIZE_MEDIUM,  NUM_SIZE_LEVELS, MI_ARROW,
         DAMV_NON_MELEE, 2, 10, RANGED_BRANDS },
 };
