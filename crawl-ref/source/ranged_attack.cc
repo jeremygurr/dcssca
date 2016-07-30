@@ -68,7 +68,7 @@ int ranged_attack::calc_to_hit()
 {
     orig_to_hit = attack::calc_to_hit();
 
-    if (orig_to_hit == AUTOMATIC_HIT)
+    if (orig_to_hit >= AUTOMATIC_HIT)
         return AUTOMATIC_HIT;
 
     if (teleport)
@@ -80,7 +80,7 @@ int ranged_attack::calc_to_hit()
     }
 
     // ranged attack always has a more difficult time hitting than melee
-    orig_to_hit -= 5;
+//    orig_to_hit -= 5;
 
     int hit = orig_to_hit;
     const int defl = defender->missile_deflection();
