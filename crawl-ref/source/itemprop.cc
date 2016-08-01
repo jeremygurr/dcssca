@@ -613,7 +613,7 @@ static const weapon_def Weapon_prop[] =
         DAMV_NON_MELEE, 5, 0, {}, },
 
     // the strength of slings is in their low stamina costs, and high damage, but they are relatively slow and hard to master
-    { WPN_HUNTING_SLING,     "hunting sling",       9, -10, 17, 3,
+    { WPN_HUNTING_SLING,     "hunting sling",       9, -10, 20, 3,
         SK_SLINGS,       SIZE_LITTLE,  SIZE_LITTLE, MI_STONE,
         DAMV_NON_MELEE, 8, 10, RANGED_BRANDS },
     { WPN_GREATSLING,        "greatsling",         13, -15, 20, 6,
@@ -621,21 +621,21 @@ static const weapon_def Weapon_prop[] =
         DAMV_NON_MELEE, 2, 2, RANGED_BRANDS },
 
     // low dexterity requirements make these better for high str characters
-    { WPN_HAND_CROSSBOW,     "hand crossbow",       5,  5, 13, 15,
+    { WPN_HAND_CROSSBOW,     "hand crossbow",       5,  5, 15, 15,
         SK_CROSSBOWS,    SIZE_LITTLE, SIZE_LITTLE, MI_BOLT,
         DAMV_NON_MELEE, 7, 10, RANGED_BRANDS },
-    { WPN_ARBALEST,          "arbalest",           10,  5, 16, 20,
+    { WPN_ARBALEST,          "arbalest",           10,  5, 15, 20,
         SK_CROSSBOWS,    SIZE_LITTLE, NUM_SIZE_LEVELS, MI_BOLT,
         DAMV_NON_MELEE, 5, 10, RANGED_BRANDS },
-    { WPN_TRIPLE_CROSSBOW,   "triple crossbow",    15,  5, 20, 25,
+    { WPN_TRIPLE_CROSSBOW,   "triple crossbow",    15,  5, 15, 25,
         SK_CROSSBOWS,    SIZE_SMALL,  NUM_SIZE_LEVELS, MI_BOLT,
         DAMV_NON_MELEE, 0, 2, RANGED_BRANDS },
 
     // low strength requirements and high damage make these better for high dex characters
-    { WPN_SHORTBOW,          "shortbow",            7, -5, 10, 5,
+    { WPN_SHORTBOW,          "shortbow",            7, -5, 15, 5,
         SK_BOWS,         SIZE_LITTLE,  NUM_SIZE_LEVELS, MI_ARROW,
         DAMV_NON_MELEE, 8, 10, RANGED_BRANDS },
-    { WPN_LONGBOW,           "longbow",            10, -10, 10, 10,
+    { WPN_LONGBOW,           "longbow",            10, -10, 15, 10,
         SK_BOWS,         SIZE_MEDIUM,  NUM_SIZE_LEVELS, MI_ARROW,
         DAMV_NON_MELEE, 2, 10, RANGED_BRANDS },
 };
