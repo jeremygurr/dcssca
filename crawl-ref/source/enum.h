@@ -4148,8 +4148,8 @@ enum size_type
     SIZE_LITTLE,            // spriggans
     SIZE_SMALL,             // halflings/kobolds
     SIZE_MEDIUM,            // humans/elves/dwarves
-    SIZE_LARGE,             // trolls/ogres/centaurs/nagas
-    SIZE_BIG,               // large quadrupeds
+    SIZE_LARGE,             // centaurs/nagas
+    SIZE_BIG,               // trolls/ogres/large quadrupeds
     SIZE_GIANT,             // giants
     NUM_SIZE_LEVELS,
     SIZE_CHARACTER,         // transformations that don't change size

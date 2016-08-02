@@ -30,6 +30,7 @@ struct mon_attack_def
 // Amount of mons->speed_increment used by different actions; defaults
 // to 10.
 #define DEFAULT_ENERGY {10, 10, 10, 10, 10, 10, 10, 100}
+#define HIGH_ATTACK_ENERGY {10, 10, 40, 10, 10, 10, 10, 100}
 struct mon_energy_usage
 {
     uint8_t move;

@@ -54,7 +54,7 @@ const int rune_curse_dam_adjust(int dam, bool absolute)
 {
     const int runes = active_rune_curses();
     if (runes > 0 && dam != INSTANT_DEATH)
-        dam = dam * (100 + runes * (crawl_state.difficulty + 2)) / 100;
+        dam = dam * (100 + 2 * runes * (crawl_state.difficulty + 2)) / 100;
     return dam;
 }
 

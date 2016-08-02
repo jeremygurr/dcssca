@@ -4220,7 +4220,6 @@ bool dec_mp(int mp_loss, bool silent, bool allow_overdrive)
         return true;
 
     if (you.species == SP_DJINNI)
-    if (you.species == SP_DJINNI)
     {
         if (get_hp() * 3 > get_hp_max())
             dec_hp(mp_loss, false);
@@ -10028,6 +10027,9 @@ int player_damage_modifier(int damage, bool silent, const int range)
         damage = damage * (30 - range + 1) / 30;
         */
 
+    // to compensate for faster attack speeds globally
+    damage = damage * 4 / 5;
+
     if (player_is_very_tired(true))
         damage = damage * 4 / 5;
     else if (you.exertion == EXERT_POWER)
@@ -10060,7 +10062,7 @@ int player_attack_delay_modifier(int attack_delay)
     if (player_is_very_tired(true))
         attack_delay = attack_delay * 7 / 6;
     else if (you.exertion == EXERT_POWER)
-        attack_delay = attack_delay * 5 / 6 - 50;
+        attack_delay = attack_delay * 5 / 6 - 150;
 
     return attack_delay / _difficulty_mode_multiplier();
 }
