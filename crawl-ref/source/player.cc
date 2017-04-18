@@ -8386,7 +8386,7 @@ vector<PlaceInfo> player::get_all_place_info(bool visited_only,
 // Used for falling into traps and other bad effects, but is a slightly
 // different effect from the player invokable ability.
 bool player::do_shaft()
-{
+
     if (!is_valid_shaft_level())
         return false;
 

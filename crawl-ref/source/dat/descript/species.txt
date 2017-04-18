@@ -88,7 +88,8 @@ Kobolds are small, mischievous and a little fragile, but multi-talented.
 %%%%
 Lava Orc
 
-These masters of earth and fire magic come from deep below the Dungeon. Their abilities change with their temperature.
+These masters of earth and fire magic come from deep below the Dungeon. They
+burn inside. Like other orcs, they're skilled with weapons and armour.
 %%%%
 Merfolk
 
