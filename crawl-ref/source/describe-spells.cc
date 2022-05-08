@@ -92,8 +92,8 @@ static string _ability_type_vulnerabilities(mon_spell_slot_flag type,
  * @param has_silencable    Whether any of the spells are subject to Silence
  *                          despite being non-wizardly and non-priestly.
  * @return                  A header string for the bookset; e.g.,
- *                          "She has mastered one of the following spellbooks:\n"
- *                          "It possesses the following natural abilities:\n"
+ *                          "has mastered one of the following spellbooks:"
+ *                          "possesses the following natural abilities:"
  */
 static string _booktype_header(mon_spell_slot_flag type, size_t num_books,
                                bool has_silencable)
@@ -178,22 +178,9 @@ static void _monster_spellbooks(const monster_info &mi,
                 continue;
             }
 
-            static map<monster_type, size_t> serpent_indices =
-            {
-                { MONS_SERPENT_OF_HELL, 0 },
-                { MONS_SERPENT_OF_HELL_COCYTUS, 1 },
-                { MONS_SERPENT_OF_HELL_DIS, 2 },
-                { MONS_SERPENT_OF_HELL_TARTARUS, 3 },
-            };
-
-            const monster_type serpent_type
-                = mons_class_is_zombified(mi.type) ? mi.base_type : mi.type;
-            const size_t *s_i_ptr = map_find(serpent_indices, serpent_type);
-            ASSERT(s_i_ptr);
-            const size_t serpent_index = *s_i_ptr;
-            ASSERT_LESS(serpent_index, ARRAYSZ(serpent_of_hell_breaths));
-
-            for (auto breath : serpent_of_hell_breaths[serpent_index])
+            const vector<spell_type> *breaths = soh_breath_spells(spell);
+            ASSERT(breaths);
+            for (auto breath : *breaths)
                 output_book.spells.emplace_back(breath);
         }
 
