@@ -371,6 +371,13 @@ static item_def _dummy_item(const item_type &item)
     dummy_item.base_type = _item_orig_base_type(item.base_type);
     dummy_item.sub_type = _item_orig_sub_type(item);
     dummy_item.quantity = 1;
+    // Deck name is reported as buggy if this is not done.
+    if (item.base_type == ITEM_DECKS)
+    {
+        dummy_item.plus = 1;
+        dummy_item.deck_rarity = DECK_RARITY_COMMON;
+        init_deck(dummy_item);
+    }
     return dummy_item;
 }
 

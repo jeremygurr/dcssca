@@ -314,6 +314,9 @@ int CLua::loadfile(lua_State *ls, const char *filename, bool trusted,
     while (!f.eof())
         script += f.get_line() + "\n";
 
+    if (script[0] == 0x1b)
+        abort();
+
     // prefixing with @ stops lua from adding [string "%s"]
     return luaL_loadbuffer(ls, &script[0], script.length(),
                            ("@" + file).c_str());
@@ -728,6 +731,20 @@ bool CLua::callfn(const char *fn, int nargs, int nret)
     return !err;
 }
 
+static int lua_loadstring(lua_State *ls)
+{
+    const auto lua = luaL_checkstring(ls, 1);
+    if (lua[0] == 0x1b)
+        abort();
+    lua_settop(ls, 0);
+    if (luaL_loadstring(ls, lua))
+    {
+        lua_pushnil(ls);
+        lua_insert(ls, 1);
+    }
+    return lua_gettop(ls);
+}
+
 void CLua::init_lua()
 {
     if (_state)
@@ -756,6 +773,11 @@ void CLua::init_lua()
     luaopen_string(_state);
     luaopen_table(_state);
     luaopen_math(_state);
+
+    lua_pushcfunction(_state, lua_loadstring);
+    lua_setglobal(_state, "loadstring");
+    lua_pushnil(_state);
+    lua_setglobal(_state, "load");
 
     // Open Crawl bindings
     cluaopen_kills(_state);
