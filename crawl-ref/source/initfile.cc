@@ -735,7 +735,7 @@ void game_options::reset_options()
     }
 #endif
 
-#if !defined(DGAMELAUNCH)
+#if defined(DGAMELAUNCH)
 #if defined(TARGET_OS_MACOSX)
     UNUSED(_resolve_dir);
     const string tmp_path_base =
